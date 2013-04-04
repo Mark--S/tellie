@@ -87,7 +87,7 @@ class SerialCommand(object):
                 if n_read>10:
                     sys.exit(1)
         else:
-            print 'not reading out:',command
+            pass
                 
     def _send_setting_command(self,command,buffer_check=None):
         """Send non-firing command"""
@@ -114,7 +114,7 @@ class SerialCommand(object):
 
     def stop(self):
         """Stop firing tellie"""
-        self._send_command(_cmd_stop)
+        self._send_command(_cmd_stop,False)
         self._firing = False
 
     def read_pin(self,channel=None):
@@ -161,58 +161,93 @@ class SerialCommand(object):
         command += _cmd_channel_select_many_end
         self._send_setting_command(command=command,buffer_check=buffer_check)
 
-    def set_pulse_height(self,ph):
+    def set_pulse_height(self,par):
         """Set the pulse height for the selected channel"""
-        if ph>_max_pulse_height or ph<0:
-            raise tellie_exception.TellieException("Invalid pulse height: %s"%ph)
-        hi = ph >> 8
-        lo = ph & 255
-        command = _cmd_ph_hi+chr(hi)+_cmd_ph_lo+chr(lo)+_cmd_ph_end
-        buffer_check = _cmd_ph_hi+_cmd_ph_lo+_cmd_ph_end
+        command,buffer_check = command_pulse_height(par)
         self._send_channel_setting_command(command=command,buffer_check=buffer_check)
 
-    def set_pulse_width(self,pw):
+    def set_pulse_width(self,par):
         """Set the pulse width for the selected channel"""
-        if pw>_max_pulse_width or pw<0:
-            raise tellie_exception.TellieException("Invalid pulse width: %s"%pw)
-        hi = pw >> 8
-        lo = pw & 255
-        command = _cmd_pw_hi+chr(hi)+_cmd_pw_lo+chr(lo)+_cmd_pw_end
-        buffer_check = _cmd_pw_hi+_cmd_pw_lo+_cmd_pw_end
+        command,buffer_check = command_pulse_width(par)
         self._send_channel_setting_command(command=command,buffer_check=buffer_check)
 
-    def set_pulse_number(self,pn):
+    def set_pulse_number(self,par):
         """Set the number of pulses for the selected channel"""
-        if pn>_max_pulse_number or pn<0:
-            raise tellie_exception.TellieException("Invalid pulse number: %s"%pn)
-	hi = int(pn/255.)
-	lo = int((pn/255. - hi)*255)
-        command = _cmd_pn_hi+chr(hi)+_cmd_pn_lo+chr(lo)
-        buffer_check = _cmd_pn_hi + _cmd_pn_lo
+        command,buffer_check = command_pulse_number(par)
         self._send_channel_setting_command(command=command,buffer_check=buffer_check)
 
-    def set_pulse_delay(self,pd):
+    def set_pulse_delay(self,par):
         """Set the delay between pulses for the selected channel"""
-        if pd>_max_pulse_delay or pd<0:
-            raise tellie_exception.TellieException("Invalid pulse delay: %s"%pd)
-        ms = int(pd)
-        us = int((pd-ms)*250)
-        command = _cmd_pd+chr(ms)+chr(us)
-        buffer_check = _cmd_pd
+        command_buffer_check = command_pulse_delay(par)
         self._send_channel_setting_command(command=command,buffer_check=buffer_check)
 
-    def set_trigger_delay(self,td):
+    def set_trigger_delay(self,par):
         """Set the trigger delay for the selected channel"""
-        if td>_max_trigger_delay or td<0:
-            raise tellie_exception.TellieException("Invalid trigger delay: %s"%td)
-        command = _cmd_td+chr(td/5)
-        buffer_check = _cmd_td
+        command,buffer_check = command_trigger_delay(par)
         self._send_channel_setting_command(command=command,buffer_check=buffer_check)
 
-    def set_fibre_delay(self,fd):
+    def set_fibre_delay(self,par):
         """Set the fibre (channel) delay for the selected channel"""
-        if fd>_max_fibre_delay or fd<0:
-            raise tellie_exception.TellieException("Invalid fibre delay: %s"%fd)
-        command = _cmd_fd+chr(fd)
-        buffer_check = _cmd_fd
+        command,buffer_check = command_fibre_delay(par)
         self._send_channel_setting_command(command=command,buffer_check=buffer_check)
+
+##################################################
+# Command options and corresponding buffer outputs
+#
+
+def command_pulse_height(par):
+    """Get the command to set a pulse height"""  
+    if par>_max_pulse_height or par<0:
+        raise tellie_exception.TellieException("Invalid pulse height: %s"%par)
+    hi = par >> 8
+    lo = par & 255
+    command = _cmd_ph_hi+chr(hi)+_cmd_ph_lo+chr(lo)+_cmd_ph_end
+    buffer_check = _cmd_ph_hi+_cmd_ph_lo+_cmd_ph_end  
+    return command,buffer_check
+
+def command_pulse_width(par):
+    """Get the command to set a pulse width"""
+    if par>_max_pulse_width or par<0:
+        raise tellie_exception.TellieException("Invalid pulse width: %s"%par)
+    hi = par >> 8
+    lo = par & 255
+    command = _cmd_pw_hi+chr(hi)+_cmd_pw_lo+chr(lo)+_cmd_pw_end
+    buffer_check = _cmd_pw_hi+_cmd_pw_lo+_cmd_pw_end
+    return command,buffer_check
+
+def command_pulse_number(par):
+    """Get the command to set a pulse number"""
+    if par>_max_pulse_number or par<0:
+        raise tellie_exception.TellieException("Invalid pulse number: %s"%par)
+    hi = int(par/255.)
+    lo = int((par/255. - hi)*255)
+    command = _cmd_pn_hi+chr(hi)+_cmd_pn_lo+chr(lo)
+    buffer_check = _cmd_pn_hi + _cmd_pn_lo
+    return command,buffer_check
+    
+def command_pulse_delay(par):
+    """Get the command to set a pulse delay"""
+    if par>_max_pulse_delay or par<0:
+        raise tellie_exception.TellieException("Invalid pulse delay: %s"%par)
+    ms = int(par)
+    us = int((par-ms)*250)
+    command = _cmd_pd+chr(ms)+chr(us)
+    buffer_check = _cmd_pd
+    return command,buffer_check
+    
+def command_trigger_delay(par):
+    """Get the command to set a trigger delay"""
+    if par>_max_trigger_delay or par<0:
+        raise tellie_exception.TellieException("Invalid trigger delay: %s"%par)
+    command = _cmd_td+chr(par/5)
+    buffer_check = _cmd_td
+    return command,buffer_check
+    
+def command_fibre_delay(par):
+    """Get the command to set a fibre delay"""
+    if par>_max_fibre_delay or par<0:
+        raise tellie_exception.TellieException("Invalid fibre delay: %s"%fd)
+    command = _cmd_fd+chr(par)
+    buffer_check = _cmd_fd
+    return command,buffer_check
+    

@@ -29,8 +29,12 @@ def run_tellie(tellie_serial):
     asyncore.loop()
 
 if __name__=="__main__":
-    #try:
     tellie_serial = serial_command.SerialCommand()
-    run_tellie(tellie_serial)
-    #except:
-    #    safe_exit(tellie_serial)
+    try:
+        run_tellie(tellie_serial)
+    except KeyboardInterrupt:
+        print 'quitting server'
+        asyncore.ExitNow('Server is quitting')
+        safe_exit(tellie_serial)
+    except:
+        safe_exit(tellie_serial)
