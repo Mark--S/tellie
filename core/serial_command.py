@@ -114,7 +114,7 @@ class SerialCommand(object):
 
     def stop(self):
         """Stop firing tellie"""
-        self._send_command(_cmd_stop)
+        self._send_command(_cmd_stop,False)
         self._firing = False
 
     def read_pin(self,channel=None):
