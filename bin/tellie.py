@@ -15,6 +15,7 @@
 
 import os
 import sys
+import optparse
 from core import tellie_exception, serial_command, orca_comms
 import asyncore
 
@@ -29,7 +30,10 @@ def run_tellie(tellie_serial):
     asyncore.loop()
 
 if __name__=="__main__":
-    tellie_serial = serial_command.SerialCommand()
+    parser = optparse.OptionParser()
+    parser.add_option("-d",dest="debug",action="store_true",default=False,help="Debug mode")
+    (options, args) = parser.parse_args()
+    tellie_serial = serial_command.SerialCommand(options.debug)
     try:
         run_tellie(tellie_serial)
     except KeyboardInterrupt:

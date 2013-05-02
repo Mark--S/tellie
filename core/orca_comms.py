@@ -53,7 +53,7 @@ class TellieEcho(asyncore.dispatcher_with_send):
         else:
             response = handle_request(self.out_buffer,self._tellie_serial)
             self.out_buffer=response
-
+            
 ### Inputs:
 # Flags notify Tellie of the format of the input
 # Should be separated by '|' from JSON settings where appropriate

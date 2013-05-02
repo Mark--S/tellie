@@ -52,9 +52,10 @@ fire_settings = {1:{'pulse_number':100,
                     'pulse_delay':0}}
 fire_command = 'F|'+json.dumps(fire_settings)
 read_command = 'R'
+exit_command = 'X'
 
 init_out = send_command(init_command)
 fire_out = send_command(fire_command)
 time.sleep(1)
 read_out = send_command(read_command)
-
+#exit_out = send_command(exit_command)
