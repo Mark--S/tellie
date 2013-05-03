@@ -72,6 +72,13 @@ class SerialCommand(object):
         if self._debug_mode:
             print "DEBUG::"+message
 
+    def _check_clear_buffer(self):
+        """Many commands expect an empty buffer, fail if they are not!
+        """
+        buffer_read = self._serial.read(100)
+        if buffer_read!="" and buffer_read!=None:
+            raise tellie_exception.TellieException("Buffer not clear: %s"%(buffer_read))
+
     def _send_command(self,command,readout=True,buffer_check=None):
         """Send a command to the serial port."""
         self._debug("_send_command")
@@ -93,15 +100,16 @@ class SerialCommand(object):
                 #print 'LOOPING! in:'+command+':want:'+buffer_check+':out:'+buffer_read+':'
                 n_read+=1
                 if n_read>10:
-                    sys.exit(1)
+                    raise tellie_exception.TellieException("Unexpected buffer output: %s"%(buffer_read))
         else:
             pass
                 
     def _send_setting_command(self,command,buffer_check=None):
-        """Send non-firing command"""
+        """Send non-firing command.  All of these should have a clear buffer before being used."""
         self._debug("Send non-firing command")
         if self._firing==True:
             raise tellie_exception.TellieException("Cannot run command, in firing mode")
+        self._check_clear_buffer()
         self._send_command(command=command,buffer_check=buffer_check)
             
     def _send_channel_setting_command(self,command,buffer_check=None):
@@ -142,7 +150,6 @@ class SerialCommand(object):
         #self._send_command(command=command,buffer_check=buffer_check)
         pattern = re.compile(r"""\d+""")
         output = self._serial.read(100)        
-        print 'pinout',output
         pin = pattern.findall(output)
         if len(pin)!=1:
             raise tellie_exception.TellieException("Bad number of PIN readouts: %s"%(len(pin)))

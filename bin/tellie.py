@@ -24,9 +24,9 @@ def safe_exit(tellie_serial):
     print 'Exiting safely!'
     tellie_serial.stop()
 
-def run_tellie(tellie_serial):
+def run_tellie(tellie_serial,debug=False):
     """Main operation loop for tellie control"""   
-    server = orca_comms.TellieServer('',50050,tellie_serial)
+    server = orca_comms.TellieServer('',50050,tellie_serial,debug)
     asyncore.loop()
 
 if __name__=="__main__":
@@ -35,10 +35,11 @@ if __name__=="__main__":
     (options, args) = parser.parse_args()
     tellie_serial = serial_command.SerialCommand(options.debug)
     try:
-        run_tellie(tellie_serial)
+        run_tellie(tellie_serial,options.debug)
     except KeyboardInterrupt:
         print 'quitting server'
         asyncore.ExitNow('Server is quitting')
         safe_exit(tellie_serial)
-    except:
+    except Exception,e:
+        print "Quitting - not an interrupt"
         safe_exit(tellie_serial)

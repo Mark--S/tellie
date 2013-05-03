@@ -23,37 +23,8 @@ import socket
 import os
 import json
 import serial_command
+import tellie_exception
 
-class TellieServer(asyncore.dispatcher):
-    """Server class for asynchronous I/O to Tellie"""
-    def __init__(self,host,port,tellie_serial):
-        """Create a socket, bind to it and listen"""
-        asyncore.dispatcher.__init__(self)
-        self.create_socket(socket.AF_INET,socket.SOCK_STREAM)
-        self.bind((host,port))
-        self.listen(1)
-        self._tellie_serial = tellie_serial
-    def handle_accept(self):
-        """Handle connection requests"""
-        sock, address = self.accept()
-        TellieEcho(sock,address,self._tellie_serial)
-
-class TellieEcho(asyncore.dispatcher_with_send):
-    """Echo handling class for Tellie responses"""
-    def __init__(self,conn_sock,client_address,tellie_serial):
-        """Initialisation function"""
-        asyncore.dispatcher_with_send.__init__(self, conn_sock)
-        self.client_address = client_address
-        self._tellie_serial = tellie_serial
-    def handle_read(self):
-        """Handle communication from Orca, echo accordingly"""
-        self.out_buffer = self.recv(1024)
-        if not self.out_buffer:
-            self.close()
-        else:
-            response = handle_request(self.out_buffer,self._tellie_serial)
-            self.out_buffer=response
-            
 ### Inputs:
 # Flags notify Tellie of the format of the input
 # Should be separated by '|' from JSON settings where appropriate
@@ -72,6 +43,48 @@ _flagout_pinout = "P" # SHOULD BE dict of channels and PIN readings
 _flagout_notready = "Z" # response when polled for PIN, but firing incomplete
 _flagout_error = "E" # no other information
 
+def debug(debug_mode,message):
+    if debug_mode==True:
+        print "DEBUG::COMMS::"+message
+
+class TellieServer(asyncore.dispatcher):
+    """Server class for asynchronous I/O to Tellie"""
+    def __init__(self,host,port,tellie_serial,debug_mode):
+        """Create a socket, bind to it and listen"""
+        asyncore.dispatcher.__init__(self)
+        self.create_socket(socket.AF_INET,socket.SOCK_STREAM)
+        self.bind((host,port))
+        self.listen(1)
+        self._tellie_serial = tellie_serial
+        self._debug_mode = debug_mode
+    def handle_accept(self):
+        """Handle connection requests"""
+        debug(self._debug_mode,"handle accept")
+        sock, address = self.accept()
+        TellieEcho(sock,address,self._tellie_serial,self._debug_mode)
+
+class TellieEcho(asyncore.dispatcher_with_send):
+    """Echo handling class for Tellie responses"""
+    def __init__(self,conn_sock,client_address,tellie_serial,debug_mode):
+        """Initialisation function"""
+        asyncore.dispatcher_with_send.__init__(self, conn_sock)
+        self.client_address = client_address
+        self._tellie_serial = tellie_serial
+        self._debug_mode = debug_mode
+    def handle_read(self):
+        """Handle communication from Orca, echo accordingly"""
+        debug(self._debug_mode,"handle read")
+        self.out_buffer = self.recv(1024)
+        debug(self._debug_mode,"read: %s"%(self.out_buffer))
+        if not self.out_buffer:
+            self.close()
+        else:
+            try:
+                response = handle_request(self.out_buffer,self._tellie_serial)
+                self.out_buffer = response
+            except tellie_exception.TellieException,e:
+                self.out_buffer=_flagout_error+"|"+str(e)
+            
 def handle_request(request,tellie_serial):
     """Handle the command from Orca"""
     response = None
