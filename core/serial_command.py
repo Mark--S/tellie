@@ -134,8 +134,10 @@ class SerialCommand(object):
     def stop(self):
         """Stop firing tellie"""
         self._debug("Stop firing!")
-        self._send_command(_cmd_stop,False)
+        self._send_command(_cmd_stop,False)        
+        buffer_contents = self._serial.read(100)
         self._firing = False
+        return buffer_contents
 
     def read_pin(self,channel=None):
         """Read the pin diode output, should always follow a fire command"""
@@ -151,8 +153,10 @@ class SerialCommand(object):
         pattern = re.compile(r"""\d+""")
         output = self._serial.read(100)        
         pin = pattern.findall(output)
-        if len(pin)!=1:
+        if len(pin)>1:
             raise tellie_exception.TellieException("Bad number of PIN readouts: %s"%(len(pin)))
+        elif len(pin)==0:
+            return "Not ready"
         self._firing = False
         return pin[0]
 

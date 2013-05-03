@@ -110,8 +110,8 @@ def handle_request(request,tellie_serial):
     
 def tellie_stop(tellie_serial):
     """Send a request for tellie to stop firing"""
-    tellie_serial.stop()
-    return _flagout_stopped
+    buffer_contents = tellie_serial.stop()
+    return _flagout_stopped+'|'+buffer_contents
 
 def tellie_init(tellie_serial,json_settings):
     """Read a settings JSON, send commands to the tellie control box"""
@@ -156,4 +156,4 @@ def tellie_read(tellie_serial):
         return "%s|%s" % (_flagout_pinout,pin_out)
     except tellie_exception.TellieException:
         pin_out = ""
-        return _flagout_notready
+        return _flagout_error
