@@ -31,23 +31,34 @@ PORT = 50050
 class TellieComms(asyncore.dispatcher_with_send):
     def __init__(self, host, port, message):
         asyncore.dispatcher.__init__(self)
-        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)        
         self.connect((host, port))
         self.out_buffer = message
+        self._response = None
+        self._error = None
 
     def handle_close(self):
         self.close()
 
     def handle_read(self):
         self._response = self.recv(1024)
-        print "Received:",self._response
         self.close()
+
+    def handle_error(self):        
+        nil, t, v, tbinfo = asyncore.compact_traceback()
+        if t == socket.error:
+            self._error = "SOCKET ERROR"
+        else:
+            self._error = str(t)+" "+str(v)
+        self.handle_close()
 
     def get_response(self):
         if self._response:
-            return self._response
+            return False,self._response
+        elif self._error:
+            return True,self._error
         else:
-            return None
+            return None,None
 
 _flagout_init = "I"
 _flagout_fire = "F"
@@ -56,7 +67,7 @@ _flagout_stop = "X"
 
 def send_command(command):
     client = TellieComms(HOST,PORT,command)
-    asyncore.loop()
+    asyncore.loop()        
     return client.get_response()
 
 def send_init_command(settings):
@@ -75,12 +86,12 @@ def send_stop_command():
     command = _flagout_stop
     return send_command(command)
 
-init_settings = {1:{'pulse_height':16383,
-                     'pulse_width':0}}
-fire_settings = {1:{'pulse_number':100,
-                    'pulse_delay':010.000}}
-
-init_out = send_init_command(init_settings)
-fire_out = send_fire_command(fire_settings)
-read_out = send_read_command()
-exit_out = send_stop_command()
+#init_settings = {1:{'pulse_height':16383,
+#                     'pulse_width':0}}
+#fire_settings = {1:{'pulse_number':100,
+#                    'pulse_delay':010.000}}
+#
+#init_out = send_init_command(init_settings)
+#fire_out = send_fire_command(fire_settings)
+#read_out = send_read_command()
+#exit_out = send_stop_command()
