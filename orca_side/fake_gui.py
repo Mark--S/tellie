@@ -1,7 +1,9 @@
 import os
 import json
 import time
+import optparse
 import Tkinter
+import orca_logger
 import tellie_comms
 import comms_thread
 import comms_thread_pool
@@ -33,7 +35,7 @@ class TellieOptions(object):
         """Return options for firing settings
         """
         load_dict = {int(self.get_ch()):{"pulse_number":int(self.get_pn()),
-                                         "pulse_delay":self.get_pd()}}
+                                         "pulse_delay":float(self.get_pd())}}
         return load_dict
     def get_ch(self):
         return self.ch_tkstr.get()
@@ -168,7 +170,12 @@ class OrcaGui(Tkinter.Tk):
         self.destroy()
 
 if __name__=="__main__":
-    app = OrcaGui(None,"PRESETS.js")
+    parser = optparse.OptionParser()
+    parser.add_option("-d",dest="debug",action="store_true",default=False,help="Debug mode")
+    (options, args) = parser.parse_args()
+    logger = orca_logger.OrcaLogger.get_instance()
+    logger.set_debug_mode(options.debug)
+    app = OrcaGui(None,"orca_side/PRESETS.js")
     app.title = "TELLIE Control"
     try:
         app.mainloop()

@@ -156,7 +156,7 @@ class SerialCommand(object):
         if len(pin)>1:
             raise tellie_exception.TellieException("Bad number of PIN readouts: %s"%(len(pin)))
         elif len(pin)==0:
-            return "Not ready"
+            return None
         self._firing = False
         return pin[0]
 
@@ -168,7 +168,7 @@ class SerialCommand(object):
 
     def select_channel(self,channel):
         """Select a channel"""
-        self._debug("Select channel")
+        self._debug("Select channel %s %s"%(channel,type(channel)))
         if self._channel!=None:
             self.clear_channel()
         if type(channel) is not int:
@@ -180,7 +180,7 @@ class SerialCommand(object):
 
     def select_channels(self,channels):
         """Select multiple channels, expects list for channels"""
-        self._debug("Select channels")
+        self._debug("Select channels %s %s"%(channels,type(channels)))
         self.clear_channel()
         command = ""
         for channel in channels:
@@ -190,37 +190,37 @@ class SerialCommand(object):
 
     def set_pulse_height(self,par):
         """Set the pulse height for the selected channel"""
-        self._debug("Set pulse height")
+        self._debug("Set pulse height %s %s"%(par,type(par)))
         command,buffer_check = command_pulse_height(par)
         self._send_channel_setting_command(command=command,buffer_check=buffer_check)
 
     def set_pulse_width(self,par):
         """Set the pulse width for the selected channel"""
-        self._debug("Set pulse width")
+        self._debug("Set pulse width %s %s"%(par,type(par)))
         command,buffer_check = command_pulse_width(par)
         self._send_channel_setting_command(command=command,buffer_check=buffer_check)
 
     def set_pulse_number(self,par):
         """Set the number of pulses for the selected channel"""
-        self._debug("Set pulse number")
+        self._debug("Set pulse number %s %s"%(par,type(par)))
         command,buffer_check = command_pulse_number(par)
         self._send_channel_setting_command(command=command,buffer_check=buffer_check)
 
     def set_pulse_delay(self,par):
         """Set the delay between pulses for the selected channel"""
-        self._debug("Set pulse delay")
+        self._debug("Set pulse delay %s %s"%(par,type(par)))
         command,buffer_check = command_pulse_delay(par)
         self._send_channel_setting_command(command=command,buffer_check=buffer_check)
 
     def set_trigger_delay(self,par):
         """Set the trigger delay for the selected channel"""
-        self._debug("Set trigger delay")
+        self._debug("Set trigger delay %s %s"%(par,type(par)))
         command,buffer_check = command_trigger_delay(par)
         self._send_channel_setting_command(command=command,buffer_check=buffer_check)
 
     def set_fibre_delay(self,par):
         """Set the fibre (channel) delay for the selected channel"""
-        self._debug("Set Fibre delay")
+        self._debug("Set Fibre delay %s %s"%(par,type(par)))
         command,buffer_check = command_fibre_delay(par)
         self._send_channel_setting_command(command=command,buffer_check=buffer_check)
 

@@ -1,8 +1,10 @@
 
 import time
 import threading
+from common import comms_flags
 import comms_thread_pool
 import tellie_comms
+import orca_logger
 import Tkinter
 
 class CommsThread(threading.Thread):
@@ -33,6 +35,7 @@ class LoadFireThread(CommsThread):
     def __init__(self,tellie_options,fire_button,message_field):
         try:
             super(LoadFireThread,self).__init__(name="LOADnFIRE",unique=True)
+            self.logger = orca_logger.OrcaLogger.get_instance()
             self.fire_button = fire_button
             self.tellie_options = tellie_options
             self.message_field = message_field
@@ -43,9 +46,8 @@ class LoadFireThread(CommsThread):
         reasonable time delay from which PINOUT reads should be called.
         """
         load_settings = self.tellie_options.get_load_settings()
-        fire_settings = self.tellie_options.get_fire_settings()        
-        print "load:",load_settings
-        print "fire:",fire_settings
+        fire_settings = self.tellie_options.get_fire_settings()
+        pin_readings = {}
         if len(load_settings)!=1 or len(fire_settings)!=1:
             #Can only operate with on channel currently
             #No current plans to implement more!
@@ -54,7 +56,6 @@ class LoadFireThread(CommsThread):
         for chan in load_settings:
             n_fire = fire_settings[chan]["pulse_number"]
             rate = float(self.tellie_options.get_pr())
-            print "rate:",rate,"n",n_fire
             t_wait = n_fire/rate
             t_start = time.time()
             error_state,response = tellie_comms.send_init_command(load_settings)
@@ -67,27 +68,29 @@ class LoadFireThread(CommsThread):
                 return
             t_now = time.time()
             while (t_now - t_start) < t_wait:
-                print t_now,t_start
-                print "diff:",t_now - t_start," wait:",t_wait
                 time.sleep(0.1)
-                print "hello!"
                 if not self.stopped():
                     t_now = time.time()
                 else:
                     #Stop the thread here!
-                    print "Stopping the thread"
                     self.shutdown_thread(1,"CALLED STOP!")
                     return
-            response,valid_response = tellie_comms.send_read_command()
-            while valid_response == False:
+            error_state,response = tellie_comms.send_read_command()
+            if error_state:
+                self.shutdown_thread(error_state,"READ ERROR: %s"%(response))
+                return
+            while response == comms_flags.tellie_notready:
                 time.sleep(0.1)
-                response,valid_response = tellie_coms.send_read_command()
+                error_state,response = tellie_comms.send_read_command()
                 if self.stopped():
                     #Stop the thread here!
-                    print "Stopping the thread"
                     self.shutdown_thread(1,"CALLED STOP!")
                     return
-        self.shutdown_thread()
+                if error_state:
+                    self.shutdown_thread(error_state,"READ ERROR: %s"%(response))
+                    return
+            pin_readings[chan] = response.split("|")[1]
+        self.shutdown_thread(message="Sequence complete, PIN: %s"%(pin_readings))
     def stop(self):
         super(LoadFireThread,self).stop()
     def stopped(self):
@@ -95,5 +98,8 @@ class LoadFireThread(CommsThread):
     def shutdown_thread(self,error_flag=None,message=None):
         if error_flag:
             self.message_field.show_warning(message)
+        else:
+            if message:
+                self.message_field.show_message(message)                
         self.fire_button.config(state = Tkinter.NORMAL)
         super(LoadFireThread,self).shutdown_thread()

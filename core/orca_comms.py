@@ -22,26 +22,9 @@ import asyncore
 import socket
 import os
 import json
+from common import comms_flags
 import serial_command
 import tellie_exception
-
-### Inputs:
-# Flags notify Tellie of the format of the input
-# Should be separated by '|' from JSON settings where appropriate
-_flagin_init = "I" # JSON of settings
-_flagin_fire = "F" # Fire once, or multiple?
-_flagin_stop = "X" # No settings
-_flagin_read = "R" # No settings
-
-### Responses:
-# Flags notify Orca of the format of the output
-# Should be separated by '|' from JSON responses where appropriate
-_flagout_ready = "R" # list of channels prepared
-_flagout_firing = "F" # no other information
-_flagout_stopped = "X" # no other information
-_flagout_pinout = "P" # SHOULD BE dict of channels and PIN readings
-_flagout_notready = "Z" # response when polled for PIN, but firing incomplete
-_flagout_error = "E" # no other information
 
 def debug(debug_mode,message):
     if debug_mode==True:
@@ -83,35 +66,35 @@ class TellieEcho(asyncore.dispatcher_with_send):
                 response = handle_request(self.out_buffer,self._tellie_serial)
                 self.out_buffer = response
             except tellie_exception.TellieException,e:
-                self.out_buffer=_flagout_error+"|"+str(e)
+                self.out_buffer=comms_flags.tellie_error+"|"+str(e)
             
 def handle_request(request,tellie_serial):
     """Handle the command from Orca"""
     response = None
     if len(request.split('|'))!=2:
-        if request[0]==_flagin_stop:
+        if request[0]==comms_flags.orca_stop:
             response = tellie_stop(tellie_serial)
-        elif request[0] == _flagin_read:
+        elif request[0] == comms_flags.orca_read:
             response = tellie_read(tellie_serial)
         else:
-            response = _flagout_error
+            response = comms_flags.tellie_error+"|"+"Unknown input!"
     else:
         bits = request.split('|')
         flagin = bits[0]
         settings = bits[1]
         #flagin,settings = request.split('|')[0]
-        if flagin == _flagin_init:
+        if flagin == comms_flags.orca_init:
             response = tellie_init(tellie_serial,settings)
-        elif flagin == _flagin_fire:
+        elif flagin == comms_flags.orca_fire:
             response = tellie_fire(tellie_serial,settings)
         else:
-            response = _flagout_error
+            response = comms_flags.tellie_error+"|"+"Unknown input!"
     return response
     
 def tellie_stop(tellie_serial):
     """Send a request for tellie to stop firing"""
     buffer_contents = tellie_serial.stop()
-    return _flagout_stopped+'|'+buffer_contents
+    return comms_flags.tellie_stopped+'|'+buffer_contents
 
 def tellie_init(tellie_serial,json_settings):
     """Read a settings JSON, send commands to the tellie control box"""
@@ -128,7 +111,7 @@ def tellie_init(tellie_serial,json_settings):
         tellie_serial.select_channel(led)
         tellie_serial.set_pulse_height(settings[led]["pulse_height"])
         tellie_serial.set_pulse_width(settings[led]["pulse_width"])
-    return _flagout_ready
+    return comms_flags.tellie_ready
 
 def tellie_fire(tellie_serial,json_settings):
     """Fire Tellie according to the settings from Orca"""
@@ -146,14 +129,16 @@ def tellie_fire(tellie_serial,json_settings):
             led_list.append(led)
         tellie_serial.select_channels(led_list)
         tellie_serial.fire()
-    return _flagout_firing
+    return comms_flags.tellie_firing
 
 def tellie_read(tellie_serial):
     """Read a the PINout from the fired channels"""
     try:
         pin_out = tellie_serial.read_pin()
-        pin_flag = _flagout_pinout
-        return "%s|%s" % (_flagout_pinout,pin_out)
+        if pin_out:
+            return "%s|%s" % (comms_flags.tellie_pinout,pin_out)
+        else:
+            return comms_flags.tellie_notready
     except tellie_exception.TellieException:
         pin_out = ""
-        return _flagout_error
+        return comms_flags.tellie_error
