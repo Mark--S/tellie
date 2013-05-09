@@ -3,10 +3,10 @@ import json
 import time
 import optparse
 import Tkinter
-import orca_logger
 import tellie_comms
 import comms_thread
 import comms_thread_pool
+from common import tellie_logger
 
 class TellieOptions(object):
     def __init__(self):
@@ -81,6 +81,7 @@ class OrcaGui(Tkinter.Tk):
         self._presets_file = presets_file
         self._presets = json.load(open(presets_file))
         self.initialise()
+        self.lf_thread = None #will always point to a thread
     def initialise(self):
         self.grid()
         #default settings to load
@@ -143,8 +144,8 @@ class OrcaGui(Tkinter.Tk):
         else:
             self.fire_button.config(state = Tkinter.DISABLED)
             try:
-                lf_thread = comms_thread.LoadFireThread(self.tellie_options,self.fire_button,self.message_field)
-                lf_thread.start()
+                self.lf_thread = comms_thread.LoadFireThread(self.tellie_options,self.fire_button,self.message_field)
+                self.lf_thread.start()
             except:
                 print "Unable to start thread!"
 
@@ -153,11 +154,13 @@ class OrcaGui(Tkinter.Tk):
         if thread_pool.get_thread_by_name("LOADnFIRE"):
             #need to send a stop flag to the thread
             self.message_field.show_message("STOPPING...")
-            thread_pool.get_thread_by_name("LOADnFIRE").stop()            
-            check = True
-            while check:
-                check = thread_pool.get_thread_by_name("LOADnFIRE")
-                print "..."
+            self.lf_thread.stop()
+            ctr = 1
+            while thread_pool.get_thread_by_name("LOADnFIRE"):
+                ctr+=1
+                if ctr>1000:
+                    break
+            print "THREADS:",thread_pool._threads
         #send a stop command, just in case
         error_state,response = tellie_comms.send_stop_command()
         if error_state:
@@ -173,7 +176,7 @@ if __name__=="__main__":
     parser = optparse.OptionParser()
     parser.add_option("-d",dest="debug",action="store_true",default=False,help="Debug mode")
     (options, args) = parser.parse_args()
-    logger = orca_logger.OrcaLogger.get_instance()
+    logger = tellie_logger.TellieLogger.get_instance()
     logger.set_debug_mode(options.debug)
     app = OrcaGui(None,"orca_side/PRESETS.js")
     app.title = "TELLIE Control"

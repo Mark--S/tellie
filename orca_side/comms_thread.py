@@ -1,10 +1,9 @@
 
 import time
 import threading
-from common import comms_flags
+from common import comms_flags, tellie_logger
 import comms_thread_pool
 import tellie_comms
-import orca_logger
 import Tkinter
 
 class CommsThread(threading.Thread):
@@ -35,7 +34,7 @@ class LoadFireThread(CommsThread):
     def __init__(self,tellie_options,fire_button,message_field):
         try:
             super(LoadFireThread,self).__init__(name="LOADnFIRE",unique=True)
-            self.logger = orca_logger.OrcaLogger.get_instance()
+            self.logger = tellie_logger.TellieLogger.get_instance()
             self.fire_button = fire_button
             self.tellie_options = tellie_options
             self.message_field = message_field
@@ -58,9 +57,15 @@ class LoadFireThread(CommsThread):
             rate = float(self.tellie_options.get_pr())
             t_wait = n_fire/rate
             t_start = time.time()
+            if self.stopped(): #check at before sending any commands
+                self.shutdown_thread(1,"CALLED STOP!")
+                return
             error_state,response = tellie_comms.send_init_command(load_settings)
             if error_state:
                 self.shutdown_thread(error_state,"COMMUNICATION ERROR: %s"%(response))
+                return
+            if self.stopped(): #check at before sending any commands
+                self.shutdown_thread(1,"CALLED STOP!")
                 return
             error_state,response = tellie_comms.send_fire_command(fire_settings)
             if error_state:
@@ -89,12 +94,16 @@ class LoadFireThread(CommsThread):
                 if error_state:
                     self.shutdown_thread(error_state,"READ ERROR: %s"%(response))
                     return
-            pin_readings[chan] = response.split("|")[1]
+            try:
+                pin_readings[chan] = response.split("|")[1]
+            except IndexError:
+                self.shutdown_thread(1,"PIN READ ERROR: %s"%response)
+                return
         self.shutdown_thread(message="Sequence complete, PIN: %s"%(pin_readings))
     def stop(self):
         super(LoadFireThread,self).stop()
     def stopped(self):
-        super(LoadFireThread,self).stopped()
+        return super(LoadFireThread,self).stopped()
     def shutdown_thread(self,error_flag=None,message=None):
         if error_flag:
             self.message_field.show_warning(message)

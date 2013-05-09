@@ -1,6 +1,7 @@
 import os
+import time
 
-class OrcaLogger:
+class TellieLogger:
     """A logger, only ever one.
     """
     ## singleton instance
@@ -8,11 +9,11 @@ class OrcaLogger:
 
     class SingletonHelper:
         def __call__(self, *args, **kw):
-            if OrcaLogger._instance is None:
-                object = OrcaLogger()
-                OrcaLogger._instance = object
+            if TellieLogger._instance is None:
+                object = TellieLogger()
+                TellieLogger._instance = object
 
-            return OrcaLogger._instance
+            return TellieLogger._instance
 
     get_instance = SingletonHelper()
 
@@ -20,9 +21,9 @@ class OrcaLogger:
         """Should always be called from the __main__ function
         of the master script.
         """
-        if not OrcaLogger._instance==None:
+        if not TellieLogger._instance==None:
             raise Exception,"Only one logger allowed"
-        OrcaLogger._instance=self
+        TellieLogger._instance=self
         self._debug_mode = False
 
     def set_debug_mode(self,debug_mode):
@@ -33,4 +34,4 @@ class OrcaLogger:
 
     def debug(self,message):
         if self._debug_mode:
-            print "DEBUG:"+message
+            print str(time.time())+" DEBUG: "+message

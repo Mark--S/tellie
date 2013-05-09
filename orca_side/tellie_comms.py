@@ -24,8 +24,7 @@ import socket
 import json
 import time
 import threading
-from common import comms_flags
-import orca_logger
+from common import comms_flags, tellie_logger
 
 HOST = '127.0.0.1'
 PORT = 50050
@@ -33,12 +32,13 @@ PORT = 50050
 class TellieComms(asyncore.dispatcher_with_send):
     def __init__(self, host, port, message):
         asyncore.dispatcher.__init__(self)
+        self.logger = tellie_logger.TellieLogger.get_instance()
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)        
         self.connect((host, port))
         self.out_buffer = message
         self._response = None
         self._error = None
-        self.logger = orca_logger.OrcaLogger.get_instance()
+        self.logger.debug("TellieComms::sending::"+self.out_buffer)
 
     def handle_close(self):
         self.close()
@@ -70,12 +70,10 @@ def send_command(command):
     return client.get_response()
 
 def send_init_command(settings):
-    print "INIT:",settings
     command = comms_flags.orca_init+"|"+json.dumps(settings)
     return send_command(command)
 
 def send_fire_command(settings):
-    print "FIRE:",settings
     command = comms_flags.orca_fire+"|"+json.dumps(settings)
     return send_command(command)
 

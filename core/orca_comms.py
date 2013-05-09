@@ -22,43 +22,40 @@ import asyncore
 import socket
 import os
 import json
-from common import comms_flags
+from common import comms_flags, tellie_logger
 import serial_command
 import tellie_exception
 
-def debug(debug_mode,message):
-    if debug_mode==True:
-        print "DEBUG::COMMS::"+message
 
 class TellieServer(asyncore.dispatcher):
     """Server class for asynchronous I/O to Tellie"""
-    def __init__(self,host,port,tellie_serial,debug_mode):
+    def __init__(self,host,port,tellie_serial):
         """Create a socket, bind to it and listen"""
         asyncore.dispatcher.__init__(self)
         self.create_socket(socket.AF_INET,socket.SOCK_STREAM)
         self.bind((host,port))
         self.listen(1)
         self._tellie_serial = tellie_serial
-        self._debug_mode = debug_mode
+        self.logger = tellie_logger.TellieLogger.get_instance()
     def handle_accept(self):
         """Handle connection requests"""
-        debug(self._debug_mode,"handle accept")
+        self.logger.debug("handle accept")
         sock, address = self.accept()
-        TellieEcho(sock,address,self._tellie_serial,self._debug_mode)
+        TellieEcho(sock,address,self._tellie_serial)
 
 class TellieEcho(asyncore.dispatcher_with_send):
     """Echo handling class for Tellie responses"""
-    def __init__(self,conn_sock,client_address,tellie_serial,debug_mode):
+    def __init__(self,conn_sock,client_address,tellie_serial):
         """Initialisation function"""
         asyncore.dispatcher_with_send.__init__(self, conn_sock)
         self.client_address = client_address
         self._tellie_serial = tellie_serial
-        self._debug_mode = debug_mode
+        self.logger = tellie_logger.TellieLogger.get_instance()
     def handle_read(self):
         """Handle communication from Orca, echo accordingly"""
-        debug(self._debug_mode,"handle read")
+        self.logger.debug("handle read")
         self.out_buffer = self.recv(1024)
-        debug(self._debug_mode,"read: %s"%(self.out_buffer))
+        self.logger.debug("read: %s"%(self.out_buffer))
         if not self.out_buffer:
             self.close()
         else:

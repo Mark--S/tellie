@@ -17,6 +17,7 @@ import os
 import sys
 import optparse
 from core import tellie_exception, serial_command, orca_comms
+from common import tellie_logger
 import asyncore
 
 def safe_exit(tellie_serial):
@@ -24,18 +25,20 @@ def safe_exit(tellie_serial):
     print 'Exiting safely!'
     tellie_serial.stop()
 
-def run_tellie(tellie_serial,debug=False):
+def run_tellie(tellie_serial):
     """Main operation loop for tellie control"""   
-    server = orca_comms.TellieServer('',50050,tellie_serial,debug)
+    server = orca_comms.TellieServer('',50050,tellie_serial)
     asyncore.loop()
 
 if __name__=="__main__":
     parser = optparse.OptionParser()
     parser.add_option("-d",dest="debug",action="store_true",default=False,help="Debug mode")
     (options, args) = parser.parse_args()
-    tellie_serial = serial_command.SerialCommand(options.debug)
+    logger = tellie_logger.TellieLogger.get_instance()
+    logger.set_debug_mode(options.debug)
+    tellie_serial = serial_command.SerialCommand()
     try:
-        run_tellie(tellie_serial,options.debug)
+        run_tellie(tellie_serial)
     except KeyboardInterrupt:
         print 'quitting server'
         asyncore.ExitNow('Server is quitting')
