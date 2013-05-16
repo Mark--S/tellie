@@ -58,7 +58,13 @@ class TellieComms(asyncore.dispatcher_with_send):
 
     def get_response(self):
         if self._response:
-            return False,self._response
+            if self._response.split('|')[0]==comms_flags.tellie_error:
+                if len(self._response.split('|'))<2:
+                    return True,'No error info'
+                else:
+                    return True,self._response.split('|')[1]
+            else:
+                return False,self._response
         elif self._error:
             return True,self._error
         else:

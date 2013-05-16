@@ -56,12 +56,24 @@ class SerialCommand(object):
 
     def __init__(self):
         """Initialise the serial command"""
-        self._port_name = "/dev/tty.usbserial-FTE3C0PG"
+        #self._port_name = "/dev/tty.usbserial-FTE3C0PG"        
+        self._port_name = "/dev/tty.usbserial-FTF5YKDL"
         self._port_timeout = 0.5
         self._firing = False
         self._channel = None
         self._serial = serial.Serial(port=self._port_name, timeout=self._port_timeout)
         self.logger = tellie_logger.TellieLogger.get_instance()
+
+        #cache current settings - remove need to re-command where possible
+        self._current_pw = None
+        self._current_ph = None
+        self._current_pn = None
+        self._current_pd = None
+        self._current_td = None
+        self._current_fd = None
+        #if a new channel is selected should force setting all new parameters
+        #restriction only lifted once a fire command has been called
+        self._force_setting = False 
             
     def __del__(self):
         """Deletion function"""
@@ -95,9 +107,14 @@ class SerialCommand(object):
                 #print 'LOOPING! in:'+command+':want:'+buffer_check+':out:'+buffer_read+':'
                 n_read+=1
                 if n_read>10:
-                    raise tellie_exception.TellieException("Unexpected buffer output: %s"%(buffer_read))
+                    break
+            if str(buffer_read)!=str(buffer_check):
+                self.logger.debug("problem reading buffer, send %s, read %s"%(command,buffer_read))
+                raise tellie_exception.TellieException("Unexpected buffer output: %s"%(buffer_read))
+            else:
+                self.logger.debug("success reading buffer")
         else:
-            pass
+            self.logger.debug("not a readout command")
                 
     def _send_setting_command(self,command,buffer_check=None):
         """Send non-firing command.  All of these should have a clear buffer before being used."""
@@ -112,8 +129,8 @@ class SerialCommand(object):
         self.logger.debug("Send channel setting command %s"%(command))
         if self._channel==None:
             raise tellie_exception.TellieException("Cannot run channel command, no channel selected")
-        if len(self._channel)!=1:
-            raise tellie_exception.TellieException("Cannot run channel command, too many channels selected")
+        if type(self._channel)!=int:
+            raise tellie_exception.TellieException("Cannot run channel command, channel selection problem")
         self._send_setting_command(command=command,buffer_check=buffer_check)
 
     def fire(self):
@@ -125,6 +142,7 @@ class SerialCommand(object):
         # averaged pin at some later time).
         self._send_command(_cmd_fire_series,False)
         self._firing = True
+        self._force_setting = False
 
     def stop(self):
         """Stop firing tellie"""
@@ -163,18 +181,25 @@ class SerialCommand(object):
 
     def select_channel(self,channel):
         """Select a channel"""
-        self.logger.debug("Select channel %s %s"%(channel,type(channel)))
-        if self._channel!=None:
-            self.clear_channel()
         if type(channel) is not int:
             channel = int(channel)
+        if self._channel!=None:
+            if self._channel != channel:
+                self.clear_channel()
+                self._force_setting = True
+            else:
+                #channel already selected
+                return 
+        self.logger.debug("Select channel %s %s"%(channel,type(channel)))
         command = _cmd_channel_select_single_start+chr(channel)+_cmd_channel_select_single_end
         buffer_check = "B"+str((int(channel)+1)/8 + 1)+_cmd_channel_select_single_end
         self._send_setting_command(command=command,buffer_check=buffer_check)
-        self._channel = [channel]
+        self._channel = channel
 
     def select_channels(self,channels):
         """Select multiple channels, expects list for channels"""
+        #NOT CURRENTLY SUPPORTED!
+        raise Exception
         self.logger.debug("Select channels %s %s"%(channels,type(channels)))
         self.clear_channel()
         command = ""
@@ -185,39 +210,63 @@ class SerialCommand(object):
 
     def set_pulse_height(self,par):
         """Set the pulse height for the selected channel"""
-        self.logger.debug("Set pulse height %s %s"%(par,type(par)))
-        command,buffer_check = command_pulse_height(par)
-        self._send_channel_setting_command(command=command,buffer_check=buffer_check)
+        if par==self._current_ph and not self._force_setting:
+            pass #same as current setting
+        else:
+            self.logger.debug("Set pulse height %s %s"%(par,type(par)))        
+            command,buffer_check = command_pulse_height(par)
+            self._send_channel_setting_command(command=command,buffer_check=buffer_check)
+            self._current_ph = par
 
     def set_pulse_width(self,par):
         """Set the pulse width for the selected channel"""
-        self.logger.debug("Set pulse width %s %s"%(par,type(par)))
-        command,buffer_check = command_pulse_width(par)
-        self._send_channel_setting_command(command=command,buffer_check=buffer_check)
+        if par==self._current_pw and not self._force_setting:
+            pass #same as current setting
+        else:
+            self.logger.debug("Set pulse width %s %s"%(par,type(par)))    
+            command,buffer_check = command_pulse_width(par)
+            self._send_channel_setting_command(command=command,buffer_check=buffer_check)
+            self._current_pw = par
 
     def set_pulse_number(self,par):
         """Set the number of pulses for the selected channel"""
-        self.logger.debug("Set pulse number %s %s"%(par,type(par)))
-        command,buffer_check = command_pulse_number(par)
-        self._send_channel_setting_command(command=command,buffer_check=buffer_check)
+        if par==self._current_pn and not self._force_setting:
+            pass
+        else:
+            self.logger.debug("Set pulse number %s %s"%(par,type(par)))
+            command,buffer_check = command_pulse_number(par)
+            self._send_channel_setting_command(command=command,buffer_check=buffer_check)
+            self._current_pn = par
 
     def set_pulse_delay(self,par):
         """Set the delay between pulses for the selected channel"""
-        self.logger.debug("Set pulse delay %s %s"%(par,type(par)))
-        command,buffer_check = command_pulse_delay(par)
-        self._send_channel_setting_command(command=command,buffer_check=buffer_check)
+        if par==self._current_pd and not self._force_setting:
+            pass
+        else:
+            self.logger.debug("Set pulse delay %s %s"%(par,type(par)))
+            command,buffer_check = command_pulse_delay(par)
+            self._send_channel_setting_command(command=command,buffer_check=buffer_check)
+            self._current_pd = par
 
     def set_trigger_delay(self,par):
         """Set the trigger delay for the selected channel"""
-        self.logger.debug("Set trigger delay %s %s"%(par,type(par)))
-        command,buffer_check = command_trigger_delay(par)
-        self._send_channel_setting_command(command=command,buffer_check=buffer_check)
+        if par==self._current_td and not self._force_setting:
+            pass
+        else:
+            self.logger.debug("Set trigger delay %s %s"%(par,type(par)))
+            command,buffer_check = command_trigger_delay(par)
+            self._send_channel_setting_command(command=command,buffer_check=buffer_check)
+            self._current_td = par
 
     def set_fibre_delay(self,par):
         """Set the fibre (channel) delay for the selected channel"""
-        self.logger.debug("Set Fibre delay %s %s"%(par,type(par)))
-        command,buffer_check = command_fibre_delay(par)
-        self._send_channel_setting_command(command=command,buffer_check=buffer_check)
+        if par==self._current_fd and not self._force_setting:
+            pass
+        else:
+            self.logger.debug("Set Fibre delay %s %s"%(par,type(par)))
+            command,buffer_check = command_fibre_delay(par)
+            self._send_channel_setting_command(command=command,buffer_check=buffer_check)
+            self._current_fd = par
 
 ##################################################
 # Command options and corresponding buffer outputs

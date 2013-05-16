@@ -62,17 +62,59 @@ class MessageField(object):
     def __init__(self,parent):
         self._message = Tkinter.StringVar()
         self._label = Tkinter.Label(parent,textvariable=self._message)
+        self._parent = parent #keep track
     def set_pos(self,column,row,columnspan):
-        self._label.grid(column=0,row=6,columnspan=3)
+        self._label.grid(column=column,row=row,columnspan=columnspan)
     def clear_message(self):
         self._message.set("")
         self._label.config(bg="white",fg="black")
+        self._parent.update()
     def show_message(self,message):
         self._message.set(message)
         self._label.config(bg="white",fg="black")
+        self._parent.update()
     def show_warning(self,message):
         self._message.set(message)
         self._label.config(bg="white",fg="red")
+        self._parent.update()
+
+class EllieField(object):
+    def __init__(self,parent):#,running,waiting,stopped):
+        self._running_img = []
+        self._waiting_img = None
+        self._stopped_img = None
+        self._label = Tkinter.Label(parent)
+        self._state = None
+        self._run_ctr = None
+        self._parent = parent #keep track
+    def set_pos(self,column,row,rowspan):
+        self._label.grid(column=column,row=row,rowspan=rowspan)
+    def add_running_img(self,image):
+        self._running_img.append(Tkinter.PhotoImage(file=image))
+    def set_waiting_img(self,image):
+        self._waiting_img = Tkinter.PhotoImage(file=image)
+    def set_stopped_img(self,image):
+        self._stoppped_img = Tkinter.PhotoImage(file=image)
+    def show_running(self):
+        if self._state!="running":
+            self._run_ctr = 0
+            self._run_num = len(self._running_img)
+            self._state = "running"
+        counter = self._run_ctr % self._run_num
+        self._label.configure(image=self._running_img[counter])
+        self._label.image = self._running_img[counter]
+        self._run_ctr += 1
+        self._parent.update()
+    def show_waiting(self):
+        self._state = "waiting"
+        self._label.configure(image=self._waiting_img)
+        self._label.image = self._waiting_img
+        self._parent.update()
+    def show_stopped(self):
+        self._state = "stopped"
+        self._label.configure(image=self._stopped_img)
+        self._label.image = self._stopped_img
+        self._parent.update()
 
 class OrcaGui(Tkinter.Tk):
     def __init__(self,parent,presets_file):        
@@ -125,6 +167,16 @@ class OrcaGui(Tkinter.Tk):
         #message section
         self.message_field = MessageField(self)
         self.message_field.set_pos(column=0,row=6,columnspan=3)
+        #image
+        self.ellie_field = EllieField(self)
+        self.ellie_field.set_pos(column=3,row=0,rowspan=6)
+        self.ellie_field.add_running_img('orca_side/img/ellie_blue.gif')
+        self.ellie_field.add_running_img('orca_side/img/ellie_turquoise.gif')
+        self.ellie_field.add_running_img('orca_side/img/ellie_green.gif')
+        self.ellie_field.add_running_img('orca_side/img/ellie_magenta.gif')
+        self.ellie_field.set_waiting_img('orca_side/img/ellie_wait.gif')
+        self.ellie_field.set_stopped_img('orca_side/img/ellie_stop.gif')
+        self.ellie_field.show_waiting()
 
     def select_preset(self):
         self.message_field.clear_message()
@@ -149,7 +201,7 @@ class OrcaGui(Tkinter.Tk):
             except:
                 print "Unable to start thread!"
 
-    def stop_fire(self):        
+    def stop_fire(self):
         thread_pool = comms_thread_pool.CommsThreadPool.get_instance()
         if thread_pool.get_thread_by_name("LOADnFIRE"):
             #need to send a stop flag to the thread
@@ -158,7 +210,7 @@ class OrcaGui(Tkinter.Tk):
             ctr = 1
             while thread_pool.get_thread_by_name("LOADnFIRE"):
                 ctr+=1
-                if ctr>1000:
+                if ctr>100000:#large number...
                     break
             print "THREADS:",thread_pool._threads
         #send a stop command, just in case

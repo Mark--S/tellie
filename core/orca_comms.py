@@ -136,6 +136,7 @@ def tellie_read(tellie_serial):
             return "%s|%s" % (comms_flags.tellie_pinout,pin_out)
         else:
             return comms_flags.tellie_notready
-    except tellie_exception.TellieException:
+    except tellie_exception.TellieException,e:
         pin_out = ""
-        return comms_flags.tellie_error
+        print e,type(e)
+        return comms_flags.tellie_error,"NOT YET..."
