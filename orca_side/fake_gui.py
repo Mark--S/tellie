@@ -50,13 +50,7 @@ class TellieOptions(object):
     def get_pd(self):
         rate = float(self.get_pr())
         delay = 1/rate
-        delay_ms = int(delay*1000)
-        delay_us_not = int((delay*1000 - delay_ms)*1000)
-        delay_us = int((delay*1000 - delay_ms)*1000/4)
-        print delay_ms
-        print delay_us,delay_us_not
-        delay_str = "{0:003d}".format(delay_ms)+"."+"{0:003d}".format(delay_us)
-        return delay_str
+        return str(delay_str)
 
 class MessageField(object):
     def __init__(self,parent):
