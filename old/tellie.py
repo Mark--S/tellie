@@ -316,7 +316,7 @@ def readT(box):
 def isReadyToStart():
 	buffer = s.read(200)
 	print buffer
-	return (('CB1N' in buffer) or ('CB2N' in buffer)) and ('LMP' in buffer) and ('QRS' in buffer) and ('e' in buffer) and ('HG' in buffer) and ('u' in buffer) and ('d' in buffer)
+	return ('CB' in buffer) and ('N' in buffer) and ('LMP' in buffer) and ('QRS' in buffer) and ('e' in buffer) and ('HG' in buffer) and ('u' in buffer) and ('d' in buffer)
 
 
 # for next version

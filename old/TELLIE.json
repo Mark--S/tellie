@@ -94,6 +94,12 @@
         "pulse_width": 8700,
         "pulse_height": 16383,
         "fibre_delay": 0
+    },
+    {
+        "id": 24,
+        "pulse_width": 12700,
+        "pulse_height": 16383,
+        "fibre_delay": 0
     }
 ],
 
@@ -267,6 +273,17 @@
         "id": 15,
         "hw": [ ],
         "led_selected": [15],
+        "ellie_driven": true,
+        "detector_forced_readout": true,
+        "nb_pulses": 12000,
+        "ellie_pulse_rate": 400,
+        "ellie_trigger_delay": 600,
+        "subrun_loop_number": 1
+    },
+    {
+        "id": 24,
+        "hw": [ ],
+        "led_selected": [24],
         "ellie_driven": true,
         "detector_forced_readout": true,
         "nb_pulses": 12000,

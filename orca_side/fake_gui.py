@@ -131,8 +131,9 @@ class OrcaGui(Tkinter.Tk):
         #preset menu listings
         Tkinter.Label(self,text="Channel presets").grid(column=0,row=0)
         self.preset_option_tkstr = Tkinter.StringVar()
-        preset_option = Tkinter.OptionMenu(self, self.preset_option_tkstr,
-                                           1,2,3,4,5,6,7,8)
+        preset_option = Tkinter.Entry(self,textvariable=self.preset_option_tkstr)
+        #preset_option = Tkinter.OptionMenu(self, self.preset_option_tkstr,
+        #                                   1,2,3,4,5,6,7,8)
         preset_option.grid(column=0,row=1)
         preset_button = Tkinter.Button(self,text=u"Load preset",
                                        command=self.select_preset)
@@ -181,13 +182,30 @@ class OrcaGui(Tkinter.Tk):
     def select_preset(self):
         self.message_field.clear_message()
         if not self.preset_option_tkstr.get():
-            self.message_field.show_message("Select a preset from the list")
+            self.message_field.show_message("Enter a channel to load presets")
+            self.clear_preset()
         else:
-            self.tellie_options.ch_tkstr.set(self.preset_option_tkstr.get())        
-            self.tellie_options.ph_tkstr.set(self._presets[self.tellie_options.get_ch()]["pulse_height"])
-            self.tellie_options.pw_tkstr.set(self._presets[self.tellie_options.get_ch()]["pulse_width"])
-            self.tellie_options.pn_tkstr.set(self._presets[self.tellie_options.get_ch()]["nb_pulses"])
-            self.tellie_options.pr_tkstr.set(self._presets[self.tellie_options.get_ch()]["pulse_rate"])
+            chan = -1
+            try:
+                chan = int(self.preset_option_tkstr.get())
+            except:
+                pass
+            if chan<1 or chan>92:
+                self.message_field.show_message("Enter a valid channel number")                
+                self.clear_preset()
+            else:
+                self.tellie_options.ch_tkstr.set(self.preset_option_tkstr.get())        
+                self.tellie_options.ph_tkstr.set(self._presets[self.tellie_options.get_ch()]["pulse_height"])
+                self.tellie_options.pw_tkstr.set(self._presets[self.tellie_options.get_ch()]["pulse_width"])
+                self.tellie_options.pn_tkstr.set(self._presets[self.tellie_options.get_ch()]["nb_pulses"])
+                self.tellie_options.pr_tkstr.set(self._presets[self.tellie_options.get_ch()]["pulse_rate"])
+
+    def clear_preset(self):
+        self.tellie_options.ch_tkstr.set("")        
+        self.tellie_options.ph_tkstr.set("")
+        self.tellie_options.pw_tkstr.set("")
+        self.tellie_options.pn_tkstr.set("")
+        self.tellie_options.pr_tkstr.set("")
         
     def load_and_fire(self):
         self.message_field.clear_message()
