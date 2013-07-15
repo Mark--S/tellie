@@ -24,14 +24,15 @@ import time
 from common import tellie_logger
 
 _max_pulse_height = 16383
-_max_pulse_width = 16363
+_max_pulse_width = 16383
 _max_lo = 255.
 _max_pulse_delay = 256.020
 _min_pulse_delay = 0.1
 _max_trigger_delay = 1275
 _max_fibre_delay = 127.5
-_max_pulse_number = 62025
+_max_pulse_number = 65025
 
+_cmd_fire_continuous = "a"
 _cmd_fire_series = "s"
 _cmd_stop = "X"
 _cmd_channel_clear = "C"
@@ -50,14 +51,18 @@ _cmd_pn_lo = "G"
 _cmd_pd = "u"
 _cmd_td = "d"
 _cmd_fd = "e"
+_cmd_temp_select =  "n"
+_cmd_temp_read = "T"
 
 class SerialCommand(object):
     """Serial command object"""
 
-    def __init__(self):
+    def __init__(self,port_name=None):
         """Initialise the serial command"""
-        self._port_name = "/dev/tty.usbserial-FTE3C0PG"        
-        #self._port_name = "/dev/tty.usbserial-FTF5YKDL"
+        if port_name==None:
+            self._port_name = "/dev/tty.usbserial-FTE3C0PG"        
+        else:
+            self._port_name = port_name
         self._port_timeout = 0.5
         self._firing = False
         self._channel = None
@@ -71,6 +76,7 @@ class SerialCommand(object):
         self._current_pd = None
         self._current_td = None
         self._current_fd = None
+        self._current_temp_probe = None
         #if a new channel is selected should force setting all new parameters
         #restriction only lifted once a fire command has been called
         self._force_setting = False 
@@ -161,6 +167,15 @@ class SerialCommand(object):
         # Set readout to false when firing (must read
         # averaged pin at some later time).
         self._send_command(_cmd_fire_series,False)
+        self._firing = True
+        self._force_setting = False
+
+    def fire_continuous(self):
+        """Fire Tellie in continous mode.
+        """
+        if self._firing==True:
+            raise tellie_exception.TellieException("Cannot fire, already in firing mode")
+        self._send_command(_cmd_fire_continuous,False)
         self._firing = True
         self._force_setting = False
 
@@ -296,6 +311,34 @@ class SerialCommand(object):
             self._send_channel_setting_command(command=command,buffer_check=buffer_check)
             self._current_fd = par
 
+    def select_temp_probe(self,par):
+        """Select the temperature probe to read"""
+        if par==self._current_temp_probe and not self._force_setting:
+            pass
+        else:
+            self.logger.debug("Select temperature probe %s %s"%(par,type(par)))
+            command,buffer_check = command_select_temp(par)
+            self._send_channel_setting_command(command=command,buffer_check=buffer_check)
+            self._curent_temp_probe = par
+
+    def read_temp(self,timeout=1.0):
+        """Read the temperature"""
+        if self._current_temp_probe==None:
+            raise tellie_exception.TellieException("Cannot read temp: no probe selected")        
+        self._send_command(command=_cmd_temp_read,readout=False)
+        pattern = re.compile(r"""\d+""")
+        #wait for a few seconds before reading out
+        temp = None
+        start = time.time()
+        while temp==None:
+            output = self._serial.read(100)
+            temp = pattern.findall(output)
+            if time.time() - start > timeout:
+                raise tellie_exception.TellieException("Temperature read timeout!")
+        if len(temp)>1:
+            raise tellie_exception.TellieException("Bad number of temp readouts: %s %s"%(len(temp),temp))
+        return temp
+
 ##################################################
 # Command options and corresponding buffer outputs
 #
@@ -315,7 +358,7 @@ def command_pulse_height(par):
 def command_pulse_width(par):
     """Get the command to set a pulse width"""
     if par>_max_pulse_width or par<0:
-        raise tellie_exception.TellieException("Invalid pulse width: %s"%par)
+        raise tellie_exception.TellieException("Invalid pulse width: %s %s %s"%(par,_max_pulse_width,par>_max_pulse_width))
     hi = par >> 8
     lo = par & 255
     command = [_cmd_pw_hi+chr(hi)]
@@ -347,6 +390,7 @@ def command_pulse_delay(par):
     us = int((par-ms)*250)
     command = [_cmd_pd+chr(ms)]
     command+= [chr(us)]
+    print 'ms',ms,'us',us,command
     buffer_check = _cmd_pd
     return command,buffer_check
     
@@ -361,8 +405,15 @@ def command_trigger_delay(par):
 def command_fibre_delay(par):
     """Get the command to set a fibre delay"""
     if par>_max_fibre_delay or par<0:
-        raise tellie_exception.TellieException("Invalid fibre delay: %s"%fd)
+        raise tellie_exception.TellieException("Invalid fibre delay: %s"%par)
     command = [_cmd_fd+chr(par)]
     buffer_check = _cmd_fd
     return command,buffer_check
     
+def command_select_temp(par):
+    """Select a temperature probe to read"""
+    if par>_max_temp_probe or par<0:
+        raise tellie_exception.TellieException("Invalid temp. probe number: %s"%par)
+    commnd = [_cmd_temp_select+chr(par)]
+    buffer_check = _cmd_temp_select
+    return command,buffer_check
