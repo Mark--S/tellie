@@ -56,6 +56,7 @@ class LoadFireThread(CommsThread):
             n_fire = fire_settings[chan]["pulse_number"]
             rate = float(self.tellie_options.get_pr())
             t_wait = n_fire/rate
+            print n_fire,rate,t_wait
             t_start = time.time()
             if self.stopped(): #check at before sending any commands
                 self.shutdown_thread(1,"CALLED STOP!")
@@ -86,7 +87,7 @@ class LoadFireThread(CommsThread):
                 return
             while response == comms_flags.tellie_notready:
                 time.sleep(0.1)
-                error_state,response = tellie_comms.send_read_command()
+                error_state,response = tellie_comms.send_read_command()                
                 if self.stopped():
                     #Stop the thread here!
                     self.shutdown_thread(1,"CALLED STOP!")

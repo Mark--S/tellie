@@ -31,6 +31,7 @@ _min_pulse_delay = 0.1
 _max_trigger_delay = 1275
 _max_fibre_delay = 127.5
 _max_pulse_number = 65025
+_max_temp_probe = 10000
 
 _cmd_fire_continuous = "a"
 _cmd_fire_series = "s"
@@ -88,6 +89,7 @@ class SerialCommand(object):
     def _check_clear_buffer(self):
         """Many commands expect an empty buffer, fail if they are not!
         """
+        print "CLEAR BUFFER!"
         buffer_read = self._serial.read(100)
         if buffer_read!="" and buffer_read!=None:
             raise tellie_exception.TellieException("Buffer not clear: %s"%(buffer_read))
@@ -108,7 +110,9 @@ class SerialCommand(object):
         except:
             raise tellie_exception.TellieException("Lost connection with TELLIE control!")
         if buffer_check==None: # assume returns same as input
-            buffer_check = command
+            buffer_check = ''
+            for c in command:
+                buffer_check += c
         if readout==True:
             # Usually need to empty the buffer.
             # Use arbitrary large number of chars.
@@ -123,6 +127,8 @@ class SerialCommand(object):
                 if n_read>10:
                     break
             if str(buffer_read)!=str(buffer_check):
+                print buffer_read,type(buffer_read)
+                print buffer_check,type(buffer_check)
                 self.logger.debug("problem reading buffer, send %s, read %s"%(command,buffer_read))
                 raise tellie_exception.TellieException("Unexpected buffer output:\nsaw: %s\nexpected: %s"%(buffer_read,buffer_check))
             else:
@@ -180,6 +186,7 @@ class SerialCommand(object):
         self._force_setting = False
 
     def read_buffer(self,n=100):
+        print "READ BUFFER"
         return self._serial.read(n)
 
     def stop(self):
@@ -204,6 +211,7 @@ class SerialCommand(object):
         pattern = re.compile(r"""\d+""")
         output = self._serial.read(100)        
         pin = pattern.findall(output)
+        print pin
         if len(pin)>1:
             self._firing = False
             raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s"%(len(pin),pin))
@@ -318,8 +326,8 @@ class SerialCommand(object):
         else:
             self.logger.debug("Select temperature probe %s %s"%(par,type(par)))
             command,buffer_check = command_select_temp(par)
-            self._send_channel_setting_command(command=command,buffer_check=buffer_check)
-            self._curent_temp_probe = par
+            self._send_command(command=command,readout=False)
+            self._current_temp_probe = par
 
     def read_temp(self,timeout=1.0):
         """Read the temperature"""
@@ -332,6 +340,7 @@ class SerialCommand(object):
         start = time.time()
         while temp==None:
             output = self._serial.read(100)
+            self.logger.debug("Buffer: %s"%output)
             temp = pattern.findall(output)
             if time.time() - start > timeout:
                 raise tellie_exception.TellieException("Temperature read timeout!")
@@ -414,6 +423,5 @@ def command_select_temp(par):
     """Select a temperature probe to read"""
     if par>_max_temp_probe or par<0:
         raise tellie_exception.TellieException("Invalid temp. probe number: %s"%par)
-    commnd = [_cmd_temp_select+chr(par)]
-    buffer_check = _cmd_temp_select
-    return command,buffer_check
+    command = [_cmd_temp_select+chr(par)]
+    return command,None # nothing in buffer

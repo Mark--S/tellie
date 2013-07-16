@@ -48,9 +48,11 @@ class TellieOptions(object):
     def get_pr(self):
         return self.pr_tkstr.get()
     def get_pd(self):
-        rate = float(self.get_pr())
-        delay = 1/rate
-        return str(delay_str)
+        rate = float(self.get_pr())#Hz
+        delay_s = 1/rate
+        delay_ms = delay_s * 1000
+        print delay_ms
+        return str(delay_ms)
 
 class MessageField(object):
     def __init__(self,parent):
