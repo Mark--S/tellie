@@ -5,11 +5,11 @@ import scopes
 import utils
 import sys
 
-sc = serial_command.SerialCommand()
-sc.stop()
-
 usb_conn = scope_connections.VisaUSB()
 scope = scopes.Tektronix3000(usb_conn)
+
+sc = serial_command.SerialCommand()
+sc.stop()
 
 def safe_exit(sc,e):
     print "Exit safely"
