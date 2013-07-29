@@ -1,12 +1,13 @@
 import os
 import json
 import time
+import math
 import optparse
 import Tkinter
 import tellie_comms
 import comms_thread
 import comms_thread_pool
-from common import tellie_logger
+from common import tellie_logger , parameters
 
 class TellieOptions(object):
     def __init__(self):
@@ -25,6 +26,16 @@ class TellieOptions(object):
                 not self.get_pr():
             return True
         return False
+    def validate_options(self):
+        """Check that the option fields are appropriate
+        """
+        message = None
+        pn = int(self.get_pn())        
+        adjusted,actual_pn,_,_ = parameters.pulse_number(pn)
+        if adjusted==True:            
+            self.pn_tkstr.set(actual_pn)
+            message = "Pulse number adjusted from %d to %s"%(pn,actual_pn)
+        return message
     def get_load_settings(self):
         """Return options for loading of settings
         """
@@ -208,6 +219,9 @@ class OrcaGui(Tkinter.Tk):
         if self.tellie_options.check_options():
             self.message_field.show_message("Missing some settings, cannot run!")
         else:
+            message = self.tellie_options.validate_options()
+            if message!=None:
+                self.message_field.show_message(message)
             self.fire_button.config(state = Tkinter.DISABLED)
             try:
                 self.lf_thread = comms_thread.LoadFireThread(self.tellie_options,self.fire_button,self.message_field)

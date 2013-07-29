@@ -21,7 +21,7 @@ import tellie_exception
 import re
 import sys
 import time
-from common import tellie_logger
+from common import tellie_logger , parameters
 
 _max_pulse_height = 16383
 _max_pulse_width = 16383
@@ -31,6 +31,8 @@ _min_pulse_delay = 0.1
 _max_trigger_delay = 1275
 _max_fibre_delay = 127.5
 _max_pulse_number = 65025
+_max_pulse_number_upper = 255
+_max_pulse_number_lower = 255
 _max_temp_probe = 10000
 
 _cmd_fire_continuous = "a"
@@ -378,10 +380,11 @@ def command_pulse_width(par):
 def command_pulse_number(par):
     """Get the command to set a pulse number"""
     if par>_max_pulse_number or par<0:
-        raise tellie_exception.TellieException("Invalid pulse number: %s"%par)
+        raise tellie_exception.TellieException("Invalid pulse number: %s"%(par))
     par = int(par)
-    hi = par/255
-    lo = par%255
+    adjusted, actual_par, hi, lo = parameters.pulse_number(par)
+    if adjusted = True:
+        raise tellie_exception(TellieException("Invalid pulse number: %s"%(par))
     command = [_cmd_pn_hi+chr(hi)]
     command+= [_cmd_pn_lo+chr(lo)]
     buffer_check = _cmd_pn_hi + _cmd_pn_lo
