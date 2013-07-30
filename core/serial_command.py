@@ -383,8 +383,8 @@ def command_pulse_number(par):
         raise tellie_exception.TellieException("Invalid pulse number: %s"%(par))
     par = int(par)
     adjusted, actual_par, hi, lo = parameters.pulse_number(par)
-    if adjusted = True:
-        raise tellie_exception(TellieException("Invalid pulse number: %s"%(par))
+    if adjusted == True:
+        raise tellie_exception.TellieException("Invalid pulse number: %s"%(par))
     command = [_cmd_pn_hi+chr(hi)]
     command+= [_cmd_pn_lo+chr(lo)]
     buffer_check = _cmd_pn_hi + _cmd_pn_lo
