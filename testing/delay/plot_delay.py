@@ -14,21 +14,29 @@ if __name__=="__main__":
     signal_t = results.get_meta_data("timeform_2")
     
     #for some reason the channels get switched over!
-    trigger_v = results.get_data(2)[0] # only one waveform
-    signal_v = results.get_data(1)[0] # only one waveform
+    trigger_v = []
+    signal_v = []
+    trigger_gr = []
+    signal_gr = []
+    for i in range(5):
+        trigger_v.append(results.get_data(2)[i])
+        signal_v.append(results.get_data(1)[i])
+        trigger_gr.append(ROOT.TGraph())
+        signal_gr.append(ROOT.TGraph())        
 
-    trigger_gr = ROOT.TGraph()
-    signal_gr = ROOT.TGraph()
-
-    trigger_gr.SetLineColor(ROOT.kBlack)
-    signal_gr.SetLineColor(ROOT.kRed+2)
+    for i in range(5):
+        trigger_gr[i].SetLineColor(ROOT.kBlack)
+        signal_gr[i].SetLineColor(ROOT.kRed+2)
     
-    for i in range(len(trigger_t)):
-        trigger_gr.SetPoint(i,trigger_t[i],trigger_v[i]*10) #scale by 10
-    for i in range(len(signal_t)):
-        signal_gr.SetPoint(i,signal_t[i],signal_v[i])
+        for j in range(len(trigger_t)):
+            trigger_gr[i].SetPoint(j,trigger_t[j],trigger_v[i][j])
+        for j in range(len(signal_t)):
+            signal_gr[i].SetPoint(j,signal_t[j],signal_v[i][j])
 
-    trigger_gr.Draw("al")
-    signal_gr.Draw("l")
+        if i==0:
+            trigger_gr[i].Draw("al")
+        else:
+            trigger_gr[i].Draw("l")
+        signal_gr[i].Draw("l")
     
     raw_input("wait")

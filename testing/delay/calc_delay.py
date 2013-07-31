@@ -4,6 +4,8 @@ import utils
 boxes = range(1,13)
 channels = range(1,9)
 
+threshold = -0.1 # should catch the very start of the pulse
+
 for box in boxes:
     for chan in channels:
         fname = "results/Waveform_Box%02d_Chan%02d" % (box,chan)
@@ -18,11 +20,11 @@ for box in boxes:
         #for some reason the channels get switched over!
         trigger_v = results.get_data(2)[0] # only one waveform
         signal_v = results.get_data(1)[0] # only one waveform
-        
+
         #should be on same time base
         tdiff = None
         for i in range(len(signal_t)):
-            if signal_v[i]<-1.0:
+            if signal_v[i]<threshold:
                 #threshold
                 idiff = i
                 tdiff = signal_t[i]

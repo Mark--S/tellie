@@ -4,11 +4,15 @@ import scope_connections
 import scopes
 import utils
 import sys
+import time
+
+#port = "/dev/tty.usbserial-FTE3C0PG"
+port = "/dev/tty.usbserial-FTF5YKDL"
 
 usb_conn = scope_connections.VisaUSB()
 scope = scopes.Tektronix3000(usb_conn)
 
-sc = serial_command.SerialCommand()
+sc = serial_command.SerialCommand(port)
 sc.stop()
 
 def safe_exit(sc,e):
@@ -21,9 +25,8 @@ if __name__=="__main__":
     #CHANGE ME IF YOU NEED TO SET THRESHOLDS!
     scope.lock()
     scope.set_single_acquisition()
-    scope.set_edge_trigger(-0.03,2,True)
-#    scope.set_data_mode(4990,7000)
-    data_start = 4990
+    scope.set_edge_trigger(1.0,2,True)
+    data_start = 4500
     data_stop = 7000
     scope._connection.send("wfmpre:pt_fmt y") # Single point format
     scope._connection.send("data:encdg ribinary") # Signed int binary mode
@@ -41,18 +44,23 @@ if __name__=="__main__":
     chan_name = int(chan_name)
     sc.select_channel(chan)
     sc.set_pulse_height(16383)
-    sc.set_pulse_width(0)
-    sc.set_pulse_delay(1.1) #no zeros on the new chip!
-    sc.set_pulse_number(257) #no zeros on the new chip!
-    sc.fire()
+    sc.set_pulse_width(0) #TODO: check that the pulse width is OK (higher width -> faster rise time)
+    sc.set_pulse_delay(1.0) #no zeros on the new chip!
+    sc.set_pulse_number(1) #no zeros on the new chip!
 
     # create an output file and save
     fname = "results/Waveform_Box%02d_Chan%02d" % (box_name,chan_name)
     results = utils.PickleFile(fname,2)
     results.set_meta_data("timeform_1",scope.get_timeform(1))
     results.set_meta_data("timeform_2",scope.get_timeform(2))
-    results.add_data(scope.get_waveform(1),1)
-    results.add_data(scope.get_waveform(2),2)
+
+    for i in range(5):
+        sc.fire()
+        results.add_data(scope.get_waveform(1),1)
+        results.add_data(scope.get_waveform(2),2)
+        time.sleep(0.05)
+        sc.read_pin()
+
     results.save()
     results.close()
 
