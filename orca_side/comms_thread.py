@@ -31,13 +31,14 @@ class CommsThread(threading.Thread):
 class LoadFireThread(CommsThread):
     """The threading class for any load/fire operations
     """
-    def __init__(self,tellie_options,fire_button,message_field):
+    def __init__(self,tellie_options,fire_button,message_field,ellie_field):
         try:
             super(LoadFireThread,self).__init__(name="LOADnFIRE",unique=True)
             self.logger = tellie_logger.TellieLogger.get_instance()
             self.fire_button = fire_button
             self.tellie_options = tellie_options
             self.message_field = message_field
+            self.ellie_field = ellie_field
         except:
             raise Exception,"Cannot start this thread"
     def run(self):
@@ -74,16 +75,19 @@ class LoadFireThread(CommsThread):
                 return
             t_now = time.time()
             while (t_now - t_start) < t_wait:
-                time.sleep(0.1)
+                self.ellie_field.show_running()
+                time.sleep(0.1)                
                 if not self.stopped():
                     t_now = time.time()
                 else:
                     #Stop the thread here!
                     self.shutdown_thread(1,"CALLED STOP!")
+                    self.ellie_field.show_stopped()
                     return
-            error_state,response = tellie_comms.send_read_command()
+            error_state,response = tellie_comms.send_read_command()            
             if error_state:
                 self.shutdown_thread(error_state,"READ ERROR: %s"%(response))
+                self.ellie_field.show_stopped()
                 return
             while response == comms_flags.tellie_notready:
                 time.sleep(0.1)
@@ -91,15 +95,19 @@ class LoadFireThread(CommsThread):
                 if self.stopped():
                     #Stop the thread here!
                     self.shutdown_thread(1,"CALLED STOP!")
+                    self.ellie_field.show_stopped()
                     return
                 if error_state:
                     self.shutdown_thread(error_state,"READ ERROR: %s"%(response))
+                    self.ellie_field.show_stopped()
                     return
             try:
                 pin_readings[chan] = response.split("|")[1]
             except IndexError:
                 self.shutdown_thread(1,"PIN READ ERROR: %s"%response)
+                self.ellie_field.show_stopped()
                 return
+        self.ellie_field.show_waiting()
         self.shutdown_thread(message="Sequence complete, PIN: %s"%(pin_readings))
     def stop(self):
         super(LoadFireThread,self).stop()

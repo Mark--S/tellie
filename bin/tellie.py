@@ -33,10 +33,11 @@ def run_tellie(tellie_serial):
 if __name__=="__main__":
     parser = optparse.OptionParser()
     parser.add_option("-d",dest="debug",action="store_true",default=False,help="Debug mode")
+    parser.add_option("-p",dest="port",default=None,help="set non-default tellie address")
     (options, args) = parser.parse_args()
     logger = tellie_logger.TellieLogger.get_instance()
     logger.set_debug_mode(options.debug)
-    tellie_serial = serial_command.SerialCommand()
+    tellie_serial = serial_command.SerialCommand(options.port)
     try:
         run_tellie(tellie_serial)
     except KeyboardInterrupt:

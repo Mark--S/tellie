@@ -101,7 +101,7 @@ class EllieField(object):
     def set_waiting_img(self,image):
         self._waiting_img = Tkinter.PhotoImage(file=image)
     def set_stopped_img(self,image):
-        self._stoppped_img = Tkinter.PhotoImage(file=image)
+        self._stopped_img = Tkinter.PhotoImage(file=image)
     def show_running(self):
         if self._state!="running":
             self._run_ctr = 0
@@ -224,10 +224,11 @@ class OrcaGui(Tkinter.Tk):
                 self.message_field.show_message(message)
             self.fire_button.config(state = Tkinter.DISABLED)
             try:
-                self.lf_thread = comms_thread.LoadFireThread(self.tellie_options,self.fire_button,self.message_field)
+                self.lf_thread = comms_thread.LoadFireThread(self.tellie_options,self.fire_button,self.message_field,self.ellie_field)
                 self.lf_thread.start()
             except:
                 print "Unable to start thread!"
+        self.ellie_field.show_waiting()
 
     def stop_fire(self):
         thread_pool = comms_thread_pool.CommsThreadPool.get_instance()
