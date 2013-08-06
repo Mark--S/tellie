@@ -33,7 +33,7 @@ _max_fibre_delay = 127.5
 _max_pulse_number = 65025
 _max_pulse_number_upper = 255
 _max_pulse_number_lower = 255
-_max_temp_probe = 10000
+_max_temp_probe = 64
 
 _cmd_fire_continuous = "a"
 _cmd_fire_series = "s"
@@ -54,8 +54,11 @@ _cmd_pn_lo = "G"
 _cmd_pd = "u"
 _cmd_td = "d"
 _cmd_fd = "e"
-_cmd_temp_select =  "n"
-_cmd_temp_read = "T"
+_cmd_temp_select_lower =  "n"
+_cmd_temp_read_lower = "T"
+_cmd_temp_select_upper =  "f"
+_cmd_temp_read_upper = "k"
+_cmd_distable_trig_in = "B"
 
 class SerialCommand(object):
     """Serial command object"""
@@ -91,7 +94,6 @@ class SerialCommand(object):
     def _check_clear_buffer(self):
         """Many commands expect an empty buffer, fail if they are not!
         """
-        print "CLEAR BUFFER!"
         buffer_read = self._serial.read(100)
         if buffer_read!="" and buffer_read!=None:
             raise tellie_exception.TellieException("Buffer not clear: %s"%(buffer_read))
@@ -225,6 +227,7 @@ class SerialCommand(object):
     def clear_channel(self):
         """Unselect the channel"""
         self.logger.debug("Clear channel")
+        print "CLEAR CHANNEL"
         self._send_setting_command(_cmd_channel_clear)
         self._channel = None
 
@@ -330,13 +333,22 @@ class SerialCommand(object):
             command,buffer_check = command_select_temp(par)
             self._send_command(command=command,readout=False)
             self._current_temp_probe = par
-
+            #read the temperature once - first reading is always junk
+            self.read_temp()
+            
     def read_temp(self,timeout=1.0):
         """Read the temperature"""
         if self._current_temp_probe==None:
-            raise tellie_exception.TellieException("Cannot read temp: no probe selected")        
-        self._send_command(command=_cmd_temp_read,readout=False)
-        pattern = re.compile(r"""\d+""")
+            raise tellie_exception.TellieException("Cannot read temp: no probe selected")
+        cmd = ""
+        if self._current_temp_probe < 33 and self._current_temp_probe > 0:
+            cmd = _cmd_temp_read_lower
+        elif self._current_temp_probe < _max_temp_probe+1:
+            cmd = _cmd_temp_read_upper
+        else:
+            raise tellie_exception.TellieException("Temp probe not in known range")            
+        self._send_command(command=cmd,readout=False)
+        pattern = re.compile(r"""[-+]?\d*\.\d+|\d+""")
         #wait for a few seconds before reading out
         temp = None
         start = time.time()
@@ -348,7 +360,12 @@ class SerialCommand(object):
                 raise tellie_exception.TellieException("Temperature read timeout!")
         if len(temp)>1:
             raise tellie_exception.TellieException("Bad number of temp readouts: %s %s"%(len(temp),temp))
+        temp = float(temp[0])
         return temp
+
+    def disable_external_trigger(self):
+        """Disable the external trigger"""
+        self._send_command(command="B")
 
 ##################################################
 # Command options and corresponding buffer outputs
@@ -425,6 +442,16 @@ def command_fibre_delay(par):
 def command_select_temp(par):
     """Select a temperature probe to read"""
     if par>_max_temp_probe or par<0:
-        raise tellie_exception.TellieException("Invalid temp. probe number: %s"%par)
-    command = [_cmd_temp_select+chr(par)]
+        raise tellie_exception.TellieException("Invalid temp. probe number: %s"%par)    
+    cmd = ""
+    par = par
+    if par < 33 and par > 0:
+        cmd = _cmd_temp_select_lower
+        par = par
+    elif par < _max_temp_probe+1:
+        cmd = _cmd_temp_select_upper
+        par = par - 32 #lower
+    else:
+        raise tellie_exception.TellieException("Invalid temp. probe number: %s"%par)  
+    command = [cmd+chr(par)]
     return command,None # nothing in buffer
