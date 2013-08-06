@@ -215,7 +215,7 @@ class SerialCommand(object):
         pattern = re.compile(r"""\d+""")
         output = self._serial.read(100)        
         pin = pattern.findall(output)
-        print pin
+        print "PIN READ:",pin,output
         if len(pin)>1:
             self._firing = False
             raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s"%(len(pin),pin))

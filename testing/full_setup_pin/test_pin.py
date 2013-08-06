@@ -3,7 +3,7 @@ import ROOT
 from core import serial_command
 import sys
 
-sc = serial_command.SerialCommand()
+sc = serial_command.SerialCommand('/dev/ttyS0')
 
 channels = range(1,97)
 try:

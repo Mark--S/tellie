@@ -75,19 +75,19 @@ class LoadFireThread(CommsThread):
                 return
             t_now = time.time()
             while (t_now - t_start) < t_wait:
-                self.ellie_field.show_running()
+                #self.ellie_field.show_running()
                 time.sleep(0.1)                
                 if not self.stopped():
                     t_now = time.time()
                 else:
                     #Stop the thread here!
                     self.shutdown_thread(1,"CALLED STOP!")
-                    self.ellie_field.show_stopped()
+                    #self.ellie_field.show_stopped()
                     return
             error_state,response = tellie_comms.send_read_command()            
             if error_state:
                 self.shutdown_thread(error_state,"READ ERROR: %s"%(response))
-                self.ellie_field.show_stopped()
+                #self.ellie_field.show_stopped()
                 return
             while response == comms_flags.tellie_notready:
                 time.sleep(0.1)
@@ -95,19 +95,19 @@ class LoadFireThread(CommsThread):
                 if self.stopped():
                     #Stop the thread here!
                     self.shutdown_thread(1,"CALLED STOP!")
-                    self.ellie_field.show_stopped()
+#                    self.ellie_field.show_stopped()
                     return
                 if error_state:
                     self.shutdown_thread(error_state,"READ ERROR: %s"%(response))
-                    self.ellie_field.show_stopped()
+#                    self.ellie_field.show_stopped()
                     return
             try:
                 pin_readings[chan] = response.split("|")[1]
             except IndexError:
                 self.shutdown_thread(1,"PIN READ ERROR: %s"%response)
-                self.ellie_field.show_stopped()
+#                self.ellie_field.show_stopped()
                 return
-        self.ellie_field.show_waiting()
+#        self.ellie_field.show_waiting()
         self.shutdown_thread(message="Sequence complete, PIN: %s"%(pin_readings))
     def stop(self):
         super(LoadFireThread,self).stop()

@@ -51,8 +51,9 @@ def ReadRATDB(filename):
 # Operations on serial port
 #
 
-serialPortName = '/dev/tty.usbserial-FTE3C0PG'
+#serialPortName = '/dev/tty.usbserial-FTE3C0PG'
 #serialPortName = '/dev/tty.usbserial-FTF5YKDL'
+serialPortName = '/dev/ttyUSB0'
 serialNotOpen  = 'Serial port %s is not open. Exit.' % serialPortName
 
 
@@ -370,10 +371,13 @@ def initChannel(isubrun, led):
 	frequency = dict['run_list'][isubrun]['ellie_pulse_rate']
 	pulse_delay = 1000./ frequency
 	
+	width = 0
+	height = 16383
+	pulse_delay = 1.0
 	selectLED(led)
 	setPulseHeight(height)
 	setPulseWidth(width)
-	setPulseNumber(nbpulses)
+	setPulseNumber(10,100)
 	setPulseDelay(pulse_delay)
 	setChannelDelay(delay)
 	
