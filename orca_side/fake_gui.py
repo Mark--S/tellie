@@ -256,11 +256,17 @@ class OrcaGui(Tkinter.Tk):
 if __name__=="__main__":
     parser = optparse.OptionParser()
     parser.add_option("-d",dest="debug",action="store_true",default=False,help="Debug mode")
+    parser.add_option("-a",dest="address",default=None,help="Server address (default 127.0.0.1)")
+    parser.add_option("-p",dest="port",default=None,help="Server port (default 50050)")
     (options, args) = parser.parse_args()
     logger = tellie_logger.TellieLogger.get_instance()
     logger.set_debug_mode(options.debug)
     app = OrcaGui(None,"orca_side/PRESETS.js")
     app.title = "TELLIE Control"
+    if options.address:
+        tellie_comms.HOST=options.address
+    if options.port:
+        tellie_comms.PORT=int(options.port)
     try:
         app.mainloop()
     except KeyboardInterrupt:

@@ -2,8 +2,8 @@ import time
 from core import serial_command
 import sys
 
-#sc = serial_command.SerialCommand('/dev/ttyS0')
-sc = serial_command.SerialCommand('/dev/ttyUSB0')
+sc = serial_command.SerialCommand()
+#sc = serial_command.SerialCommand('/dev/ttyUSB0')
 
 channels = range(2,17)
 try:

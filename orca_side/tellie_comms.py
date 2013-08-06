@@ -26,8 +26,7 @@ import time
 import threading
 from common import comms_flags, tellie_logger
 
-#HOST = '127.0.0.1'
-HOST = '139.184.128.108'
+HOST = '127.0.0.1'
 PORT = 50050
 
 class TellieComms(asyncore.dispatcher_with_send):
