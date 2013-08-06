@@ -153,11 +153,8 @@ def setPulseWidth(par):
 
 # hi: 0-255, lo: 0-255 
 # returns 'HG'
-def setPulseNumber(par):
-	print 'TELLIE - Pulse Number = ', par
-	hi = int(par/255.)
-	lo = int((par/255. - hi)*255)
-
+def setPulseNumber(hi,lo):
+    
 	s.write('H'+chr(hi))
 	s.write('G'+chr(lo))
 	time.sleep( wait )
