@@ -36,7 +36,8 @@ _max_pulse_number_lower = 255
 _max_temp_probe = 64
 
 _cmd_fire_continuous = "a"
-_cmd_fire_series = "s"
+_cmd_fire_series_lower = "s"
+_cmd_fire_series_upper = "n"
 _cmd_stop = "X"
 _cmd_channel_clear = "C"
 _cmd_channel_select_single_start = "I"
@@ -176,7 +177,12 @@ class SerialCommand(object):
             raise tellie_exception.TellieException("Cannot fire, already in firing mode")
         # Set readout to false when firing (must read
         # averaged pin at some later time).
-        self._send_command(_cmd_fire_series,False)
+        cmd = None
+        if self._channel <= 56: #up to box 7
+            cmd = _cmd_fire_series_lower
+        else:
+            cmd = _cmd_fire_series_upper
+        self._send_command(cmd,False)
         self._firing = True
         self._force_setting = False
 
