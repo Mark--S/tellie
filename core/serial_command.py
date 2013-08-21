@@ -37,7 +37,7 @@ _max_temp_probe = 64
 
 _cmd_fire_continuous = "a"
 _cmd_fire_series_lower = "s"
-_cmd_fire_series_upper = "n"
+_cmd_fire_series_upper = "U"
 _cmd_stop = "X"
 _cmd_channel_clear = "C"
 _cmd_channel_select_single_start = "I"
@@ -132,8 +132,6 @@ class SerialCommand(object):
                 if n_read>10:
                     break
             if str(buffer_read)!=str(buffer_check):
-                print buffer_read,type(buffer_read)
-                print buffer_check,type(buffer_check)
                 self.logger.debug("problem reading buffer, send %s, read %s"%(command,buffer_read))
                 raise tellie_exception.TellieException("Unexpected buffer output:\nsaw: %s\nexpected: %s"%(buffer_read,buffer_check))
             else:
@@ -196,7 +194,6 @@ class SerialCommand(object):
         self._force_setting = False
 
     def read_buffer(self,n=100):
-        print "READ BUFFER"
         return self._serial.read(n)
 
     def stop(self):
@@ -221,7 +218,6 @@ class SerialCommand(object):
         pattern = re.compile(r"""\d+""")
         output = self._serial.read(100)        
         pin = pattern.findall(output)
-        print "PIN READ:",pin,output
         if len(pin)>1:
             self._firing = False
             raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s"%(len(pin),pin))
@@ -233,7 +229,6 @@ class SerialCommand(object):
     def clear_channel(self):
         """Unselect the channel"""
         self.logger.debug("Clear channel")
-        print "CLEAR CHANNEL"
         self._send_setting_command(_cmd_channel_clear)
         self._channel = None
 
@@ -411,10 +406,6 @@ def command_pulse_number(par):
     command = [_cmd_pn_hi+chr(hi)]
     command+= [_cmd_pn_lo+chr(lo)]
     buffer_check = _cmd_pn_hi + _cmd_pn_lo
-    print command,type(command[0]),len(command[0])
-    print "HI:",hi
-    print "LO:",lo
-    print "PAR:",par
     return command,buffer_check
     
 def command_pulse_delay(par):
@@ -425,7 +416,6 @@ def command_pulse_delay(par):
     us = int((par-ms)*250)
     command = [_cmd_pd+chr(ms)]
     command+= [chr(us)]
-    print 'ms',ms,'us',us,command
     buffer_check = _cmd_pd
     return command,buffer_check
     
