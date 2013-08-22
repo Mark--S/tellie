@@ -24,7 +24,7 @@ if __name__=="__main__":
     parser = optparse.OptionParser()
     parser.add_option("-b",dest="box",help="Box number (1-12)")
     parser.add_option("-c",dest="channel",help="Channel number (1-8)")
-    parser.add_option("-x",dest="cutoff",default=12000,help="Cutoff (IPW) from Ref sweep")
+    parser.add_option("-x",dest="cutoff",default=12000,help="Cutoff (IPW) from Ref sweep (sweep goes to cutoff + 500)")
     (options,args) = parser.parse_args()
 
     #Set parameters
@@ -38,6 +38,7 @@ if __name__=="__main__":
     cursor_high = 23e-9 # s
     trigger_level = 0.5 # half peak minimum
     falling_edge = True
+    min_trigger = -0.005 # -5mV smallest allowed trigger
 
     #run the initial setup on the scope
     usb_conn = scope_connections.VisaUSB()
@@ -53,17 +54,16 @@ if __name__=="__main__":
     output_file.write("#PWIDTH\tPIN\tWIDTH\tRISE\tFALL\tWIDTH\tAREA\n")
 
     #Start scanning!
-    widths = range(0,cutoff+1,50)
+    widths = range(0,cutoff+501,50)
     results = None
 
     for width in widths:
-        trigger = None
-        scale = None
+        min_volt = None
         if results!=None:
             #set a best guess for the trigger and the scale
-            scale = -float(results["minimum"]) / 2
-            trigger = float(results["minimum"]) / 4
-        results = sweep.sweep("broad",output_filename,box,channel,width,delay,scope,scale,trigger)    
+            #using the last sweeps value
+            min_volt = float(results["minimum"])
+        results = sweep.sweep("broad",output_filename,box,channel,width,delay,scope,min_volt,min_trigger)    
         output_file.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n"%(width,
                                                       results["pin"],
                                                       results["width"],
