@@ -8,8 +8,12 @@
 #
 ################################
 
-import scan_tools
+import waveform_tools
+import utils
 import ROOT
+import math
+import optparse
+import os
 
 def read_scope_scan(fname):
     """Read data as read out and stored to text file from the scope.
@@ -46,29 +50,258 @@ def get_gain(applied_volts):
         gain = 192750
     return gain
 
-def get_time_
+def get_scope_response(applied_volts):
+    """Get the system timing response"""
+    scope_response = None
+    if applied_volts < 0.7:
+        scope_response = 0.6741
+    else:
+        scope_response = 0.6459
+    return scope_response
 
-        sigma = 0.6741;
-			gain = 15460;
-		}
-		if (gainVolt > 0.7){
-			sigma = 0.6459;
-			gain = 192750;
-		}
-		photons = -(integ/(50.*1.602E-19*gain)); //nb of photons detected
-		photons /= QE; // nb of photons struck
+def adjust_width(seconds,applied_volts):
+    """ Adjust the width, removing the scope response time"""
+    time_correction = get_scope_response(applied_volts)
+    try:
+        width =  2.355*math.sqrt(((seconds * seconds)/(2.355*2.355))-time_correction*time_correction)
+        return width
+    except:
+        print 'ERROR: Could not calculate the fall time. Returning 0'
+        print seconds,time_correction
+        return 0
 
+def adjust_rise(seconds,applied_volts):
+    """ Adjust EITHER the rise OR fall time (remove scope response)"""
+    time_correction = get_scope_response(applied_volts)    
+    try:
+        width =  1.687*math.sqrt(((seconds * seconds)/(1.687*1.687))-time_correction*time_correction)
+        return width
+    except:
+        print 'ERROR: Could not calculate the rise/fall time. Returning 0'
+        print seconds,time_correction
+        return 0
 
 def get_photons(volts_seconds,applied_volts):
-    """Use the integral (Vs) from the scope to get the number of photons
+    """Use the integral (Vs) from the scope to get the number of photons.
+    Can accept -ve or +ve pulse
     """
+    impedence = 50.0 
+    eV = 1.602e-19
+    qe = 0.192 # @ 488nm
     gain = get_gain(applied_volts)
+    photons = math.fabs(volts_seconds) / (impedence * eV * gain)
+    photons /= qe
+    return photons
 
+def clean_graph(gr):
+    """Remove any points on plots that got bad (9e37) scope measurements
+    """
+    ctr = 0
+    for i in range(gr.GetN()-1,-1,-1):        
+        if float(repr(gr.GetY()[i]))>1e10:
+            print i,repr(gr.GetY()[i])
+            gr.RemovePoint(i)
+
+def set_style(gr,style):
+    if style==1:
+        gr.SetMarkerColor(ROOT.kBlue+1)
+        gr.SetMarkerStyle(8)
+    else:
+        gr.SetMarkerColor(ROOT.kRed+1)
+        gr.SetMarkerStyle(7)
+    
 if __name__=="__main__":
     parser = optparse.OptionParser()
-    parser.add_option("-b",dest="box")
-    parser.add_option("-c",dest="channel")
-    parser.add_option("-t",dest="type",default="broad")
+    parser.add_option("-f",dest="file")
     (options,args) = parser.parse_args()
-
     
+    sweep_type = options.file.split('/')[0]
+    file_name = options.file.split('/')[1]
+    box = int(file_name.split('_')[0][-2:])
+    channel = int(file_name.split('_')[1][-1:])
+    logical_channel = (box-1) * 8 + channel
+
+    voltage = 0
+    if sweep_type=="low_intensity":
+        voltage = 0.8
+    elif sweep_type=="broad":
+        voltage = 0.6
+    else:
+        raise Exception,"unknown sweep type %s"%(sweep_type)
+
+    dirname = os.path.join(sweep_type,"channel_%02d"%logical_channel)
+
+    ipw,pin,width,rise,fall,area = read_scope_scan(options.file)
+
+    #make plots!
+    scope_photon_vs_pin = ROOT.TGraph()
+    scope_photon_vs_ipw = ROOT.TGraph()
+    scope_width_vs_photon = ROOT.TGraph()
+    scope_width_vs_ipw = ROOT.TGraph()
+    scope_rise_vs_photon = ROOT.TGraph()
+    scope_rise_vs_ipw = ROOT.TGraph()
+    scope_fall_vs_photon = ROOT.TGraph()
+    scope_fall_vs_ipw = ROOT.TGraph()
+    
+    calc_photon_vs_pin = ROOT.TGraph()
+    calc_photon_vs_ipw = ROOT.TGraph()
+    calc_width_vs_photon = ROOT.TGraph()
+    calc_width_vs_ipw = ROOT.TGraph()
+    calc_rise_vs_photon = ROOT.TGraph()
+    calc_rise_vs_ipw = ROOT.TGraph()
+    calc_fall_vs_photon = ROOT.TGraph()
+    calc_fall_vs_ipw = ROOT.TGraph()
+ 
+    ctr = 0
+
+    for i in range(len(ipw)):
+
+        print "IPW: %04d"%(ipw[i])
+
+        #first, plot the scope values
+        photon = get_photons(area[i],voltage)
+        rise_time = adjust_rise(rise[i]*1e9,voltage)
+        fall_time = adjust_rise(fall[i]*1e9,voltage)
+        width_time = adjust_width(width[i]*1e9,voltage)
+
+        scope_photon_vs_pin.SetPoint(i,pin[i],photon)
+        scope_photon_vs_ipw.SetPoint(i,ipw[i],photon)
+        scope_rise_vs_photon.SetPoint(i,photon,rise_time)
+        scope_rise_vs_ipw.SetPoint(i,ipw[i],rise_time)
+        scope_fall_vs_photon.SetPoint(i,photon,fall_time)
+        scope_fall_vs_ipw.SetPoint(i,ipw[i],fall_time)
+        scope_width_vs_photon.SetPoint(i,photon,width_time)
+        scope_width_vs_ipw.SetPoint(i,ipw[i],width_time)
+
+        #now, the values from the graphs directly
+        waveform_name = os.path.join(dirname,"Chan%02d_Width%05d"%(logical_channel,ipw[i]))
+        if not os.path.exists("%s.pkl"%waveform_name):
+            print "SKIPPING",waveform_name
+            continue
+        waveform = utils.PickleFile(waveform_name,1)
+        waveform.load()
+        wave_times = waveform.get_meta_data("timeform_1")
+        wave_volts = waveform.get_data(1)[0]
+        w_area = waveform_tools.integrate(wave_times,wave_volts)
+        w_photon = get_photons(w_area,voltage)
+        w_rise = waveform_tools.get_rise(wave_times,wave_volts,voltage)
+        w_fall = waveform_tools.get_fall(wave_times,wave_volts,voltage)
+        w_width = waveform_tools.get_width(wave_times,wave_volts,voltage)
+
+        calc_photon_vs_pin.SetPoint(ctr,pin[i],w_photon)
+        calc_photon_vs_ipw.SetPoint(ctr,ipw[i],w_photon)
+        calc_rise_vs_photon.SetPoint(ctr,w_photon,w_rise)
+        calc_rise_vs_ipw.SetPoint(ctr,ipw[i],w_rise)
+        calc_fall_vs_photon.SetPoint(ctr,w_photon,w_fall)
+        calc_fall_vs_ipw.SetPoint(ctr,ipw[i],w_fall)
+        calc_width_vs_photon.SetPoint(ctr,w_photon,w_width)
+        calc_width_vs_ipw.SetPoint(ctr,ipw[i],w_width)
+
+        ctr+=1
+
+    #Remove any bad scope values
+    clean_graph(scope_photon_vs_pin)
+    clean_graph(scope_photon_vs_ipw)
+    clean_graph(scope_rise_vs_photon)
+    clean_graph(scope_rise_vs_ipw)
+    clean_graph(scope_fall_vs_photon)
+    clean_graph(scope_fall_vs_ipw)
+    clean_graph(scope_width_vs_photon)
+    clean_graph(scope_width_vs_ipw)
+
+    set_style(scope_photon_vs_pin,1)
+    set_style(scope_photon_vs_ipw,1)
+    set_style(scope_rise_vs_photon,1)
+    set_style(scope_rise_vs_ipw,1)
+    set_style(scope_fall_vs_photon,1)
+    set_style(scope_fall_vs_ipw,1)
+    set_style(scope_width_vs_photon,1)
+    set_style(scope_width_vs_ipw,1)
+
+    set_style(calc_photon_vs_pin,2)
+    set_style(calc_photon_vs_ipw,2)
+    set_style(calc_rise_vs_photon,2)
+    set_style(calc_rise_vs_ipw,2)
+    set_style(calc_fall_vs_photon,2)
+    set_style(calc_fall_vs_ipw,2)
+    set_style(calc_width_vs_photon,2)
+    set_style(calc_width_vs_ipw,2)
+
+    scope_photon_vs_pin.SetName("scope_photon_vs_pin")
+    scope_photon_vs_ipw.SetName("scope_photon_vs_ipw")
+    scope_width_vs_photon.SetName("scope_width_vs_photon")
+    scope_width_vs_ipw.SetName("scope_width_vs_ipw")
+    scope_rise_vs_photon.SetName("scope_rise_vs_photon")
+    scope_rise_vs_ipw.SetName("scope_rise_vs_ipw")
+    scope_fall_vs_photon.SetName("scope_fall_vs_photon")
+    scope_fall_vs_ipw.SetName("scope_fall_vs_ipw")
+
+    calc_photon_vs_pin.SetName("calc_photon_vs_pin")
+    calc_photon_vs_ipw.SetName("calc_photon_vs_ipw")
+    calc_width_vs_photon.SetName("calc_width_vs_photon")
+    calc_width_vs_ipw.SetName("calc_width_vs_ipw")
+    calc_rise_vs_photon.SetName("calc_rise_vs_photon")
+    calc_rise_vs_ipw.SetName("calc_rise_vs_ipw")
+    calc_fall_vs_photon.SetName("calc_fall_vs_photon")
+    calc_fall_vs_ipw.SetName("calc_fall_vs_ipw")
+    
+
+    output_dir = os.path.join(dirname,"plots")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    can = ROOT.TCanvas()
+    
+    scope_photon_vs_pin.Draw("ap")
+    calc_photon_vs_pin.Draw("p")
+    can.Print("%s/photon_vs_pin.pdf"%output_dir)
+
+    scope_photon_vs_ipw.Draw("ap")
+    calc_photon_vs_ipw.Draw("p")
+    can.Print("%s/photon_vs_ipw.pdf"%output_dir)
+
+    scope_rise_vs_ipw.Draw("ap")
+    calc_rise_vs_ipw.Draw("p")
+    can.Print("%s/rise_vs_ipw.pdf"%output_dir)
+
+    scope_rise_vs_photon.Draw("ap")
+    calc_rise_vs_photon.Draw("p")
+    can.Print("%s/rise_vs_photon.pdf"%output_dir)
+
+    scope_fall_vs_photon.Draw("ap")
+    calc_fall_vs_photon.Draw("p")
+    can.Print("%s/fall_vs_photon.pdf"%output_dir)
+
+    scope_fall_vs_ipw.Draw("ap")
+    calc_fall_vs_ipw.Draw("p")
+    can.Print("%s/fall_vs_ipw.pdf"%output_dir)
+
+    scope_width_vs_photon.Draw("ap")
+    calc_width_vs_photon.Draw("p")
+    can.Print("%s/width_vs_photon.pdf"%output_dir)
+
+    scope_width_vs_ipw.Draw("ap")
+    calc_width_vs_ipw.Draw("p")
+    can.Print("%s/width_vs_ipw.pdf"%output_dir)
+
+    fout = ROOT.TFile("%s/plots.root"%output_dir,"recreate")
+    
+    scope_photon_vs_pin.Write()
+    scope_photon_vs_ipw.Write()
+    scope_width_vs_photon.Write()
+    scope_width_vs_ipw.Write()
+    scope_rise_vs_photon.Write()
+    scope_rise_vs_ipw.Write()
+    scope_fall_vs_photon.Write()
+    scope_fall_vs_ipw.Write()
+
+    calc_photon_vs_pin.Write()
+    calc_photon_vs_ipw.Write()
+    calc_width_vs_photon.Write()
+    calc_width_vs_ipw.Write()
+    calc_rise_vs_photon.Write()
+    calc_rise_vs_ipw.Write()
+    calc_fall_vs_photon.Write()
+    calc_fall_vs_ipw.Write()
+
+    fout.Close()

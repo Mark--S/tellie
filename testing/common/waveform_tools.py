@@ -85,7 +85,7 @@ def get_width(x_values, y_values, volt_gain, x_low = -5e-9, x_high = 23e-9,):
     ''' Gets FWHM in ns of the waveform between the time window defined by
     x_low and x_high
     '''
-    print x_values
+    #print x_values
     baseline = get_baseline(x_values,y_values)
     # Get maxmium amplitude and its index
     max_y, max_i = get_max_y(x_values,y_values)
@@ -105,7 +105,7 @@ def get_width(x_values, y_values, volt_gain, x_low = -5e-9, x_high = 23e-9,):
         if x_values[i] > x_low and x_values[i] <= x_high:
             if i > max_i:
                 if (y_values[i]-baseline) < max_y*0.5:
-                    end_x = x_values[i-1]
+                    end_x = x_values[i-1]*1e9
                     break
     if volt_gain < 0.7:
         time_correction = 0.6741
@@ -116,7 +116,7 @@ def get_width(x_values, y_values, volt_gain, x_low = -5e-9, x_high = 23e-9,):
         width =  2.355*math.sqrt((((end_x-start_x)*(end_x-start_x))/(2.355*2.355))-time_correction*time_correction)
         return width
     except:
-        print 'ERROR: Could not calculate the fall time. Returning 0'
+        print 'ERROR: Could not calculate the width time. Returning 0'
         return 0
 
 def get_rise(x_values, y_values, volt_gain, x_low = -5e-9, x_high = 23e-9):
@@ -134,7 +134,7 @@ def get_rise(x_values, y_values, volt_gain, x_low = -5e-9, x_high = 23e-9):
             if i < max_i:
                 # Neg y_values
                 if (y_values[i] - baseline) < max_y*0.1:
-                    print y_values[i] - baseline
+                    #print y_values[i] - baseline
                     start_x = x_values[i-1]*1e9
                     break
     # Get 90% max
@@ -190,5 +190,8 @@ def get_fall(x_values, y_values,volt_gain,  x_low = -5e-9, x_high = 23e-9):
     try:
         fall =  1.687*math.sqrt((((end_x-start_x)*(end_x-start_x))/(1.687*1.687))-time_correction*time_correction)
         return fall
+    except:
+        print 'ERROR: Could not calculate the fall time. Returning 0'
+        return 0 
 
 
