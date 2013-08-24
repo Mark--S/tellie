@@ -6,8 +6,8 @@ import utils
 import sys
 import time
 
-#port = "/dev/tty.usbserial-FTE3C0PG"
-port = "/dev/tty.usbserial-FTF5YKDL"
+port = "/dev/tty.usbserial-FTE3C0PG"
+#port = "/dev/tty.usbserial-FTF5YKDL"
 
 usb_conn = scope_connections.VisaUSB()
 scope = scopes.Tektronix3000(usb_conn)
@@ -25,7 +25,7 @@ if __name__=="__main__":
     #CHANGE ME IF YOU NEED TO SET THRESHOLDS!
     scope.lock()
     scope.set_single_acquisition()
-    scope.set_edge_trigger(1.0,2,True)
+    scope.set_edge_trigger(0.024,2,False)
     data_start = 4500
     data_stop = 7000
     scope._connection.send("wfmpre:pt_fmt y") # Single point format
@@ -36,12 +36,11 @@ if __name__=="__main__":
     scope.lock()
 
     # setup the scope and fire
-    chan = raw_input("select channel (to fire): ")
     box_name = raw_input("set actual box number: ")
     chan_name = raw_input("set the actual channel number (1-8): ")
-    chan = int(chan)
     box_name = int(box_name)
     chan_name = int(chan_name)
+    chan = (box_name-1) * 8 + chan_name
     sc.select_channel(chan)
     sc.set_pulse_height(16383)
     sc.set_pulse_width(0) #TODO: check that the pulse width is OK (higher width -> faster rise time)

@@ -152,17 +152,21 @@ if __name__=="__main__":
     calc_fall_vs_photon = ROOT.TGraph()
     calc_fall_vs_ipw = ROOT.TGraph()
  
+    pin_vs_ipw = ROOT.TGraph()
+
     ctr = 0
 
     for i in range(len(ipw)):
 
-        print "IPW: %04d"%(ipw[i])
+        print "IPW: %04d"%(ipw[i])        
 
         #first, plot the scope values
         photon = get_photons(area[i],voltage)
         rise_time = adjust_rise(rise[i]*1e9,voltage)
         fall_time = adjust_rise(fall[i]*1e9,voltage)
         width_time = adjust_width(width[i]*1e9,voltage)
+
+        pin_vs_ipw.SetPoint(i,ipw[i],pin[i])
 
         scope_photon_vs_pin.SetPoint(i,pin[i],photon)
         scope_photon_vs_ipw.SetPoint(i,ipw[i],photon)
@@ -209,6 +213,8 @@ if __name__=="__main__":
     clean_graph(scope_width_vs_photon)
     clean_graph(scope_width_vs_ipw)
 
+    set_style(pin_vs_ipw,1)
+
     set_style(scope_photon_vs_pin,1)
     set_style(scope_photon_vs_ipw,1)
     set_style(scope_rise_vs_photon,1)
@@ -245,12 +251,14 @@ if __name__=="__main__":
     calc_fall_vs_photon.SetName("calc_fall_vs_photon")
     calc_fall_vs_ipw.SetName("calc_fall_vs_ipw")
     
-
     output_dir = os.path.join(dirname,"plots")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
     can = ROOT.TCanvas()
+
+    pin_vs_ipw.Draw("ap")
+    can.Print("%s/pin_vs_ipw.pdf"%output_dir)
     
     scope_photon_vs_pin.Draw("ap")
     calc_photon_vs_pin.Draw("p")

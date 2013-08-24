@@ -114,7 +114,7 @@ def draw_many(can,gr_arr,xtitle,ytitle,legends,name):
         else:
             gr_arr[i].Draw("p")
         legend.AddEntry(gr_arr[i],legends[i],"p")
-    leg.Draw()
+    legend.Draw()
     can.Update()
     can.Print(name)
 
@@ -129,8 +129,8 @@ if __name__=="__main__":
     parser.add_option("-d",dest="type")
     (options,args) = parser.parse_args()
     
-    box = int(box)
-    channel = int(channel)
+    box = int(options.box)
+    channel = int(options.channel)
     logical_channel = (box-1)*8 + channel  
 
     scope_photon_vs_pin = []
@@ -158,22 +158,25 @@ if __name__=="__main__":
     markers = [8,21,22,23,29]
 
     for f in os.listdir(options.type):
-        fstart = "Box%02d_Channel%d"
+        fstart = "Box%02d_Channel%d"%(box,channel)
         if not f.startswith(fstart):
+            print "SKIP",f,"(",fstart,")"
             continue
+        else:
+            print "PLOT",f
         supply_volt.append(float(f.split('_')[2][:-4]))
 
         pmt_volt = 0
-        if sweep_type=="low_intensity":
+        if options.type=="low_intensity":
             pmt_volt = 0.8
-        elif sweep_type=="broad":
+        elif options.type=="broad":
             pmt_volt = 0.6
         else:
-            raise Exception,"unknown sweep type %s"%(sweep_type)
+            raise Exception,"unknown sweep type %s"%(options.type)
 
         dirname = os.path.join(options.type,"voltage_%.3f"%supply_volt[ngr],"channel_%02d"%logical_channel)
         
-        ipw,pin,width,rise,fall,area = read_scope_scan(options.file)
+        ipw,pin,width,rise,fall,area = read_scope_scan(os.path.join(options.type,f))
         
         #make plots!
         scope_photon_vs_pin.append(ROOT.TGraph())
@@ -201,10 +204,10 @@ if __name__=="__main__":
             print "IPW: %04d"%(ipw[i])
 
             #first, plot the scope values
-            photon = get_photons(area[i],voltage)
-            rise_time = adjust_rise(rise[i]*1e9,voltage)
-            fall_time = adjust_rise(fall[i]*1e9,voltage)
-            width_time = adjust_width(width[i]*1e9,voltage)
+            photon = get_photons(area[i],pmt_volt)
+            rise_time = adjust_rise(rise[i]*1e9,pmt_volt)
+            fall_time = adjust_rise(fall[i]*1e9,pmt_volt)
+            width_time = adjust_width(width[i]*1e9,pmt_volt)
 
             scope_photon_vs_pin[ngr].SetPoint(i,pin[i],photon)
             scope_photon_vs_ipw[ngr].SetPoint(i,ipw[i],photon)
@@ -225,10 +228,10 @@ if __name__=="__main__":
             wave_times = waveform.get_meta_data("timeform_1")
             wave_volts = waveform.get_data(1)[0]
             w_area = waveform_tools.integrate(wave_times,wave_volts)
-            w_photon = get_photons(w_area,voltage)
-            w_rise = waveform_tools.get_rise(wave_times,wave_volts,voltage)
-            w_fall = waveform_tools.get_fall(wave_times,wave_volts,voltage)
-            w_width = waveform_tools.get_width(wave_times,wave_volts,voltage)
+            w_photon = get_photons(w_area,pmt_volt)
+            w_rise = waveform_tools.get_rise(wave_times,wave_volts,pmt_volt)
+            w_fall = waveform_tools.get_fall(wave_times,wave_volts,pmt_volt)
+            w_width = waveform_tools.get_width(wave_times,wave_volts,pmt_volt)
             
             calc_photon_vs_pin[ngr].SetPoint(ctr,pin[i],w_photon)
             calc_photon_vs_ipw[ngr].SetPoint(ctr,ipw[i],w_photon)
@@ -293,7 +296,7 @@ if __name__=="__main__":
 
     legends = []
     for i in range(len(scope_photon_vs_pin)):
-        legends.append("%.2f V",supply_volt[i])
+        legends.append("%.2f V"%supply_volt[i])
 
     outputdir = os.path.join(options.type,"plots","channel_%02d"%logical_channel)
     if not os.path.exists(outputdir):
@@ -317,8 +320,10 @@ if __name__=="__main__":
     draw_many(can,calc_width_vs_photon,"Photons","Width (ns)",legends,"%s/calc_width_vs_photons.pdf"%(outputdir))
     draw_many(can,calc_width_vs_ipw,"IPW","Width (ns)",legends,"%s/calc_width_vs_ipw.pdf"%(outputdir))
     
+    print len(scope_photon_vs_pin)
+
     fout = ROOT.TFile("%s/plots.root"%(outputdir),"recreate")
-    for i in range(len(scope_photons_vs_pin)):
+    for i in range(len(scope_photon_vs_pin)):
         scope_photon_vs_pin[i].Write()
         scope_photon_vs_ipw[i].Write()
         scope_rise_vs_photon[i].Write()
