@@ -1,6 +1,8 @@
 import os
 import utils
 import ROOT
+from scipy.interpolate import interp1d
+
 
 boxes = range(1,13)
 channels = range(1,9)
@@ -37,8 +39,12 @@ for box in boxes:
         for i in range(len(signal_t)):
             if signal_v[i]<threshold:
                 #threshold
-                idiff = i
-                tdiff = signal_t[i]
+                interp = interp1d(signal_t[i-5:i+5],signal_v[i-5:i+5], kind = 'cubic')
+                break
+        t_list = range(signal_t[i-1],signal_t[i+2],0.01)
+        for i in range(len(t_list)):
+            if interp(t_list[i])<threshold:
+                tdiff = t_list[i]
                 break
         if tdiff==None:
             raise Exception,"No signal detected!"
