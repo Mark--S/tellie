@@ -1,10 +1,14 @@
 import os
 import utils
+import ROOT
 
 boxes = range(1,13)
 channels = range(1,9)
 
 threshold = -0.1 # should catch the very start of the pulse
+
+delays = []
+channel_list = []
 
 for box in boxes:
     for chan in channels:
@@ -31,5 +35,12 @@ for box in boxes:
                 break
         if tdiff==None:
             raise Exception,"No signal detected!"
+        delays.append((tdiff*1e9))
+        act_chan = (box-1)*8 + chan
+        channel_list.append(act_chan)
         print "BOX %2d  CHAN %2d : %.1f ns" %(box,chan,(tdiff*1e9)) #to ns from s
+
+output = ROOT.TFile("delays.root","RECREATE")
+gDelay = ROOT.TGraph(len(delays),channel_list,delays)
+gDelay.ROOT.Write()
 
