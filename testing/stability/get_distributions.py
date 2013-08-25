@@ -1,0 +1,133 @@
+import os
+import sys
+import waveform_tools as wt
+from core import serial_command
+import scopes
+import math
+import time
+import utils
+
+
+def measure(box,channel,width,delay,scope,min_volt=None,min_trigger=-0.005):
+    """Perform a measurement using a default number of
+    pulses, with user defined width, channel and rate settings.
+    """
+    print '____________________________'
+    print width
+    #fixed options
+    height = 16383    
+    fibre_delay = 0
+    trigger_delay = 0
+    pulse_number = 1
+    #first select the correct channel and provide settings
+    logical_channel = (box-1)*8 + channel
+
+    #first, run a single acquisition with a forced trigger, effectively to clear the waveform
+    scope.set_single_acquisition()
+    time.sleep(0.1) #needed for now to get the force to work...
+    scope._connection.send("trigger:state ready")
+    time.sleep(0.1)
+    scope._connection.send("trigger force")
+    time.sleep(0.1)
+
+    #if no trigger settings, run a test fire
+    if min_volt==None:
+        min_volt = get_min_volt(logical_channel,height,width,
+                                delay,scope,min_trigger=min_trigger)
+
+    sc.select_channel(logical_channel)
+    sc.set_pulse_width(width)
+    sc.set_pulse_height(16383)
+    sc.set_pulse_delay(delay)
+    sc.set_fibre_delay(fibre_delay)
+    sc.set_trigger_delay(trigger_delay)
+  
+    #set the trigger level to half the minimum value (and ensure a good scale)
+    trigger = min_volt / 2
+    if trigger > min_trigger:
+        trigger = min_trigger
+    volts_div = math.fabs(min_volt / 4) # 6 divs total, plus some leaway
+    volts_div_setting = None
+    #find the correct volts/div
+    for i,t in enumerate(_v_div):
+        if volts_div > t:
+            if i<(len(_v_div)-2):
+                volts_div_setting = _v_div[i+1]
+            else:
+                volts_div_setting = _v_div[-2]
+    if volts_div_setting ==None:
+        volts_div_setting = _v_div[0] # set to minimal
+    print "VDIV",volts_div,volts_div_setting
+
+    scope.set_y_scale(1,volts_div_setting)
+    scope.set_edge_trigger(trigger,1,True)
+    scope.set_average_acquisition(1000)
+    scope.lock()
+    sc.set_pulse_number(pulse_number)
+
+    sc.fire()
+    #wait for the sequence to end
+    tsleep = pulse_number * (delay*1e-3 + 210e-6)
+    time.sleep(tsleep) #add the offset in
+    pin = None
+    while pin==None:
+        pin = sc.read_pin()
+
+    
+    results = {}            if 
+                raise Exception,"No signal detected!"
+
+    results["area"] = (scope.measure(1,"area")) 
+    results["rise"] = (scope.measure(1,"rise")) 
+    results["fall"] = (scope.measure(1,"fall")) 
+    results["width"] = (scope.measure(1,"nwidth")) 
+    results["minimum"] = (scope.measure(1,"minimum"))
+    results["pin"] = pin
+
+    scope.unlock()
+
+    return results
+
+
+if __name__ == '__main__':
+    parser = optparse.OptionParser()
+    parser.add_option("-b",dest="box",help="Box number (1-12)")
+    parser.add_option("-c",dest="channel",help="Channel number (1-8)")
+    (options,args) = parser.parse_args()
+
+    #Set parameters
+    box = int(options.box)
+    channel = int(options.channel)
+
+
+    #Fixed parameters
+    delay = 1.0 # 1ms -> kHz
+    cursor_low = -5e-9 # s
+    cursor_high = 23e-9 # s
+    trigger_level = 0.5 # half peak minimum
+    falling_edge = True
+    min_trigger = -0.005 # -5mV smallest allowed trigger
+
+    #run the initial setup on the scope
+    usb_conn = scope_connections.VisaUSB()
+    scope = scopes.Tektronix3000(usb_conn)
+    scope.set_cursor("x",1,cursor_low)
+    scope.set_cursor("x",2,cursor_high)
+    
+    #Create a new, timestamped, summary file
+    timestamp = time.strftime("%y%m%d_%H.%M.%S",time.gmtime())
+    widths = [0,2000,4000,6000,8000]
+    for width in widths:
+        pins = []
+        photons = []
+        output_filename = "Box%02d_Channel%d_Width%d_%s.dat" % (box,channel,widtdth,timestamp)
+        for i in range(10000):
+            results = measure(box,channel,width,delay,scope)
+            output_file.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n"%(width,
+                                                      results["pin"],
+                                                      results["width"],
+                                                      results["rise"],
+                                                      results["fall"],
+                                                      results["width"],
+                                                      results["area"]))
+        output_file.close()
