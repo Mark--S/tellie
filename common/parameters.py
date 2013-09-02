@@ -5,6 +5,8 @@
 import math
 
 _max_pulse_number = 65025
+_max_fibre_delay = 63.75 #ns
+_max_trigger_delay = 1275 #ns
 
 def pulse_number(number):
     adjusted = False
@@ -33,3 +35,26 @@ def pulse_number(number):
     if actual_par!=number:
         adjusted = True
     return adjusted,actual_par,hi,lo
+
+def trigger_delay(delay):
+    adjusted = False
+    delay = float(delay)
+    if delay>_max_trigger_delay or delay<0:
+        raise Exception,"TD must be >%s and <%s"%(0,_max_trigger_delay)
+    parameter = int(round(delay)/5)
+    adj_delay = parameter * 5
+    if delay!=adj_delay:
+        adjusted = True
+    return adjusted,adj_delay,parameter
+
+def fibre_delay(delay):
+    adjusted = False
+    delay = float(delay)
+    if delay>_max_fibre_delay or delay<0:
+        raise Exception,"FD must be >%s and <%s"%(0,_max_fibre_delay)
+    parameter = int(round(delay * 4.))
+    adj_delay = float(parameter) / 4.
+    if delay!=adj_delay:
+        adjusted = True
+    return adjusted,adj_delay,parameter
+    

@@ -108,6 +108,8 @@ def tellie_init(tellie_serial,json_settings):
         tellie_serial.select_channel(led)
         tellie_serial.set_pulse_height(settings[led]["pulse_height"])
         tellie_serial.set_pulse_width(settings[led]["pulse_width"])
+        tellie_serial.set_trigger_delay(settings[led]["trigger_delay"])
+        tellie_serial.set_fibre_delay(settings[led]["fibre_delay"])
     return comms_flags.tellie_ready
 
 def tellie_fire(tellie_serial,json_settings):

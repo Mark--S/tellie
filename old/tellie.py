@@ -51,9 +51,9 @@ def ReadRATDB(filename):
 # Operations on serial port
 #
 
-#serialPortName = '/dev/tty.usbserial-FTE3C0PG'
+serialPortName = '/dev/tty.usbserial-FTE3C0PG'
 #serialPortName = '/dev/tty.usbserial-FTF5YKDL'
-serialPortName = '/dev/ttyUSB0'
+#serialPortName = '/dev/ttyUSB0'
 serialNotOpen  = 'Serial port %s is not open. Exit.' % serialPortName
 
 

@@ -16,6 +16,8 @@ class TellieOptions(object):
         self.pw_tkstr = Tkinter.StringVar()
         self.pn_tkstr = Tkinter.StringVar()
         self.pr_tkstr = Tkinter.StringVar()
+        self.td_tkstr = Tkinter.StringVar()
+        self.fd_tkstr = Tkinter.StringVar()
     def check_options(self):
         """Check all required options have been set
         """
@@ -23,24 +25,41 @@ class TellieOptions(object):
                 not self.get_ph() or \
                 not self.get_pw() or \
                 not self.get_pn() or \
-                not self.get_pr():
+                not self.get_pr() or \
+                not self.get_td() or \
+                not self.get_fd():
             return True
         return False
     def validate_options(self):
         """Check that the option fields are appropriate
         """
         message = None
-        pn = int(self.get_pn())        
-        adjusted,actual_pn,_,_ = parameters.pulse_number(pn)
-        if adjusted==True:            
+        messages = []
+        pn = int(self.get_pn())
+        td = float(self.get_td())
+        fd = float(self.get_fd())
+        adjusted_pn,actual_pn,_,_ = parameters.pulse_number(pn)
+        adjusted_td,actual_td,_ = parameters.trigger_delay(td)
+        adjusted_fd,actual_fd,_ = parameters.fibre_delay(fd)
+        if adjusted_pn==True:            
             self.pn_tkstr.set(actual_pn)
-            message = "Pulse number adjusted from %d to %s"%(pn,actual_pn)
+            messages += ["Pulse number adjusted from %d to %s"%(pn,actual_pn)]
+        if adjusted_td==True:
+            self.td_tkstr.set(actual_td)
+            messages += ["Trigger delay adjusted from %s to %s"%(td,actual_td)]
+        if adjusted_fd==True:
+            self.fd_tkstr.set(actual_fd)
+            messages += ["Fibre delay adjusted from %s to %s"%(fd,actual_fd)]
+        if messages!=[]:
+            message = ", ".join(m for m in messages)
         return message
     def get_load_settings(self):
         """Return options for loading of settings
         """
         load_dict = {int(self.get_ch()):{"pulse_height":int(self.get_ph()),
-                                         "pulse_width":int(self.get_pw())}}
+                                         "pulse_width":int(self.get_pw()),
+                                         "trigger_delay":int(self.get_td()),
+                                         "fibre_delay":float(self.get_fd())}}
         return load_dict
     def get_fire_settings(self):
         """Return options for firing settings
@@ -64,6 +83,10 @@ class TellieOptions(object):
         delay_ms = delay_s * 1000
         print delay_ms
         return str(delay_ms)
+    def get_td(self):
+        return self.td_tkstr.get()
+    def get_fd(self):
+        return self.fd_tkstr.get()
 
 class MessageField(object):
     def __init__(self,parent):
@@ -151,33 +174,41 @@ class OrcaGui(Tkinter.Tk):
         pw_label = Tkinter.Label(self,text="Width")
         pn_label = Tkinter.Label(self,text="Number")
         pr_label = Tkinter.Label(self,text="Rate")
+        td_label = Tkinter.Label(self,text="Trigger delay")
+        fd_label = Tkinter.Label(self,text="Fibre delay")
         ch_entry = Tkinter.Entry(self,textvariable=self.tellie_options.ch_tkstr)
         ph_entry = Tkinter.Entry(self,textvariable=self.tellie_options.ph_tkstr)
         pw_entry = Tkinter.Entry(self,textvariable=self.tellie_options.pw_tkstr)
         pn_entry = Tkinter.Entry(self,textvariable=self.tellie_options.pn_tkstr)
         pr_entry = Tkinter.Entry(self,textvariable=self.tellie_options.pr_tkstr)
+        td_entry = Tkinter.Entry(self,textvariable=self.tellie_options.td_tkstr)
+        fd_entry = Tkinter.Entry(self,textvariable=self.tellie_options.fd_tkstr)
         ch_label.grid(column=1,row=0,padx=13)
         ph_label.grid(column=1,row=1,padx=13)
         pw_label.grid(column=1,row=2,padx=13)
         pn_label.grid(column=1,row=3,padx=13)
         pr_label.grid(column=1,row=4,padx=13)
+        td_label.grid(column=1,row=5,padx=13)
+        fd_label.grid(column=1,row=6,padx=13)
         ch_entry.grid(column=2,row=0)
         ph_entry.grid(column=2,row=1)
         pw_entry.grid(column=2,row=2)
         pn_entry.grid(column=2,row=3)
         pr_entry.grid(column=2,row=4)
+        td_entry.grid(column=2,row=5)
+        fd_entry.grid(column=2,row=6)
         #fire button!
         self.fire_button = Tkinter.Button(self,text=u"Fire!",command=self.load_and_fire)
-        self.fire_button.grid(column=0,row=5,columnspan=1)
+        self.fire_button.grid(column=0,row=7,columnspan=1)
         #stop button!
         self.stop_button = Tkinter.Button(self,text=u"Stop!",command=self.stop_fire)
-        self.stop_button.grid(column=2,row=5,columnspan=1)
+        self.stop_button.grid(column=2,row=7,columnspan=1)
         #message section
         self.message_field = MessageField(self)
-        self.message_field.set_pos(column=0,row=6,columnspan=3)
+        self.message_field.set_pos(column=0,row=8,columnspan=3)
         #image
         self.ellie_field = EllieField(self)
-        self.ellie_field.set_pos(column=3,row=0,rowspan=6)
+        self.ellie_field.set_pos(column=3,row=0,rowspan=8)
         self.ellie_field.add_running_img('orca_side/img/ellie_blue.gif')
         self.ellie_field.add_running_img('orca_side/img/ellie_turquoise.gif')
         self.ellie_field.add_running_img('orca_side/img/ellie_green.gif')
@@ -206,13 +237,17 @@ class OrcaGui(Tkinter.Tk):
                 self.tellie_options.pw_tkstr.set(self._presets[self.tellie_options.get_ch()]["pulse_width"])
                 self.tellie_options.pn_tkstr.set(self._presets[self.tellie_options.get_ch()]["nb_pulses"])
                 self.tellie_options.pr_tkstr.set(self._presets[self.tellie_options.get_ch()]["pulse_rate"])
-
+                self.tellie_options.td_tkstr.set(self._presets[self.tellie_options.get_ch()]["trigger_delay"])
+                self.tellie_options.fd_tkstr.set(self._presets[self.tellie_options.get_ch()]["fibre_delay"])
+                
     def clear_preset(self):
         self.tellie_options.ch_tkstr.set("")        
         self.tellie_options.ph_tkstr.set("")
         self.tellie_options.pw_tkstr.set("")
         self.tellie_options.pn_tkstr.set("")
         self.tellie_options.pr_tkstr.set("")
+        self.tellie_options.td_tkstr.set("")
+        self.tellie_options.fd_tkstr.set("")
         
     def load_and_fire(self):
         self.message_field.clear_message()
