@@ -147,11 +147,13 @@ class EllieField(object):
         self._parent.update()
 
 class OrcaGui(Tkinter.Tk):
-    def __init__(self,parent,presets_file):        
+    def __init__(self,parent,presets_file,channels_file):        
         Tkinter.Tk.__init__(self,parent)
         self.parent = parent
         self._presets_file = presets_file
+        self._channels_file = channels_file
         self._presets = json.load(open(presets_file))
+        self._channels = json.load(open(channels_file))
         self.initialise()
         self.lf_thread = None #will always point to a thread
     def initialise(self):
@@ -167,7 +169,13 @@ class OrcaGui(Tkinter.Tk):
         preset_option.grid(column=0,row=1)
         preset_button = Tkinter.Button(self,text=u"Load preset",
                                        command=self.select_preset)
-        preset_button.grid(column=0,row=2)
+        self.preset_list_tkstr = Tkinter.StringVar()
+        preset_list = Tkinter.OptionMenu(self,self.preset_list_tkstr,
+                                         "100000",
+                                         "10000",
+                                         "1000")
+        preset_list.grid(column=0,row=2)
+        preset_button.grid(column=0,row=3)
         #editable fields (filled with presets)
         ch_label = Tkinter.Label(self,text="Channel")
         ph_label = Tkinter.Label(self,text="Height")
@@ -216,11 +224,13 @@ class OrcaGui(Tkinter.Tk):
         self.ellie_field.set_waiting_img('orca_side/img/ellie_wait.gif')
         self.ellie_field.set_stopped_img('orca_side/img/ellie_stop.gif')
         self.ellie_field.show_waiting()
-
     def select_preset(self):
         self.message_field.clear_message()
         if not self.preset_option_tkstr.get():
             self.message_field.show_message("Enter a channel to load presets")
+            self.clear_preset()
+        elif not self.preset_list_tkstr.get():
+            self.message_field.show_message("Choose a run setting from list")
             self.clear_preset()
         else:
             chan = -1
@@ -228,18 +238,20 @@ class OrcaGui(Tkinter.Tk):
                 chan = int(self.preset_option_tkstr.get())
             except:
                 pass
-            if chan<1 or chan>92:
-                self.message_field.show_message("Enter a valid channel number")                
+            if chan<1 or chan>96:
+                self.message_field.show_message("Enter a valid channel number")
                 self.clear_preset()
             else:
+                nphoton = self.preset_list_tkstr.get()
                 self.tellie_options.ch_tkstr.set(self.preset_option_tkstr.get())        
-                self.tellie_options.ph_tkstr.set(self._presets[self.tellie_options.get_ch()]["pulse_height"])
-                self.tellie_options.pw_tkstr.set(self._presets[self.tellie_options.get_ch()]["pulse_width"])
-                self.tellie_options.pn_tkstr.set(self._presets[self.tellie_options.get_ch()]["nb_pulses"])
-                self.tellie_options.pr_tkstr.set(self._presets[self.tellie_options.get_ch()]["pulse_rate"])
-                self.tellie_options.td_tkstr.set(self._presets[self.tellie_options.get_ch()]["trigger_delay"])
-                self.tellie_options.fd_tkstr.set(self._presets[self.tellie_options.get_ch()]["fibre_delay"])
-                
+                #channel parameters
+                self.tellie_options.ph_tkstr.set(self._channels[self.tellie_options.get_ch()][nphoton]["pulse_height"])
+                self.tellie_options.pw_tkstr.set(self._channels[self.tellie_options.get_ch()][nphoton]["pulse_width"])
+                self.tellie_options.fd_tkstr.set(self._channels[self.tellie_options.get_ch()][nphoton]["fibre_delay"])
+                #global parameters
+                self.tellie_options.pn_tkstr.set(self._presets["run_list"][nphoton]["pulse_number"])
+                self.tellie_options.pr_tkstr.set(self._presets["run_list"][nphoton]["pulse_rate"])
+                self.tellie_options.td_tkstr.set(self._presets["run_list"][nphoton]["trigger_delay"])
     def clear_preset(self):
         self.tellie_options.ch_tkstr.set("")        
         self.tellie_options.ph_tkstr.set("")
@@ -247,8 +259,7 @@ class OrcaGui(Tkinter.Tk):
         self.tellie_options.pn_tkstr.set("")
         self.tellie_options.pr_tkstr.set("")
         self.tellie_options.td_tkstr.set("")
-        self.tellie_options.fd_tkstr.set("")
-        
+        self.tellie_options.fd_tkstr.set("")        
     def load_and_fire(self):
         self.message_field.clear_message()
         if self.tellie_options.check_options():
@@ -264,7 +275,6 @@ class OrcaGui(Tkinter.Tk):
             except:
                 print "Unable to start thread!"
         self.ellie_field.show_waiting()
-
     def stop_fire(self):
         thread_pool = comms_thread_pool.CommsThreadPool.get_instance()
         if thread_pool.get_thread_by_name("LOADnFIRE"):
@@ -283,7 +293,6 @@ class OrcaGui(Tkinter.Tk):
             self.message_field.show_warning("ERROR ON STOP COMMAND!")
         else:
             self.message_field.show_message("STOPPED")            
-                            
     def safe_exit(self):
         self.stop_fire()
         self.destroy()
@@ -296,7 +305,7 @@ if __name__=="__main__":
     (options, args) = parser.parse_args()
     logger = tellie_logger.TellieLogger.get_instance()
     logger.set_debug_mode(options.debug)
-    app = OrcaGui(None,"orca_side/PRESETS.js")
+    app = OrcaGui(None,"orca_side/PRESETS.js","orca_side/CHANNELS.js")
     app.title = "TELLIE Control"
     if options.address:
         tellie_comms.HOST=options.address

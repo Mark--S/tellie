@@ -18,6 +18,8 @@ void make_plots(){
     TGraph *grPinArea[100] = {0};
     int ctr[100]={0};
 
+    TGraph *allPinArea = new TGraph();
+
     for(int entry=0;entry<tt->GetEntries();entry++){
 
         tt->GetEntry(entry);
@@ -36,6 +38,7 @@ void make_plots(){
         grPin[ipw/100]->SetPoint(ctr[ipw/100],rate_actual,pin);
         grArea[ipw/100]->SetPoint(ctr[ipw/100],rate_actual,photons);
         grPinArea[ipw/100]->SetPoint(ctr[ipw/100],photons,pin);
+        allPinArea->SetPoint(entry,photons,pin);
         ctr[ipw/100]++;
     }
 
@@ -75,4 +78,14 @@ void make_plots(){
             can3->Print(canname);
         }
     }
+
+    TCanvas *canall = new TCanvas("canall","canall");
+    canall->cd();
+    allPinArea->SetMarkerStyle(23);
+    allPinArea->GetXaxis()->SetTitle("Photons");
+    allPinArea->GetYaxis()->SetTitle("Pin");
+    allPinArea->Draw("ap");
+    sprintf(canname,"plots/all_PinVsPhoton.pdf");
+    canall->Print(canname);
+    
 }
