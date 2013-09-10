@@ -108,7 +108,6 @@ def tellie_init(tellie_serial,json_settings):
         tellie_serial.select_channel(led)
         tellie_serial.set_pulse_height(settings[led]["pulse_height"])
         tellie_serial.set_pulse_width(settings[led]["pulse_width"])
-        tellie_serial.set_trigger_delay(settings[led]["trigger_delay"])
         tellie_serial.set_fibre_delay(settings[led]["fibre_delay"])
     return comms_flags.tellie_ready
 
@@ -116,11 +115,11 @@ def tellie_fire(tellie_serial,json_settings):
     """Fire Tellie according to the settings from Orca"""
     settings = json.loads(json_settings)
     n_led = len(settings)
-    for led in settings:
-        tellie_serial.select_channel(led)
-        tellie_serial.set_pulse_number(settings[led]["pulse_number"])
-        tellie_serial.set_pulse_delay(settings[led]["pulse_delay"])
+    tellie_serial.set_pulse_number(settings["pulse_number"])
+    tellie_serial.set_pulse_delay(settings["pulse_delay"])
+    tellie_serial.set_trigger_delay(settings["trigger_delay"])
     if n_led==1:
+        tellie_serial.select_channel(settings.keys[0])
         tellie_serial.fire()
     else:
         led_list = []

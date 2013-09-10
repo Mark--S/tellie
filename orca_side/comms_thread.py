@@ -2,8 +2,10 @@
 import time
 import threading
 from common import comms_flags, tellie_logger
+from core import tellie_exception
 import comms_thread_pool
 import tellie_comms
+import tellie_database
 import Tkinter
 
 class CommsThread(threading.Thread):
@@ -15,7 +17,7 @@ class CommsThread(threading.Thread):
         thread_pool = comms_thread_pool.CommsThreadPool.get_instance()
         if unique==True and thread_pool.check_in_pool(name):
             print "CANNOT START NEW THREAD"
-            raise Exception,"Cannot start this thread!"
+            raise tellie_exception.ThreadException("Cannot start this thread!")
         super(CommsThread,self).__init__(name=name)
         thread_pool.register_thread(self)
         self._in_pool = True
@@ -35,12 +37,13 @@ class LoadFireThread(CommsThread):
         try:
             super(LoadFireThread,self).__init__(name="LOADnFIRE",unique=True)
             self.logger = tellie_logger.TellieLogger.get_instance()
+            self.database = tellie_database.TellieDatabase.get_instance()
             self.fire_button = fire_button
             self.tellie_options = tellie_options
             self.message_field = message_field
             self.ellie_field = ellie_field
-        except:
-            raise Exception,"Cannot start this thread"
+        except tellie_exception.ThreadException,e:
+            raise tellie_exception.ThreadException(e)
     def run(self):
         """Expect two python dicts with settings.  Should calculate a 
         reasonable time delay from which PINOUT reads should be called.
@@ -48,72 +51,68 @@ class LoadFireThread(CommsThread):
         load_settings = self.tellie_options.get_load_settings()
         fire_settings = self.tellie_options.get_fire_settings()
         pin_readings = {}
-        if len(load_settings)!=1 or len(fire_settings)!=1:
-            #Can only operate with on channel currently
-            #No current plans to implement more!
-            print "Only one channel at a time! WILL NOT FIRE"
-            raise Exception
+        #first load the settings
         for chan in load_settings:
-            n_fire = fire_settings[chan]["pulse_number"]
-            rate = float(self.tellie_options.get_pr())
-            t_wait = n_fire/rate
-            print n_fire,rate,t_wait
-            t_start = time.time()
-            if self.stopped(): #check at before sending any commands
-                self.shutdown_thread(1,"CALLED STOP!")
-                return
             error_state,response = tellie_comms.send_init_command(load_settings)
             if error_state:
+                self.save_errors("COMMUNICATION ERROR: %s"%(response))
                 self.shutdown_thread(error_state,"COMMUNICATION ERROR: %s"%(response))
                 return
-            if self.stopped(): #check at before sending any commands
+        #now fire the channels
+        rate = float(self.tellie_options.get_pr())
+        t_wait = fire_settings["pulse_number"]/rate
+        t_start = time.time()
+        if self.stopped(): #check at before sending any commands
+            self.save_errors("CALLED STOP")
+            self.shutdown_thread(1,"CALLED STOP!")
+            return
+        error_state,response = tellie_comms.send_fire_command(fire_settings)
+        if error_state:
+            self.save_errors("COMMUNICATION ERROR: %s"%(response))
+            self.shutdown_thread(error_state,"COMMUNICATION ERROR: %s"%(response))
+            return
+        t_now = time.time()
+        while (t_now - t_start) < t_wait:
+            self.ellie_field.show_running()
+            time.sleep(0.1)                
+            if not self.stopped():
+                t_now = time.time()
+            else:
+                self.save_errors("CALLED STOP")
                 self.shutdown_thread(1,"CALLED STOP!")
                 return
-            error_state,response = tellie_comms.send_fire_command(fire_settings)
-            if error_state:
-                self.shutdown_thread(error_state,"COMMUNICATION ERROR: %s"%(response))
+        error_state,response = tellie_comms.send_read_command()            
+        if error_state:
+            self.save_errors("READ ERROR: %s"%(response))
+            self.shutdown_thread(error_state,"READ ERROR: %s"%(response))
+            return
+        while response == comms_flags.tellie_notready:
+            time.sleep(0.1)
+            error_state,response = tellie_comms.send_read_command()                
+            if self.stopped():
+                #Stop the thread here!
+                self.save_errors("CALLED STOP")
+                self.shutdown_thread(1,"CALLED STOP!")
                 return
-            t_now = time.time()
-            while (t_now - t_start) < t_wait:
-                self.ellie_field.show_running()
-                time.sleep(0.1)                
-                if not self.stopped():
-                    t_now = time.time()
-                else:
-                    #Stop the thread here!
-                    self.shutdown_thread(1,"CALLED STOP!")
-                    self.ellie_field.show_stopped()
-                    return
-            error_state,response = tellie_comms.send_read_command()            
             if error_state:
+                self.save_errors("READ ERROR: %s"%(response))
                 self.shutdown_thread(error_state,"READ ERROR: %s"%(response))
-                self.ellie_field.show_stopped()
                 return
-            while response == comms_flags.tellie_notready:
-                time.sleep(0.1)
-                error_state,response = tellie_comms.send_read_command()                
-                if self.stopped():
-                    #Stop the thread here!
-                    self.shutdown_thread(1,"CALLED STOP!")
-                    self.ellie_field.show_stopped()
-                    return
-                if error_state:
-                    self.shutdown_thread(error_state,"READ ERROR: %s"%(response))
-                    self.ellie_field.show_stopped()
-                    return
-            try:
-                pin_readings[chan] = response.split("|")[1]
-            except IndexError:
-                self.shutdown_thread(1,"PIN READ ERROR: %s"%response)
-                self.ellie_field.show_stopped()
-                return
+        try:
+            pin_readings[chan] = response.split("|")[1]
+        except IndexError:
+            self.save_errors("PIN READ ERROR: %s"%(response))
+            self.shutdown_thread(1,"PIN READ ERROR: %s"%response)
+            return            
         self.ellie_field.show_waiting()
+        self.save_results(pin_readings)
         self.shutdown_thread(message="Sequence complete, PIN: %s"%(pin_readings))
     def stop(self):
         super(LoadFireThread,self).stop()
     def stopped(self):
         return super(LoadFireThread,self).stopped()
     def shutdown_thread(self,error_flag=None,message=None):
+        self.ellie_field.show_stopped()
         if error_flag:
             self.message_field.show_warning(message)
         else:
@@ -121,3 +120,19 @@ class LoadFireThread(CommsThread):
                 self.message_field.show_message(message)                
         self.fire_button.config(state = Tkinter.NORMAL)
         super(LoadFireThread,self).shutdown_thread()
+    def save_results(self,pin_readings):
+        if self.database.db==None:
+            return
+        results = {"pins":pin_readings}
+        results["run"] = int(self.tellie_options.get_run())
+        results["load_settings"] = self.tellie_options.get_load_settings()
+        results["fire_settings"] = self.tellie_options.get_fire_settings()
+        self.database.save(results)
+    def save_errors(self,message):
+        if self.database.db==None:
+            return
+        results = {"errors":message}
+        results["run"] = int(self.tellie_options.get_run())
+        results["load_settings"] = self.tellie_options.get_load_settings()
+        results["fire_settings"] = self.tellie_options.get_fire_settings()
+        self.database.save(results)

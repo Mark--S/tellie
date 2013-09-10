@@ -7,10 +7,12 @@ import Tkinter
 import tellie_comms
 import comms_thread
 import comms_thread_pool
+import tellie_database
 from common import tellie_logger , parameters
 
 class TellieOptions(object):
     def __init__(self):
+        self.run_tkstr = Tkinter.StringVar()
         self.ch_tkstr = Tkinter.StringVar()
         self.ph_tkstr = Tkinter.StringVar()
         self.pw_tkstr = Tkinter.StringVar()
@@ -21,7 +23,8 @@ class TellieOptions(object):
     def check_options(self):
         """Check all required options have been set
         """
-        if not self.get_ch() or \
+        if not self.get_run() or \
+                not self.get_ch() or \
                 not self.get_ph() or \
                 not self.get_pw() or \
                 not self.get_pn() or \
@@ -30,6 +33,19 @@ class TellieOptions(object):
                 not self.get_fd():
             return True
         return False
+    def check_int_options(self):
+        try:
+            int(self.get_run())
+            int(self.get_ch())
+            int(self.get_ph())
+            int(self.get_pw())
+            int(self.get_pn())
+            int(self.get_pr())
+            int(self.get_td())
+            int(self.get_fd())
+            return False
+        except (ValueError,TypeError):
+            return True
     def validate_options(self):
         """Check that the option fields are appropriate
         """
@@ -58,15 +74,17 @@ class TellieOptions(object):
         """
         load_dict = {int(self.get_ch()):{"pulse_height":int(self.get_ph()),
                                          "pulse_width":int(self.get_pw()),
-                                         "trigger_delay":int(self.get_td()),
                                          "fibre_delay":float(self.get_fd())}}
         return load_dict
     def get_fire_settings(self):
         """Return options for firing settings
         """
-        load_dict = {int(self.get_ch()):{"pulse_number":int(self.get_pn()),
-                                         "pulse_delay":float(self.get_pd())}}
+        load_dict = {"pulse_number":int(self.get_pn()),
+                     "pulse_delay":float(self.get_pd()),
+                     "trigger_delay":int(self.get_td())}
         return load_dict
+    def get_run(self):
+        return self.run_tkstr.get()
     def get_ch(self):
         return self.ch_tkstr.get()
     def get_ph(self):
@@ -160,13 +178,11 @@ class OrcaGui(Tkinter.Tk):
         self.grid()
         #default settings to load
         self.tellie_options = TellieOptions()
-        #preset menu listings
-        Tkinter.Label(self,text="Channel presets").grid(column=0,row=0)
-        self.preset_option_tkstr = Tkinter.StringVar()
+        #preset run options
+        Tkinter.Label(self,text="Channel presets").grid(column=0,row=1,columnspan=1)
+        self.preset_option_tkstr = Tkinter.StringVar()        
         preset_option = Tkinter.Entry(self,textvariable=self.preset_option_tkstr)
-        #preset_option = Tkinter.OptionMenu(self, self.preset_option_tkstr,
-        #                                   1,2,3,4,5,6,7,8)
-        preset_option.grid(column=0,row=1)
+        preset_option.grid(column=0,row=2,columnspan=1)
         preset_button = Tkinter.Button(self,text=u"Load preset",
                                        command=self.select_preset)
         self.preset_list_tkstr = Tkinter.StringVar()
@@ -174,8 +190,13 @@ class OrcaGui(Tkinter.Tk):
                                          "100000",
                                          "10000",
                                          "1000")
-        preset_list.grid(column=0,row=2)
-        preset_button.grid(column=0,row=3)
+        preset_list.grid(column=0,row=3,columnspan=1)
+        preset_button.grid(column=0,row=4,columnspan=1)
+        #the run
+        run_label = Tkinter.Label(self,text="Run")
+        run_entry = Tkinter.Entry(self,textvariable=self.tellie_options.run_tkstr)
+        run_label.grid(column=2,row=0,padx=13)
+        run_entry.grid(column=3,row=0)
         #editable fields (filled with presets)
         ch_label = Tkinter.Label(self,text="Channel")
         ph_label = Tkinter.Label(self,text="Height")
@@ -191,32 +212,34 @@ class OrcaGui(Tkinter.Tk):
         pr_entry = Tkinter.Entry(self,textvariable=self.tellie_options.pr_tkstr)
         td_entry = Tkinter.Entry(self,textvariable=self.tellie_options.td_tkstr)
         fd_entry = Tkinter.Entry(self,textvariable=self.tellie_options.fd_tkstr)
-        ch_label.grid(column=1,row=0,padx=13)
-        ph_label.grid(column=1,row=1,padx=13)
-        pw_label.grid(column=1,row=2,padx=13)
-        pn_label.grid(column=1,row=3,padx=13)
-        pr_label.grid(column=1,row=4,padx=13)
-        td_label.grid(column=1,row=5,padx=13)
-        fd_label.grid(column=1,row=6,padx=13)
-        ch_entry.grid(column=2,row=0)
-        ph_entry.grid(column=2,row=1)
-        pw_entry.grid(column=2,row=2)
-        pn_entry.grid(column=2,row=3)
-        pr_entry.grid(column=2,row=4)
-        td_entry.grid(column=2,row=5)
-        fd_entry.grid(column=2,row=6)
+        Tkinter.Label(self,text="Channel settings").grid(column=2,row=1,columnspan=2)
+        ch_label.grid(column=2,row=2,padx=13)
+        ph_label.grid(column=2,row=3,padx=13)
+        pw_label.grid(column=2,row=4,padx=13)
+        fd_label.grid(column=2,row=5,padx=13)
+        Tkinter.Label(self,text="Global settings").grid(column=2,row=6,columnspan=2)
+        pn_label.grid(column=2,row=7,padx=13)
+        pr_label.grid(column=2,row=8,padx=13)
+        td_label.grid(column=2,row=9,padx=13)
+        ch_entry.grid(column=3,row=2)
+        ph_entry.grid(column=3,row=3)
+        pw_entry.grid(column=3,row=4)
+        fd_entry.grid(column=3,row=5)
+        pn_entry.grid(column=3,row=7)
+        pr_entry.grid(column=3,row=8)
+        td_entry.grid(column=3,row=9)
         #fire button!
         self.fire_button = Tkinter.Button(self,text=u"Fire!",command=self.load_and_fire)
-        self.fire_button.grid(column=0,row=7,columnspan=1)
+        self.fire_button.grid(column=0,row=10,columnspan=2)
         #stop button!
         self.stop_button = Tkinter.Button(self,text=u"Stop!",command=self.stop_fire)
-        self.stop_button.grid(column=2,row=7,columnspan=1)
+        self.stop_button.grid(column=2,row=10,columnspan=2)
         #message section
         self.message_field = MessageField(self)
-        self.message_field.set_pos(column=0,row=8,columnspan=3)
+        self.message_field.set_pos(column=0,row=11,columnspan=4)
         #image
         self.ellie_field = EllieField(self)
-        self.ellie_field.set_pos(column=3,row=0,rowspan=8)
+        self.ellie_field.set_pos(column=4,row=0,rowspan=8)
         self.ellie_field.add_running_img('orca_side/img/ellie_blue.gif')
         self.ellie_field.add_running_img('orca_side/img/ellie_turquoise.gif')
         self.ellie_field.add_running_img('orca_side/img/ellie_green.gif')
@@ -264,16 +287,19 @@ class OrcaGui(Tkinter.Tk):
         self.message_field.clear_message()
         if self.tellie_options.check_options():
             self.message_field.show_message("Missing some settings, cannot run!")
+        elif self.tellie_options.check_int_options():
+            self.message_field.show_message("Some options are not ints, cannot run!")
         else:
             message = self.tellie_options.validate_options()
             if message!=None:
                 self.message_field.show_message(message)
             self.fire_button.config(state = Tkinter.DISABLED)
-            try:
+#            try:
+            if True:
                 self.lf_thread = comms_thread.LoadFireThread(self.tellie_options,self.fire_button,self.message_field,self.ellie_field)
                 self.lf_thread.start()
-            except:
-                print "Unable to start thread!"
+#            except:
+#                print "Unable to start thread!"
         self.ellie_field.show_waiting()
     def stop_fire(self):
         thread_pool = comms_thread_pool.CommsThreadPool.get_instance()
@@ -302,9 +328,14 @@ if __name__=="__main__":
     parser.add_option("-d",dest="debug",action="store_true",default=False,help="Debug mode")
     parser.add_option("-a",dest="address",default=None,help="Server address (default 127.0.0.1)")
     parser.add_option("-p",dest="port",default=None,help="Server port (default 50050)")
+    parser.add_option("-l",dest="usedb",action="store_true",help="Upload results to database")
     (options, args) = parser.parse_args()
     logger = tellie_logger.TellieLogger.get_instance()
     logger.set_debug_mode(options.debug)
+    database = None
+    if options.usedb:        
+        database= tellie_database.TellieDatabase.get_instance()
+        database.login("http://127.0.0.1:5984","tellie")
     app = OrcaGui(None,"orca_side/PRESETS.js","orca_side/CHANNELS.js")
     app.title = "TELLIE Control"
     if options.address:

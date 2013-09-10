@@ -25,3 +25,7 @@ class TellieSerialException(Exception):
     def __init__(self, error):
         Exception.__init__(self, error)
 
+class ThreadException(Exception):
+    """Exception raised specific to threading issues"""
+    def __init__(self, error):
+        Exception.__init__(self, error)
