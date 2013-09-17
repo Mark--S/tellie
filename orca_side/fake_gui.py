@@ -72,14 +72,16 @@ class TellieOptions(object):
     def get_load_settings(self):
         """Return options for loading of settings
         """
-        load_dict = {int(self.get_ch()):{"pulse_height":int(self.get_ph()),
-                                         "pulse_width":int(self.get_pw()),
-                                         "fibre_delay":float(self.get_fd())}}
+        load_dict = {int(self.get_ch()):{
+                "pulse_height":int(self.get_ph()),
+                "pulse_width":int(self.get_pw()),
+                "fibre_delay":float(self.get_fd())}}
         return load_dict
     def get_fire_settings(self):
         """Return options for firing settings
         """
-        load_dict = {"pulse_number":int(self.get_pn()),
+        load_dict = {"channels":[self.get_ch()],
+                     "pulse_number":int(self.get_pn()),
                      "pulse_delay":float(self.get_pd()),
                      "trigger_delay":int(self.get_td())}
         return load_dict

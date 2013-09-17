@@ -244,7 +244,7 @@ class SerialCommand(object):
         if self._firing!=True:
             raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
         if channel!=None:
-            self._select_channel(channel)      
+            self.select_channel(channel)      
             if self._channel[0] <= 56: #up to box 7
                 cmd = _cmd_read_average_lower
             else:
@@ -334,6 +334,7 @@ class SerialCommand(object):
         self.clear_channel()
         command = ""
         for channel in channels:
+            print channel
             command += _cmd_channel_select_many_start+chr(channel)
         command += _cmd_channel_select_many_end
         self._send_setting_command(command=command,buffer_check=buffer_check)
@@ -343,7 +344,7 @@ class SerialCommand(object):
         """Set the pulse height for the selected channel"""
         if len(self._channel)!=1:
             raise tellie_exception.TellieException("Cannot set parameter with channels set as %s"%(self._channel))
-        if par==self._current_ph[self._channel] and not self._force_setting:
+        if par==self._current_ph[self._channel[0]] and not self._force_setting:
             pass #same as current setting
         else:
             self.logger.debug("Set pulse height %s %s"%(par,type(par)))        

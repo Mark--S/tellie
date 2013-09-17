@@ -14,7 +14,7 @@ import time
 import utils
 import sys
 
-port = "/dev/tty.usbserial-FTE3C0PG"
+port = "/dev/tty.usbserial-FTF5YKDL"
 _boundary = [0,1.5e-3,3e-3,7e-3,15e-3,30e-3,70e-3,150e-3,300e-3,700e-3,1000]
 _v_div = [1e-3,2e-3,5e-3,10e-3,20e-3,50e-3,100e-3,200e-3,500e-3,1.0,1000]
 
