@@ -319,7 +319,7 @@ class SerialCommand(object):
         if type(channel) is not int:
             channel = int(channel)
         if self._channel!=[]:
-            if self._channel==[channel]
+            if self._channel==[channel]:
                 #channel already selected
                 return 
         self.logger.debug("Select channel %s %s"%(channel,type(channel)))
