@@ -244,12 +244,17 @@ class SerialCommand(object):
         if self._firing!=True:
             raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
         if channel!=None:
-            self.select_channel(channel)      
+            if self._reading==True:
+                if channel!=self._channel[0]:
+                    raise tellie_exception.TellieException("Cannot read pin for channel %s, already trying to read channel %s"%(channel,self._channel[0]))
+            else:
+                self.select_channel(channel)      
             if self._channel[0] <= 56: #up to box 7
                 cmd = _cmd_read_average_lower
             else:
                 cmd = _cmd_read_average_upper
-            self._send_command(cmd,False)
+            if not self._reading:
+                self._send_command(cmd,False)
             pattern = re.compile(r"""\d+""")
             start = time.time()
             pin = []
@@ -261,9 +266,12 @@ class SerialCommand(object):
                 time.sleep(0.1)
             if len(pin)>1:
                 self._firing = False
+                self._reading = False
                 raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s"%(len(pin),pin))
             elif len(pin)==0:
+                self._reading = True
                 return None
+            self._reading = False
             self._firing = False
             return pin[0]
         else:

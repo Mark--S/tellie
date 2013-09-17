@@ -8,6 +8,7 @@
 
 import os
 from core import serial_command
+from common import comms_flags
 import scopes
 import math
 import time
@@ -28,6 +29,8 @@ def get_min_volt(channel,height,width,delay,scope,scale=None,trigger=None,min_tr
     sc.set_pulse_height(height)
     sc.set_pulse_width(width)
     sc.set_pulse_delay(delay)
+    sc.set_trigger_delay(0)
+    sc.set_fibre_delay(0)
     sc.set_pulse_number(1)
     if scale==None or trigger==None:
         scope.set_y_scale(1,1) # set to 1V/Div initially
@@ -47,8 +50,9 @@ def get_min_volt(channel,height,width,delay,scope,scale=None,trigger=None,min_tr
     scope.lock()
     sc.fire()
     pin = None
-    while pin==None:
+    while not comms_flags.valid_pin(pin,channel):
         pin = sc.read_pin()
+    print "PIN:",pin
     #single pulse fired, read from the scope  
     min_volt = float(scope.measure(1,"minimum"))
     scope.unlock()
@@ -117,8 +121,9 @@ def sweep(dir_out,file_out,box,channel,width,delay,scope,min_volt=None,min_trigg
     tsleep = pulse_number * (delay*1e-3 + 210e-6)
     time.sleep(tsleep) #add the offset in
     pin = None
-    while pin==None:
+    while not comms_flags.valid_pin(pin,channel):
         pin = sc.read_pin()
+    print "PIN:",pin
     #should now have an averaged waveform
     directory = "%s/channel_%2d"%(dir_out,logical_channel)
     if not os.path.exists(directory):
@@ -143,7 +148,7 @@ def sweep(dir_out,file_out,box,channel,width,delay,scope,min_volt=None,min_trigg
     results["fall"] = (scope.measure(1,"fall")) 
     results["width"] = (scope.measure(1,"nwidth")) 
     results["minimum"] = (scope.measure(1,"minimum"))
-    results["pin"] = pin
+    results["pin"] = pin[8]
 
     scope.unlock()
 
