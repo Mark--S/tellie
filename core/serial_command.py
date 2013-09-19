@@ -79,9 +79,9 @@ class SerialCommand(object):
         #cache current settings - remove need to re-command where possible
         #channel specific settings
         self._channel = [] #always a list
-        self._current_pw = [0]*96
-        self._current_ph = [0]*96
-        self._current_fd = [0]*96
+        self._current_pw = [-999]*96
+        self._current_ph = [-999]*96
+        self._current_fd = [-999]*96
         #global settings
         self._current_pn = None
         self._current_pd = None
@@ -192,7 +192,8 @@ class SerialCommand(object):
         # Set readout to false when firing (must read
         # averaged pin at some later time).
         cmd = None
-        self._send_command(_cmd_fire_series,False)
+        buffer_check = _cmd_fire_series+"K"
+        self._send_command(_cmd_fire_series,buffer_check=buffer_check)
         #if self._channel <= 56: #up to box 7
         #    cmd = _cmd_fire_series_lower
         #else:
@@ -237,9 +238,10 @@ class SerialCommand(object):
         self._firing = False
         return buffer_contents
 
-    def read_pin(self,channel=None,timeout=2.0):
+    def read_pin(self,channel=None,timeout=2.0,final=True):
         """Read the pin diode output, should always follow a fire command,
         Provide channel number to select specific channel, otherwise, receive dict of all channels"""
+        print "READ THE FUCKING PIN"
         self.logger.debug("Read PINOUT")
         if self._firing!=True:
             raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
@@ -270,19 +272,24 @@ class SerialCommand(object):
                 raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s"%(len(pin),pin))
             elif len(pin)==0:
                 self._reading = True
-                return None
+                return None            
             self._reading = False
-            self._firing = False
+            if final==True:
+                self._firing = False
+            print "PIN READ",pin
             return pin[0]
         else:
             #check all PINs from the last firing sequence
             #need to store a copy of which pins were read
             channel_list = self._channel
             channel_dict = {}
-            for channel in channel_list:
-                pin = self.read_pin(channel)
+            final_read = False
+            for i,channel in enumerate(channel_list):
+                if i==len(channel_list)-1:
+                    final_read = True
+                pin = self.read_pin(channel,final=final_read)
                 channel_dict[channel] = pin
-            return channel_dict
+            return channel_dict,channel_list
 
     def check_ready(self):
         """Check that all settings have been set"""
@@ -307,7 +314,7 @@ class SerialCommand(object):
     def clear_channel(self):
         """Unselect the channel"""
         self.logger.debug("Clear channel")
-        self._send_setting_command(_cmd_channel_clear)
+        self._send_command(_cmd_channel_clear)
         self._channel = []
 
     def clear_channel_settings(self,channel):
@@ -333,19 +340,22 @@ class SerialCommand(object):
         self.logger.debug("Select channel %s %s"%(channel,type(channel)))
         command = _cmd_channel_select_single_start+chr(channel)+_cmd_channel_select_single_end
         buffer_check = "B"+str((int(channel)-1)/8+1)+_cmd_channel_select_single_end
-        self._send_setting_command(command=command,buffer_check=buffer_check)
+        self._send_command(command=command,buffer_check=buffer_check)
         self._channel = [channel]
 
     def select_channels(self,channels):
         """Select multiple channels, expects list for channels"""
         self.logger.debug("Select channels %s %s"%(channels,type(channels)))
         self.clear_channel()
-        command = ""
+        command = _cmd_channel_select_many_start
         for channel in channels:
             print channel
-            command += _cmd_channel_select_many_start+chr(channel)
+            command += chr(channel)
         command += _cmd_channel_select_many_end
-        self._send_setting_command(command=command,buffer_check=buffer_check)
+        buffer_check = "B"+str((int(channels[0])-1)/8+1)+_cmd_channel_select_many_end
+        print "SEND CHANNELS","CMD",command,"BUF",buffer_check
+        self._send_command(command=command,buffer_check=buffer_check)
+        print "DONE!"
         self._channel = channels
 
     def set_pulse_height(self,par):

@@ -134,8 +134,8 @@ def tellie_fire(tellie_serial,json_settings):
 def tellie_read(tellie_serial):
     """Read a the PINout from the fired channels"""
     try:
-        pin_out = tellie_serial.read_pin()
-        if pin_out:
+        pin_out,channel_list = tellie_serial.read_pin()
+        if comms_flags.valid_pin(pin_out,channel_list):
             return "%s|%s" % (comms_flags.tellie_pinout,pin_out)
         else:
             return comms_flags.tellie_notready
