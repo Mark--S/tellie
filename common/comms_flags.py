@@ -31,15 +31,17 @@ tellie_pinout_type = int
 tellite_notready_type = type(None)
 tellie_error_type = str
 
-def valid_pin(pin,channel):
+def valid_pin(pin_dict,channel):
     """Pass the pin reading dict, check whether channel X is valid
     """
-    if pin==None:
+    if type(channel)!=list:
+        channel = [channel]
+    if pin_dict==None:
         #default value to start loop
         return False
-    if channel not in pin:
-        raise Exception,"PIN reading does not contain %s"%channel
-    if pin[channel]==None:
-        return False
-    else:
-        return True
+    for ch in channel:
+        if ch not in pin_dict:
+            raise Exception,"PIN reading does not contain %s"%channel
+        if pin_dict[ch]==None:
+            return False
+    return True

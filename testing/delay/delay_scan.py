@@ -26,8 +26,8 @@ if __name__=="__main__":
     scope.lock()
     scope.set_single_acquisition()
     scope.set_edge_trigger(0.024,2,False)
-    data_start = 4500
-    data_stop = 7000
+    data_start = 1
+    data_stop = 10000
     scope._connection.send("wfmpre:pt_fmt y") # Single point format
     scope._connection.send("data:encdg ribinary") # Signed int binary mode
     scope._connection.send("data:start %i" % data_start) # Start point
