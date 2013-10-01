@@ -241,7 +241,6 @@ class SerialCommand(object):
     def read_pin(self,channel=None,timeout=2.0,final=True):
         """Read the pin diode output, should always follow a fire command,
         Provide channel number to select specific channel, otherwise, receive dict of all channels"""
-        print "READ THE FUCKING PIN"
         self.logger.debug("Read PINOUT")
         if self._firing!=True:
             raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
@@ -263,7 +262,7 @@ class SerialCommand(object):
             while (time.time()-start)<timeout:
                 output = self._serial.read(100)
                 pin = pattern.findall(output)
-                if len(pin)!=None:
+                if len(pin):
                     break
                 time.sleep(0.1)
             if len(pin)>1:
@@ -276,7 +275,6 @@ class SerialCommand(object):
             self._reading = False
             if final==True:
                 self._firing = False
-            print "PIN READ",pin
             return pin[0]
         else:
             #check all PINs from the last firing sequence
