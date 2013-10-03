@@ -41,6 +41,7 @@ _cmd_read_single_upper = "m"
 _cmd_read_average_lower = "s"
 _cmd_read_average_upper = "U"
 _cmd_fire_series = "g"
+_buffer_end_sequence = "K"
 _cmd_stop = "X"
 _cmd_channel_clear = "C"
 _cmd_channel_select_single_start = "I"
@@ -242,12 +243,14 @@ class SerialCommand(object):
         """Read the pin diode output, should always follow a fire command,
         Provide channel number to select specific channel, otherwise, receive dict of all channels"""
         self.logger.debug("Read PINOUT")
-        if self._firing!=True:
-            raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
-        #first, check that the buffer has a K, required to show end of sequence
-        if not self._serial.read(100)=="K":
-            #sequence complete
-            return None
+        #if in firing mode, check the buffer shows the sequence has ended
+        if self._firing:
+            if self._serial.read(100)==_buffer_end_sequence:
+                print "K in buffer"
+                self._firing = False
+            else:
+                print "No K in buffer"
+                return None,None
         if channel!=None:
             if self._reading==True:
                 if channel!=self._channel[0]:
@@ -255,9 +258,13 @@ class SerialCommand(object):
             else:
                 self.select_channel(channel)      
             if self._channel[0] <= 56: #up to box 7
-                cmd = _cmd_read_average_lower
+                #cmd = _cmd_read_average_lower
+                print "read!"
+                cmd = _cmd_read_single_lower
             else:
-                cmd = _cmd_read_average_upper
+                #cmd = _cmd_read_average_upper
+                print "read!"
+                cmd = _cmd_read_single_upper
             if not self._reading:
                 self._send_command(cmd,False)
             pattern = re.compile(r"""\d+""")
@@ -275,11 +282,11 @@ class SerialCommand(object):
                 raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s"%(len(pin),pin))
             elif len(pin)==0:
                 self._reading = True
-                return None            
+                return None,None
             self._reading = False
             if final==True:
                 self._firing = False
-            return pin[0]
+            return pin[0],channel
         else:
             #check all PINs from the last firing sequence
             #need to store a copy of which pins were read
@@ -289,7 +296,7 @@ class SerialCommand(object):
             for i,channel in enumerate(channel_list):
                 if i==len(channel_list)-1:
                     final_read = True
-                pin = self.read_pin(channel,final=final_read)
+                pin,_ = self.read_pin(channel,final=final_read)
                 channel_dict[channel] = pin
             return channel_dict,channel_list
 
