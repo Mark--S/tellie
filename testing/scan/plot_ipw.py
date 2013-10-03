@@ -313,3 +313,5 @@ if __name__=="__main__":
     calc_fall_vs_ipw.Write()
 
     fout.Close()
+
+    raw_input('wait')

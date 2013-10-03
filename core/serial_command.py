@@ -192,7 +192,7 @@ class SerialCommand(object):
         # Set readout to false when firing (must read
         # averaged pin at some later time).
         cmd = None
-        buffer_check = _cmd_fire_series+"K"
+        buffer_check = _cmd_fire_series
         self._send_command(_cmd_fire_series,buffer_check=buffer_check)
         #if self._channel <= 56: #up to box 7
         #    cmd = _cmd_fire_series_lower
@@ -244,6 +244,10 @@ class SerialCommand(object):
         self.logger.debug("Read PINOUT")
         if self._firing!=True:
             raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
+        #first, check that the buffer has a K, required to show end of sequence
+        if not self._serial.read(100)=="K":
+            #sequence complete
+            return None
         if channel!=None:
             if self._reading==True:
                 if channel!=self._channel[0]:
