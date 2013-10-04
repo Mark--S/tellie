@@ -54,12 +54,15 @@ class TellieOptions(object):
         pn = int(self.get_pn())
         td = float(self.get_td())
         fd = float(self.get_fd())
+        #ensure ability to pulse more than 65025 pulses
+        n_max_pn, final_pn = self.get_pn_sequence(pn)
         adjusted_pn,actual_pn,_,_ = parameters.pulse_number(pn)
+        total_pn = n_max_pn * parameters.max_pulse_number + actual_pn
         adjusted_td,actual_td,_ = parameters.trigger_delay(td)
         adjusted_fd,actual_fd,_ = parameters.fibre_delay(fd)
-        if adjusted_pn==True:            
-            self.pn_tkstr.set(actual_pn)
-            messages += ["Pulse number adjusted from %d to %s"%(pn,actual_pn)]
+        if adjusted_pn==True:
+            self.pn_tkstr.set()
+            messages += ["Pulse number adjusted from %d to %s"%(pn,total_pn)]
         if adjusted_td==True:
             self.td_tkstr.set(actual_td)
             messages += ["Trigger delay adjusted from %s to %s"%(td,actual_td)]
@@ -69,6 +72,12 @@ class TellieOptions(object):
         if messages!=[]:
             message = ", ".join(m for m in messages)
         return message
+    def get_pn_sequence(self,pn):
+        """Get the number of pulses required
+        """
+        n_max_pn = int(pn / parameters.max_pulse_number)
+        final_pn = pn % parameters.max_pulse_number
+        return n_max_pn,final_pn
     def get_load_settings(self):
         """Return options for loading of settings
         """
@@ -80,10 +89,24 @@ class TellieOptions(object):
     def get_fire_settings(self):
         """Return options for firing settings
         """
-        load_dict = {"channels":[self.get_ch()],
-                     "pulse_number":int(self.get_pn()),
+        n_max_pn, final_pn = get_pn_sequence(int(self.get_pn()))
+        basic_dict = {"channels":[self.get_ch()],
+                      "pulse_delay":float(self.get_pd()),
+                      "trigger_delay":int(self.get_td())}
+        load_dicts = []        
+        for i in range(n_max_pn):
+            load_dicts.append(basic_dict)
+            load_dicts[i]["pulse_number"] = parameters.max_pulse_number
+        load_dicts.append(basic_dict)
+        load_dicts[len(load_dicts)]["pulse_number"] = parameters.final_pn
+        return load_dicts
+    def get_full_fire_settings(self):
+        """Return options settings, ignoring the number of sequences required
+        """
+        lodf_dict = {"channels":[self.get_ch()],
                      "pulse_delay":float(self.get_pd()),
-                     "trigger_delay":int(self.get_td())}
+                     "trigger_delay":int(self.get_td()),
+                     "pulse_number":int(self.get_pn())}
         return load_dict
     def get_run(self):
         return self.run_tkstr.get()

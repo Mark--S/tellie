@@ -38,8 +38,8 @@ _max_temp_probe = 64
 _cmd_fire_continuous = "a"
 _cmd_read_single_lower = "r"
 _cmd_read_single_upper = "m"
-_cmd_read_average_lower = "s"
-_cmd_read_average_upper = "U"
+_cmd_fire_average_lower = "s"
+_cmd_fire_average_upper = "U"
 _cmd_fire_series = "g"
 _buffer_end_sequence = "K"
 _cmd_stop = "X"
@@ -194,15 +194,30 @@ class SerialCommand(object):
         # averaged pin at some later time).
         cmd = None
         buffer_check = _cmd_fire_series
-        self._send_command(_cmd_fire_series,buffer_check=buffer_check)
-        #if self._channel <= 56: #up to box 7
-        #    cmd = _cmd_fire_series_lower
-        #else:
-        #    cmd = _cmd_fire_series_upper
-        #self._send_command(cmd,False)
-        self._firing = True
+        #if the series is less than 0.5 seconds, also check for the end of sequence
+        if (self._current_pn * self._current_pd) < 500:
+            buffer_check += _buffer_end_sequence
+            self._send_command(_cmd_fire_series,buffer_check=buffer_check)
+        else:
+            self._send_command(_cmd_fire_series,buffer_check=buffer_check)
+            self._firing = True #still firing
         self._force_setting = False
 
+    def fire_sequence(self,while_fire=False):
+        """Fire in sequence mode, can only be done for a single channel.
+        """
+        if len(self._channel)!=1:
+            raise tellie_exception.TellieException("Cannot fire with >1 channel")
+        self.check_ready()
+        cmd = None
+        if self._channel <= 56: #up to box 7
+            cmd = _cmd_fire_series_lower
+        else:
+            cmd = _cmd_fire_series_upper
+        self._send_command(cmd,False)
+        self._firing = True
+        self._force_setting = False        
+        
     def fire_single(self):
         """Fire single pulse
         """
@@ -299,6 +314,24 @@ class SerialCommand(object):
                 pin,_ = self.read_pin(channel,final=final_read)
                 channel_dict[channel] = pin
             return channel_dict,channel_list
+
+    def read_pin_sequence(self):
+        """Read a pin from the sequence firing mode only.
+        """
+    def read_pin(self,channel=None):
+        """Read the pin diode output, should always follow a fire command"""
+        if self._firing!=True:
+            raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
+        pattern = re.compile(r"""\d+""")
+        output = self._serial.read(100)        
+        pin = pattern.findall(output)
+        if len(pin)>1:
+            self._firing = False
+            raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s"%(len(pin),pin))
+        elif len(pin)==0:
+            return None,None
+        self._firing = False
+        return {self._channel: pin[0]}, self._channel
 
     def check_ready(self):
         """Check that all settings have been set"""
