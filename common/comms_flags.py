@@ -1,3 +1,4 @@
+import json
 
 ### Orca -> TELLIE command flags:
 # Flags notify Tellie of the format of the input
@@ -45,3 +46,14 @@ def valid_pin(pin_dict,channel):
         if pin_dict[ch]==None:
             return False
     return True
+
+def get_pin_readings(response):
+    """Return the pin response as a dictionary
+    """
+    readings = response.split("|")[1]
+    json_read = json.loads(readings)
+    #convert pins to integers, channels to strings
+    pin_dict = {}
+    for ch in json_read:
+        pin_dict[str(ch)] = int(json_read[ch])
+    return pin_dict

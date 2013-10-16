@@ -122,7 +122,7 @@ def tellie_fire(tellie_serial,json_settings):
     tellie_serial.set_trigger_delay(settings["trigger_delay"])
     if n_led==1:
         tellie_serial.select_channel(settings["channels"][0])
-        tellie_serial.fire()
+        tellie_serial.fire_sequence()
     else:
         led_list = []
         for led in settings["channels"]:
@@ -134,12 +134,13 @@ def tellie_fire(tellie_serial,json_settings):
 def tellie_read(tellie_serial):
     """Read a the PINout from the fired channels"""
     try:
-        pin_out,channel_list = tellie_serial.read_pin()
+        pin_out,channel_list = tellie_serial.read_pin_sequence()
         if comms_flags.valid_pin(pin_out,channel_list):
-            return "%s|%s" % (comms_flags.tellie_pinout,pin_out)
+            print pin_out
+            return '%s|%s' % (comms_flags.tellie_pinout,json.dumps(pin_out))
         else:
             return comms_flags.tellie_notready
     except tellie_exception.TellieException,e:
-        pin_out = ""
+        pin_out = ''
         print e,type(e)
         return comms_flags.tellie_error,"NOT YET..."

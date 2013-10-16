@@ -70,7 +70,7 @@ class LoadFireThread(CommsThread):
                 self.save_errors("CALLED STOP")
                 self.shutdown_thread(1,"CALLED STOP!")
                 return
-            error_state,response = tellie_comms.send_fire_command(fire_settings)
+            error_state,response = tellie_comms.send_fire_command(fire)
             t_start = time.time()
             if error_state:
                 self.save_errors("COMMUNICATION ERROR: %s"%(response))
@@ -104,7 +104,11 @@ class LoadFireThread(CommsThread):
                     self.shutdown_thread(error_state,"READ ERROR: %s"%(response))
                     return
             try:
-                pin_readings.append(response.split("|")[1])
+                #pin readings is returned as string with R|{channel: reading}
+                #should convert
+                print "RESP",response
+                pin_readings.append(comms_flags.get_pin_readings(response))
+                print "READS",pin_readings
             except IndexError:
                 self.save_errors("PIN READ ERROR: %s"%(response))
                 self.shutdown_thread(1,"PIN READ ERROR: %s"%response)
@@ -113,9 +117,14 @@ class LoadFireThread(CommsThread):
         self.save_results(pin_readings)
         average_pin = {}
         for i,pins in enumerate(pin_readings):
-            for channel in pin:
+            print "PINS",pin_readings
+            for channel in pins:
                 if channel not in average_pin:
                     average_pin[channel] = 0
+                print "CH:",channel,type(channel)
+                print "PI",pins
+                print "FI",fire_settings
+                print "TO",total_pulses
                 average_pin[channel] += float(pins[channel] * fire_settings[i]["pulse_number"]) / float(total_pulses)
         self.shutdown_thread(message="Sequence complete, PIN: %s"%(average_pin))
     def stop(self):

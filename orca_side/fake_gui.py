@@ -89,7 +89,7 @@ class TellieOptions(object):
     def get_fire_settings(self):
         """Return options for firing settings
         """
-        n_max_pn, final_pn = get_pn_sequence(int(self.get_pn()))
+        n_max_pn, final_pn = self.get_pn_sequence(int(self.get_pn()))
         basic_dict = {"channels":[self.get_ch()],
                       "pulse_delay":float(self.get_pd()),
                       "trigger_delay":int(self.get_td())}
@@ -98,7 +98,7 @@ class TellieOptions(object):
             load_dicts.append(basic_dict)
             load_dicts[i]["pulse_number"] = parameters.max_pulse_number
         load_dicts.append(basic_dict)
-        load_dicts[len(load_dicts)]["pulse_number"] = parameters.final_pn
+        load_dicts[len(load_dicts)-1]["pulse_number"] = final_pn
         return load_dicts
     def get_full_fire_settings(self):
         """Return options settings, ignoring the number of sequences required

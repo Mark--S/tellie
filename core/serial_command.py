@@ -206,14 +206,15 @@ class SerialCommand(object):
     def fire_sequence(self,while_fire=False):
         """Fire in sequence mode, can only be done for a single channel.
         """
+        self.logger.debug("Fire sequence!")
         if len(self._channel)!=1:
             raise tellie_exception.TellieException("Cannot fire with >1 channel")
         self.check_ready()
         cmd = None
-        if self._channel <= 56: #up to box 7
-            cmd = _cmd_fire_series_lower
+        if self._channel[0] <= 56: #up to box 7
+            cmd = _cmd_fire_average_lower
         else:
-            cmd = _cmd_fire_series_upper
+            cmd = _cmd_fire_average_upper
         self._send_command(cmd,False)
         self._firing = True
         self._force_setting = False        
@@ -313,17 +314,17 @@ class SerialCommand(object):
                     final_read = True
                 pin,_ = self.read_pin(channel,final=final_read)
                 channel_dict[channel] = pin
-            return channel_dict,channel_list
+            return channel_dict, channel_list
 
     def read_pin_sequence(self):
         """Read a pin from the sequence firing mode only.
         """
-    def read_pin(self,channel=None):
-        """Read the pin diode output, should always follow a fire command"""
+        self.logger.debug("Read PINOUT sequence")
         if self._firing!=True:
             raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
         pattern = re.compile(r"""\d+""")
-        output = self._serial.read(100)        
+        output = self._serial.read(100)
+        self.logger.debug("BUFFER: %s" % output)
         pin = pattern.findall(output)
         if len(pin)>1:
             self._firing = False
@@ -331,7 +332,8 @@ class SerialCommand(object):
         elif len(pin)==0:
             return None,None
         self._firing = False
-        return {self._channel: pin[0]}, self._channel
+        channel_dict = {self._channel[0]: pin[0]}
+        return channel_dict, self._channel
 
     def check_ready(self):
         """Check that all settings have been set"""
