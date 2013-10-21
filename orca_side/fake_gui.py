@@ -7,7 +7,6 @@ import Tkinter
 import tellie_comms
 import comms_thread
 import comms_thread_pool
-import tellie_database
 from common import tellie_logger , parameters
 
 class TellieOptions(object):
@@ -358,9 +357,13 @@ if __name__=="__main__":
     logger = tellie_logger.TellieLogger.get_instance()
     logger.set_debug_mode(options.debug)
     database = None
-    if options.usedb:        
-        database= tellie_database.TellieDatabase.get_instance()
-        database.login("http://127.0.0.1:5984","tellie")
+    if options.usedb:
+        try:
+            import tellie_database
+            database= tellie_database.TellieDatabase.get_instance()
+            database.login("http://127.0.0.1:5984","tellie")
+        except ImportError:
+            print "WARNING: cannot use TELLIE DB"
     app = OrcaGui(None,"orca_side/PRESETS.js","orca_side/CHANNELS.js")
     app.title = "TELLIE Control"
     if options.address:

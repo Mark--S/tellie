@@ -66,7 +66,7 @@ _cmd_temp_read_upper = "k"
 _cmd_distable_trig_in = "B"
 
 class SerialCommand(object):
-    """Serial command object"""
+    """Serial command object.  Base class, different chips then inheret from this."""
 
     def __init__(self,port_name=None):
         """Initialise the serial command"""
@@ -74,8 +74,12 @@ class SerialCommand(object):
             self._port_name = "/dev/tty.usbserial-FTE3C0PG"        
         else:
             self._port_name = port_name
-        self._port_timeout = 0.5        
-        self._serial = serial.Serial(port=self._port_name, timeout=self._port_timeout)
+        self._port_timeout = 0.5
+        self._serial = None
+        try:
+            self._serial = serial.Serial(port=self._port_name, timeout=self._port_timeout)
+        except serial.SerialException, e:
+            raise tellie_exception.TellieSerialException(e)
         self.logger = tellie_logger.TellieLogger.get_instance()
         #cache current settings - remove need to re-command where possible
         #channel specific settings
@@ -98,7 +102,8 @@ class SerialCommand(object):
             
     def __del__(self):
         """Deletion function"""
-        self._serial.close()
+        if self._serial:
+            self._serial.close()
 
     def _check_clear_buffer(self):
         """Many commands expect an empty buffer, fail if they are not!
@@ -518,6 +523,39 @@ class SerialCommand(object):
         """Disable the external trigger"""
         self._send_command(command="B")
 
+
+class SNO6C(SerialCommand):
+    """Object for the main TELLIE setup.
+    """
+
+    def __init__(self,port_name=None):
+        """Initialisation command.
+        """
+        super(SNO6C, self).__init__(port_name)
+
+
+class SNO6CKapustinsky(SerialCommand):
+    """Object for the Kapustinsky single channel (4) setup.
+    """
+
+    def __init__(self,port_name=None):
+        """Initialisation command.
+        """
+        super(SNO6CKapustinsky, self).__init__(port_name)
+
+    def select_channel(self,channel):
+        """Select a channel: override"""
+        if type(channel) is not int:
+            channel = int(channel)
+        if self._channel!=[]:
+            if self._channel==[channel]:
+                #channel already selected
+                return 
+        self.logger.debug("Select channel %s %s"%(channel,type(channel)))
+        command = _cmd_channel_select_single_start+chr(channel)+_cmd_channel_select_single_end
+        self._send_command(command=command,readout=False)
+        self._channel = [channel]
+        
 ##################################################
 # Command options and corresponding buffer outputs
 #

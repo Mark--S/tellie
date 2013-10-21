@@ -5,7 +5,6 @@ from common import comms_flags, tellie_logger
 from core import tellie_exception
 import comms_thread_pool
 import tellie_comms
-import tellie_database
 import Tkinter
 
 class CommsThread(threading.Thread):
@@ -44,6 +43,12 @@ class LoadFireThread(CommsThread):
             self.ellie_field = ellie_field
         except tellie_exception.ThreadException,e:
             raise tellie_exception.ThreadException(e)
+        try:
+            import tellie_database
+            self.database = tellie_database.TellieDatabase.get_instance()
+        except ImportError:
+            print "WARNING: cannot use TELLIE DB"
+            self.database = None
     def run(self):
         """Expect two python dicts with settings.  Should calculate a 
         reasonable time delay from which PINOUT reads should be called.
