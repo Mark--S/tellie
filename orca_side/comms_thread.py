@@ -36,7 +36,6 @@ class LoadFireThread(CommsThread):
         try:
             super(LoadFireThread,self).__init__(name="LOADnFIRE",unique=True)
             self.logger = tellie_logger.TellieLogger.get_instance()
-            self.database = tellie_database.TellieDatabase.get_instance()
             self.fire_button = fire_button
             self.tellie_options = tellie_options
             self.message_field = message_field
