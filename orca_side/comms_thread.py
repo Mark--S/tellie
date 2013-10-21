@@ -146,6 +146,8 @@ class LoadFireThread(CommsThread):
         self.fire_button.config(state = Tkinter.NORMAL)
         super(LoadFireThread,self).shutdown_thread()
     def save_results(self,pin_readings):
+        if not self.database:
+            return
         if self.database.db==None:
             return
         results = {"pins":pin_readings}
@@ -154,6 +156,8 @@ class LoadFireThread(CommsThread):
         results["fire_settings"] = self.tellie_options.get_full_fire_settings()
         self.database.save(results)
     def save_errors(self,message):
+        if not self.database:
+            return
         if self.database.db==None:
             return
         results = {"errors":message}
