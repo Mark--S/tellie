@@ -59,6 +59,14 @@ def set_pulse_number(s, hi, lo):
     s.write("G" + chr(lo))
     time.sleep(0.1)
 
+def set_trigger_delay(s, delay):
+    """Set the trigger delay.
+    delay * 5 ns.
+    """
+    print "setting the trigger delay: %s ns" % (delay * 5)
+    s.write("d" + chr(delay))
+    time.sleep(0.1)
+
 def fire_continuous(s, seconds):
     """Fire a continuous pulse for n seconds
     """
@@ -99,11 +107,12 @@ if __name__ == "__main__":
     #setup the board
     clear_channel(s)
     set_pulse_delay(s, 100.0) # 100ms delay -> 10 Hz
+    set_pulse_number(s, 10, 10) # run 100 pulses, no effect for continuous mode
+    set_trigger_delay(s, 0) # no delay
     select_channel(s, options.channel)
     set_pulse_height(s, options.pulse_height)
     
     if options.sequence:
-        set_pulse_number(s, 10, 10) # run 100 pulses
         fire_sequence(s)
     else:
         fire_continuous(s, 10) # run for 10 seconds
