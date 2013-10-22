@@ -24,7 +24,7 @@ tellie_pinout = "P" # SHOULD BE dict of channels and PIN readings
 tellie_notready = "Z" # response when polled for PIN, but firing incomplete
 tellie_error = "E" # Reason string
 
-#expected types 
+#expected types
 tellie_ready_type = type(None)
 tellie_firing_type = type(None)
 tellie_stopped_type = type(None)
@@ -32,20 +32,22 @@ tellie_pinout_type = int
 tellite_notready_type = type(None)
 tellie_error_type = str
 
-def valid_pin(pin_dict,channel):
+
+def valid_pin(pin_dict, channel):
     """Pass the pin reading dict, check whether channel X is valid
     """
     if type(channel)!=list:
         channel = [channel]
-    if pin_dict==None:
+    if not pin_dict:
         #default value to start loop
         return False
     for ch in channel:
         if ch not in pin_dict:
-            raise Exception,"PIN reading does not contain %s"%channel
-        if pin_dict[ch]==None:
+            raise Exception("PIN reading does not contain %s" % channel)
+        if not pin_dict[ch]:
             return False
     return True
+
 
 def get_pin_readings(response):
     """Return the pin response as a dictionary

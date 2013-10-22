@@ -5,10 +5,10 @@
 # TellieComms
 #
 # Command functions to send to the Tellie
-# listening server.  Receives responses and 
+# listening server.  Receives responses and
 # handles them accordingly.
 #
-# Author: Matt Mottram 
+# Author: Matt Mottram
 #         <m.mottram@sussex.ac.uk>
 #
 # History:
@@ -29,26 +29,30 @@ from common import comms_flags, tellie_logger
 HOST = '127.0.0.1'
 PORT = 50050
 
+
 class TellieComms(asyncore.dispatcher_with_send):
+    """Class to handle communications with TELLIE side.
+    """
+
     def __init__(self, host, port, message):
         asyncore.dispatcher.__init__(self)
         self.logger = tellie_logger.TellieLogger.get_instance()
-        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)        
+        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connect((host, port))
         self.out_buffer = message
         self._response = None
         self._error = None
-        self.logger.debug("TellieComms::sending::"+self.out_buffer)
+        self.logger.debug("TellieComms::sending::" + self.out_buffer)
 
     def handle_close(self):
         self.close()
 
     def handle_read(self):
         self._response = self.recv(1024)
-        self.logger.debug("TellieComms::received::"+self._response)
+        self.logger.debug("TellieComms::received::" + self._response)
         self.close()
 
-    def handle_error(self):        
+    def handle_error(self):
         nil, t, v, tbinfo = asyncore.compact_traceback()
         if t == socket.error:
             self._error = "SOCKET ERROR"
@@ -60,32 +64,37 @@ class TellieComms(asyncore.dispatcher_with_send):
         if self._response:
             if self._response.split('|')[0]==comms_flags.tellie_error:
                 if len(self._response.split('|'))<2:
-                    return True,'No error info'
+                    return True, 'No error info'
                 else:
-                    return True,self._response.split('|')[1]
+                    return True, self._response.split('|')[1]
             else:
-                return False,self._response
+                return False, self._response
         elif self._error:
-            return True,self._error
+            return True, self._error
         else:
-            return None,None
+            return None, None
+
 
 def send_command(command):
-    client = TellieComms(HOST,PORT,command)
-    asyncore.loop()        
+    client = TellieComms(HOST, PORT, command)
+    asyncore.loop()
     return client.get_response()
 
+
 def send_init_command(settings):
-    command = comms_flags.orca_init+"|"+json.dumps(settings)
+    command = comms_flags.orca_init + "|" + json.dumps(settings)
     return send_command(command)
 
+
 def send_fire_command(settings):
-    command = comms_flags.orca_fire+"|"+json.dumps(settings)
+    command = comms_flags.orca_fire + "|" + json.dumps(settings)
     return send_command(command)
+
 
 def send_read_command():
     command = comms_flags.orca_read
     return send_command(command)
+
 
 def send_stop_command():
     command = comms_flags.orca_stop
