@@ -4,7 +4,7 @@
 #
 # Main control script to run Tellie.
 #
-# Author: Matt Mottram 
+# Author: Matt Mottram
 #         <m.mottram@sussex.ac.uk>
 #
 # History:
@@ -21,21 +21,24 @@ from core import tellie_exception, serial_command, orca_comms
 from common import tellie_logger
 import asyncore
 
+
 def safe_exit(tellie_serial):
     """Stop any firing before exiting"""
     print 'Exiting safely!'
     tellie_serial.stop()
 
+
 def run_tellie(tellie_serial):
     """Main operation loop for tellie control"""
-    server = orca_comms.TellieServer('',50050,tellie_serial)
+    server = orca_comms.TellieServer('', 50050, tellie_serial)
     asyncore.loop()
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     parser = optparse.OptionParser()
-    parser.add_option("-d",dest="debug",action="store_true",default=False,help="Debug mode")
-    parser.add_option("-p",dest="port",default=None,help="set non-default tellie address")
-    parser.add_option("-t",dest="chip_type",default="SNO6C",help="Select TELLIE chip type")
+    parser.add_option("-d", dest="debug", action="store_true", default=False, help="Debug mode")
+    parser.add_option("-p", dest="port", default=None, help="set non-default tellie address")
+    parser.add_option("-t", dest="chip_type", default="SNO6C", help="Select TELLIE chip type")
     (options, args) = parser.parse_args()
     logger = tellie_logger.TellieLogger.get_instance()
     logger.set_debug_mode(options.debug)
@@ -55,7 +58,7 @@ if __name__=="__main__":
         for p in os.listdir('/dev'):
             if p.startswith('tty.usbserial'):
                 ports.append(p)
-        if len(ports)==0:
+        if len(ports) == 0:
             print "Could not find appropriate address! Is the TELLIE usb plugged in?"
         else:
             print "Candidates include:"
@@ -68,6 +71,6 @@ if __name__=="__main__":
         print 'quitting server'
         asyncore.ExitNow('Server is quitting')
         safe_exit(tellie_serial)
-    except Exception,e:
+    except Exception, e:
         print "Quitting - not an interrupt"
         safe_exit(tellie_serial)
