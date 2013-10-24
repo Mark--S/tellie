@@ -135,6 +135,10 @@ class SerialCommand(object):
             buffer_check = ''
             for c in command:
                 buffer_check += c
+        #### FOR DEAP
+        # add extra sleep here to check readout
+        time.sleep(0.1)
+        #### /FOR DEAP
         if readout is True:
             # One read command (with default timeout of 0.1s) should be
             # enough to get all the chars from the readout.
@@ -342,17 +346,21 @@ class SerialCommand(object):
         """Check that all settings have been set"""
         not_set = []
         for channel in self._channel:
-            if not self._current_pw[channel-1]:
-                not_set += ["Pulse width"]
             if not self._current_ph[channel-1]:
-                not_set += ["Pulse height"]
-            if not self._current_fd[channel-1]:
-                not_set += ["Fibre delay"]
+                not_set += ["Pulse height"]        
+            ### FOR DEAP
+            #Width and fibre delay not needed for DEAP box
+#            if not self._current_pw[channel-1]:
+#                not_set += ["Pulse width"]
+#            if not self._current_fd[channel-1]:
+#                not_set += ["Fibre delay"]         
+            ### /FOR DEAP
         if not self._current_pn:
             not_set += ["Pulse number"]
         if not self._current_pd:
             not_set += ["Pulse delay"]
-        if not self._current_td:
+        if self._current_td is None:
+            # need is none here, as could be 0
             not_set += ["Trigger delay"]
         print not_set
         if not_set != []:
