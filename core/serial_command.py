@@ -103,6 +103,8 @@ class SerialCommand(object):
         #if a new channel is selected should force setting all new parameters
         #restriction only lifted once a fire command has been called
         self._force_setting = False
+        #Clear the channel, just in case
+        self.clear_channel()
 
     def __del__(self):
         """Deletion function"""
