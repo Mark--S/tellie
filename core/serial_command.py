@@ -144,8 +144,14 @@ class SerialCommand(object):
             if str(buffer_read)!=str(buffer_check):
                 self.logger.debug("problem reading buffer, send %s, read %s" % (command, buffer_read))
                 #clear anything else that might be in there
+                time.sleep(0.1)
                 remainder = self._serial.read(100)
-                raise tellie_exception.TellieException("Unexpected buffer output:\nsaw: %s%s\nexpected: %s" % (buffer_read, remainder, buffer_check))
+                self._serial.write("X") # send a stop
+                time.sleep(0.1)
+                self._serial.write("C") # send a clear
+                time.sleep(0.1)
+                self._serial.read(100)
+                raise tellie_exception.TellieException("Unexpected buffer output:\nsaw: %s, remainder %s\nexpected: %s" % (buffer_read, remainder, buffer_check))
             else:
                 self.logger.debug("success reading buffer")
         else:
@@ -344,17 +350,17 @@ class SerialCommand(object):
         """Check that all settings have been set"""
         not_set = []
         for channel in self._channel:
-            if not self._current_pw[channel-1]:
+            if self._current_pw[channel-1] is None:
                 not_set += ["Pulse width"]
-            if not self._current_ph[channel-1]:
+            if self._current_ph[channel-1] is None:
                 not_set += ["Pulse height"]
-            if not self._current_fd[channel-1]:
+            if self._current_fd[channel-1] is None:
                 not_set += ["Fibre delay"]
-        if not self._current_pn:
+        if self._current_pn is None:
             not_set += ["Pulse number"]
-        if not self._current_pd:
+        if self._current_pd is None:
             not_set += ["Pulse delay"]
-        if not self._current_td:
+        if self._current_td is None:
             not_set += ["Trigger delay"]
         print not_set
         if not_set != []:
