@@ -14,7 +14,7 @@ def pulse_number(number):
     if type(number)!=int:
         raise Exception("PN must be an integer")
     if number > max_pulse_number:
-        raise Exception("PN must be < %d" % 65025)
+        raise Exception("PN must be < %d.  You set %d" % (65025, number))
         #number = max_pulse_number
         #adjusted = True
     hi = -1
