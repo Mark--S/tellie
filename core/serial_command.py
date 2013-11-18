@@ -78,13 +78,16 @@ class SerialCommand(object):
             self._porta_name = "/dev/tty.usbserial-FTE3C0PG"
         else:
             self._port_name = port_name
-        self._port_timeout = 0.1
+        # This is the same as a sleep, but with the advantage of breaking
+        # if enough characters are seen in the buffer.
+        self._port_timeout = 0.3
         self._serial = None
+        self.logger = tellie_logger.TellieLogger.get_instance()
         try:
             self._serial = serial.Serial(port=self._port_name, timeout=self._port_timeout)
+            self.logger.debug("Serial connection open: %s" % self._serial)
         except serial.SerialException, e:
             raise tellie_exception.TellieSerialException(e)
-        self.logger = tellie_logger.TellieLogger.get_instance()
         #cache current settings - remove need to re-command where possible
         #channel specific settings
         self._channel = [] #always a list
@@ -103,6 +106,8 @@ class SerialCommand(object):
         #if a new channel is selected should force setting all new parameters
         #restriction only lifted once a fire command has been called
         self._force_setting = False
+        #send a reset, to ensure the RTS is set to false
+        self.reset()
         #send a clear channel command, just in case
         self.clear_channel()
 
@@ -193,6 +198,19 @@ class SerialCommand(object):
         if len(self._channel)!=1:
             raise tellie_exception.TellieException("Cannot run channel command, must have single channel selected: %s" % (self._channel))
         self._send_setting_command(command=command, buffer_check=buffer_check, while_fire=while_fire)
+
+    def reset(self):
+        """Send a reset command!
+
+        Assumes that the port is open (which it is by default)
+        """
+        self.logger.debug("Reset!")
+        self._serial.setRTS(True)
+        # sleep, just in case
+        time.sleep(3.0)
+        self._serial.setRTS(False)
+        # close the port and reopen?
+        time.sleep(3.0)
 
     def fire(self, while_fire=False):
         """Fire tellie, place class into firing mode.
@@ -528,6 +546,19 @@ class SerialCommand(object):
     def disable_external_trigger(self):
         """Disable the external trigger"""
         self._send_command(command="B")
+
+    ########################################
+    # Commands just to check current settings
+    def get_pulse_delay(self):
+        """Get the pulse delay
+        """
+        return self._current_pd
+
+    def get_pulse_number(self):
+        """Get the pulse delay
+        """
+        return self._current_pn
+        
 
 
 class SNO6C(SerialCommand):
