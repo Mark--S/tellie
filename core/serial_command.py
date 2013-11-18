@@ -80,11 +80,12 @@ class SerialCommand(object):
             self._port_name = port_name
         self._port_timeout = 0.1
         self._serial = None
+        self.logger = tellie_logger.TellieLogger.get_instance()
         try:
             self._serial = serial.Serial(port=self._port_name, timeout=self._port_timeout)
+            self.logger.debug("Serial connection open: %s" % self._serial)
         except serial.SerialException, e:
             raise tellie_exception.TellieSerialException(e)
-        self.logger = tellie_logger.TellieLogger.get_instance()
         #cache current settings - remove need to re-command where possible
         #channel specific settings
         self._channel = [] #always a list
@@ -142,6 +143,7 @@ class SerialCommand(object):
         if readout is True:
             # One read command (with default timeout of 0.1s) should be
             # enough to get all the chars from the readout.
+            time.sleep(0.1)
             buffer_read = self._serial.read(len(buffer_check))
             if str(buffer_read)!=str(buffer_check):
                 self.logger.debug("problem reading buffer, send %s, read %s" % (command, buffer_read))
@@ -204,10 +206,10 @@ class SerialCommand(object):
         self.logger.debug("Reset!")
         self._serial.setRTS(True)
         # sleep, just in case
-        time.sleep(0.1)
+        time.sleep(3.0)
         self._serial.setRTS(False)
         # close the port and reopen?
-        time.sleep(0.1)
+        time.sleep(3.0)
 
     def fire(self, while_fire=False):
         """Fire tellie, place class into firing mode.
