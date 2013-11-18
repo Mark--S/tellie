@@ -80,12 +80,13 @@ class TellieOptions(object):
         fd = float(self.get_fd())
         #ensure ability to pulse more than 65025 pulses
         n_max_pn, final_pn = self.get_pn_sequence(pn)
-        adjusted_pn, actual_pn, _, _ = parameters.pulse_number(pn)
+        print n_max_pn, final_pn
+        adjusted_pn, actual_pn, _, _ = parameters.pulse_number(final_pn)
         total_pn = n_max_pn * parameters.max_pulse_number + actual_pn
         adjusted_td, actual_td, _ = parameters.trigger_delay(td)
         adjusted_fd, actual_fd, _ = parameters.fibre_delay(fd)
         if adjusted_pn is True:
-            self.pn_tkstr.set()
+            self.pn_tkstr.set(total_pn)
             messages += ["Pulse number adjusted from %d to %s" % (pn, total_pn)]
         if adjusted_td is True:
             self.td_tkstr.set(actual_td)
