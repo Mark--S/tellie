@@ -103,6 +103,8 @@ class SerialCommand(object):
         #if a new channel is selected should force setting all new parameters
         #restriction only lifted once a fire command has been called
         self._force_setting = False
+        #send a reset, to ensure the RTS is set to false
+        self.reset()
         #send a clear channel command, just in case
         self.clear_channel()
 
@@ -193,6 +195,19 @@ class SerialCommand(object):
         if len(self._channel)!=1:
             raise tellie_exception.TellieException("Cannot run channel command, must have single channel selected: %s" % (self._channel))
         self._send_setting_command(command=command, buffer_check=buffer_check, while_fire=while_fire)
+
+    def reset(self):
+        """Send a reset command!
+
+        Assumes that the port is open (which it is by default)
+        """
+        self.logger.debug("Reset!")
+        self._serial.setRTS(True)
+        # sleep, just in case
+        time.sleep(0.1)
+        self._serial.setRTS(False)
+        # close the port and reopen?
+        time.sleep(0.1)
 
     def fire(self, while_fire=False):
         """Fire tellie, place class into firing mode.
