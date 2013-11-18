@@ -78,7 +78,9 @@ class SerialCommand(object):
             self._port_name = "/dev/tty.usbserial-FTE3C0PG"
         else:
             self._port_name = port_name
-        self._port_timeout = 0.1
+        # This is the same as a sleep, but with the advantage of breaking
+        # if enough characters are seen in the buffer.
+        self._port_timeout = 0.3
         self._serial = None
         self.logger = tellie_logger.TellieLogger.get_instance()
         try:
@@ -143,7 +145,6 @@ class SerialCommand(object):
         if readout is True:
             # One read command (with default timeout of 0.1s) should be
             # enough to get all the chars from the readout.
-            time.sleep(0.1)
             buffer_read = self._serial.read(len(buffer_check))
             if str(buffer_read)!=str(buffer_check):
                 self.logger.debug("problem reading buffer, send %s, read %s" % (command, buffer_read))
@@ -545,6 +546,19 @@ class SerialCommand(object):
     def disable_external_trigger(self):
         """Disable the external trigger"""
         self._send_command(command="B")
+
+    ########################################
+    # Commands just to check current settings
+    def get_pulse_delay(self):
+        """Get the pulse delay
+        """
+        return self._current_pd
+
+    def get_pulse_number(self):
+        """Get the pulse delay
+        """
+        return self._current_pn
+        
 
 
 class SNO6C(SerialCommand):
