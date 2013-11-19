@@ -68,23 +68,33 @@ def plot_hist(results_name):
 
 if __name__ == '__main__':
     file_names = sys.argv[1]
+    type = sys.argv[2]
+    print type
     g1 = ROOT.TGraphErrors()
     ctr = 0
     for line in open(file_names,'r').readlines():
         line = line.strip()
-        width = float(line[-9:-4])
-        print width
+
+        if (type == 'w'):
+            x = float(line[-9:-4])
+        else:
+            x= ctr+ 1
+        print x
         err, diff = plot_hist(line)
-        g1.SetPoint(ctr,width,diff)
+        g1.SetPoint(ctr,x,diff)
         g1.SetPointError(ctr,0,err)
         ctr += 1
 
     g1.SetMarkerStyle(20)
-    g1.GetXaxis().SetTitle('IPW')
+    if ( type == 'w'):
+        g1.GetXaxis().SetTitle('IPW')
+    else:
+        g1.GetXaxis().SetTitle('Number of Boxes Powered On')
     g1.GetYaxis().SetTitle('Difference in PIN Peak Values')
     canvas = ROOT.TCanvas()
     canvas.cd()
     g1.Draw('AP')
     raw_input("any key to quit: ")
-    canvas.Print('results.pdf')
+    output_nm = 'results%s.pdf' %(type)
+    canvas.Print(output_nm)
 
