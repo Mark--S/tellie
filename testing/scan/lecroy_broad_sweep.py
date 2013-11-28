@@ -23,7 +23,8 @@ if __name__=="__main__":
     parser = optparse.OptionParser()
     parser.add_option("-b", dest="box", help="Box number (1-12)")
     parser.add_option("-c", dest="channel", help="Channel number (1-8)")
-    parser.add_option("-x", dest="cutoff", default=12000, help="Cutoff (IPW) from Ref sweep (sweep goes to cutoff + 500)")
+    parser.add_option("-x", dest="cutoff", default=12000, help="Cutoff (IPW) from Ref sweep (sweep goes to cutoff + 500) [12000]")
+    parser.add_option("-y", dest="start", default=0, help="Start (IPW) value [0]")
     parser.add_option("-p", dest="port", default="/dev/tty.usbserial-FTGDFBHE")
     (options, args) = parser.parse_args()
 
@@ -31,6 +32,7 @@ if __name__=="__main__":
     box = int(options.box)
     channel = int(options.channel)
     cutoff = int(options.cutoff)
+    startipw = int(options.start)
 
     #Fixed parameters
     delay = 1.0 # 1ms -> kHz
@@ -55,7 +57,7 @@ if __name__=="__main__":
     output_file.write("#PWIDTH\tPIN\tWIDTH\tRISE\tFALL\tWIDTH\tAREA\n")
 
     #Start scanning!
-    widths = range(0, cutoff+501, 50)
+    widths = range(startipw, cutoff+501, 50)
     results = None
 
     sweep.set_port(options.port)
