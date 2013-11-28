@@ -62,6 +62,7 @@ def get_max_y (x_values, y_values, baseline=None):
         if y_values[i]<max_y:
             max_y = y_values[i]
             max_i = i
+    print "MAXS", max_y, max_i
     return max_y, max_i
 
 def integrate (x_values,y_values, x_low = -5e-9, x_high = 23e-9, baseline = None):
@@ -93,7 +94,7 @@ def get_width(x_values, y_values, volt_gain, x_low = -5e-9, x_high = 23e-9, base
     if baseline is None:
         baseline = get_baseline(x_values,y_values)
     # Get maxmium amplitude and its index
-    max_y, max_i = get_max_y(x_values,y_values)
+    max_y, max_i = get_max_y(x_values,y_values, baseline)
     start_x = 0
     end_x = 0
 
@@ -131,7 +132,8 @@ def get_rise(x_values, y_values, volt_gain, x_low = -5e-9, x_high = 23e-9, basel
     if baseline is None:
         baseline = get_baseline(x_values,y_values)
     # Get maxmium amplitude and its index
-    max_y, max_i = get_max_y(x_values,y_values)
+    max_y, max_i = get_max_y(x_values,y_values, baseline)
+    print "MAXY:", max_y, x_low, x_high
     start_x = 0
     end_x = 0
     # Get 10% max
@@ -158,6 +160,7 @@ def get_rise(x_values, y_values, volt_gain, x_low = -5e-9, x_high = 23e-9, basel
     #Apply rise correction
     try:
         rise =  1.687*math.sqrt((((end_x-start_x)*(end_x-start_x))/(1.687*1.687))-time_correction*time_correction)
+        print "RISE:", rise, max_y, start_x, end_x
         return rise
     except:
         print 'ERROR: Could not calculate the rise time. Returning 0'
@@ -171,7 +174,7 @@ def get_fall(x_values, y_values,volt_gain,  x_low = -5e-9, x_high = 23e-9, basel
     if baseline is None:
         baseline = get_baseline(x_values,y_values)
     # Get maxmium amplitude and its index
-    max_y, max_i = get_max_y(x_values,y_values)
+    max_y, max_i = get_max_y(x_values,y_values, baseline)
     start_x = 0
     end_x = 0
 

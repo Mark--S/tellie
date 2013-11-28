@@ -112,10 +112,10 @@ def clean_graph(gr):
 def set_style(gr,style):
     if style==1:
         gr.SetMarkerColor(ROOT.kBlue+1)
-        gr.SetMarkerStyle(8)
+        gr.SetMarkerStyle(4)
     else:
         gr.SetMarkerColor(ROOT.kRed+1)
-        gr.SetMarkerStyle(7)
+        gr.SetMarkerStyle(25)
     
 if __name__=="__main__":
     parser = optparse.OptionParser()
@@ -170,11 +170,23 @@ if __name__=="__main__":
 
     wave_can = ROOT.TCanvas("wave_can", "wave_can")
 
+    # Tektronix scope settings:
+    x_low = -5e-9
+    x_high = 23e-9
+    baseline_low = -300e-9 #more waveform on the tek scope
+    baseline_high = -100e-9
+    if options.scope == "LeCroy":
+        baseline_low = 0.0e-9
+        baseline_high = 15.0e-9
+        x_low = 18.0e-9
+        x_high = 45.0e-9
+
     for i in range(len(ipw)):
 
         print "IPW: %04d"%(ipw[i])        
 
         #first, plot the scope values
+
         photon = get_photons(area[i],voltage)
         rise_time = adjust_rise(rise[i]*1e9,voltage)
         fall_time = adjust_rise(fall[i]*1e9,voltage)
@@ -203,11 +215,11 @@ if __name__=="__main__":
             waveform.load()
             wave_times = waveform.get_meta_data("timeform_1")
             wave_volts = waveform.get_data(1)[0]
+            
+            
         else:
             wave_times, wave_volts = get_waveform.get_waveform(waveform_name)
         
-        print wave_times
-        print wave_volts
         wave_can.cd()
         gr = ROOT.TGraph()
         for j, t in enumerate(wave_times):
@@ -216,12 +228,15 @@ if __name__=="__main__":
         wave_can.Update()
 
         raw_input("wait:")
+
+        baseline = waveform_tools.get_baseline(wave_times, wave_volts, baseline_low, baseline_high)
             
-        w_area = waveform_tools.integrate(wave_times,wave_volts)
-        w_photon = get_photons(w_area,voltage)
-        w_rise = waveform_tools.get_rise(wave_times,wave_volts,voltage)
-        w_fall = waveform_tools.get_fall(wave_times,wave_volts,voltage)
-        w_width = waveform_tools.get_width(wave_times,wave_volts,voltage)
+        # Compute the area, rise, fall and width *using the baseline that has already been found from the pre-signal region (scope specific)*
+        w_area = waveform_tools.integrate(wave_times, wave_volts, x_low = x_low, x_high = x_high, baseline = baseline)
+        w_photon = get_photons(w_area, voltage)
+        w_rise = waveform_tools.get_rise(wave_times, wave_volts,voltage, x_low = x_low, x_high = x_high, baseline = baseline)
+        w_fall = waveform_tools.get_fall(wave_times,wave_volts,voltage, x_low = x_low, x_high = x_high, baseline = baseline)
+        w_width = waveform_tools.get_width(wave_times,wave_volts,voltage, x_low = x_low, x_high = x_high, baseline = baseline)
 
         calc_photon_vs_pin.SetPoint(ctr,pin[i],w_photon)
         calc_photon_vs_ipw.SetPoint(ctr,ipw[i],w_photon)

@@ -40,6 +40,21 @@ def set_scope(scope):
     else:
         raise Exception("Unknown scope")
 
+def get_min_volt_lecroy(channel, height, width, delay, scope, scale=None, trigger=None, min_trigger=-0.005):
+    """LeCoy is douchey.
+    """    
+    sc.select_channel(channel)
+    sc.set_pulse_height(height)
+    sc.set_pulse_width(width)
+    sc.set_pulse_delay(delay)
+    sc.set_trigger_delay(0)
+    sc.set_fibre_delay(0)
+    sc.set_pulse_number(1)
+    if scale is None or trigger is None:
+        scope.set_y_scale(1, 1)
+        scope.set_trigger(1, -0.5, True)
+    
+
 def get_min_volt(channel,height,width,delay,scope,scale=None,trigger=None,min_trigger=-0.005):
     """Gets the trigger settings by firing a single pulse
     """
@@ -74,13 +89,14 @@ def get_min_volt(channel,height,width,delay,scope,scale=None,trigger=None,min_tr
         scope.set_single_acquisition()
         scope.lock()
     else:
+        scope.set_trigger_mode("single")
         scope.enable_trigger()
         time.sleep(0.1)
     sc.fire_sequence()
     pin = None
     while pin==None:
         pin, _ = sc.read_pin_sequence()
-    print "PIN:",pin
+    print "PIN (min_volt):",pin
     #single pulse fired, read from the scope  
     if scope_name == "Tektronix":
         min_volt = float(scope.measure(1,"minimum"))
@@ -147,12 +163,17 @@ def sweep(dir_out,file_out,box,channel,width,delay,scope,min_volt=None,min_trigg
         volts_div_setting = _v_div[0] # set to minimal
     print "VDIV",volts_div,volts_div_setting
 
-    scope.set_y_scale(1,volts_div_setting)
+    scope.set_y_scale(1,volts_div_setting)    
     if scope=="Tektronix":
         scope.set_edge_trigger(trigger,1,True)
         scope.set_average_acquisition(1000)
         scope.lock()
     else:
+        # Also set the y offset
+        scope.set_y_position(1, volts_div_setting*2)
+        scope.set_y_position("A", 0)
+        scope.set_trigger_mode("normal")
+        scope.enable_trigger()
         scope.set_trigger(1, trigger, True)
     sc.set_pulse_number(pulse_number)
 
@@ -164,7 +185,7 @@ def sweep(dir_out,file_out,box,channel,width,delay,scope,min_volt=None,min_trigg
    # while not comms_flags.valid_pin(pin,channel):
     while pin==None:
         pin, _ = sc.read_pin_sequence()
-    print "PIN:",pin
+    print "PIN (sweep):",pin
     #should now have an averaged waveform
     directory = "%s/channel_%02d"%(dir_out,logical_channel)
     if not os.path.exists(directory):
@@ -202,7 +223,7 @@ def sweep(dir_out,file_out,box,channel,width,delay,scope,min_volt=None,min_trigg
         results["rise"] = (scope.measure("A","rise")) 
         results["fall"] = (scope.measure("A","fall")) 
         results["width"] = (scope.measure("A","width")) 
-        results["minimum"] = (scope.measure("A","minimum"))        
-    results["pin"] = pin
+        results["minimum"] = (scope.measure("A","minimum"))
+    results["pin"] = pin[channel]
 
     return results

@@ -42,6 +42,7 @@ if __name__=="__main__":
 
     #run the initial setup on the scope
     lecroy = scope.LeCroy684(True)
+    lecroy.set_x_scale(5e-9)
     # Don't set the cursors for the measurement - make sure they're setup beforehand!
     #lecroy.set_cursor("x", 1, cursor_low)
     #lecroy.set_cursor("x", 2, cursor_high)
