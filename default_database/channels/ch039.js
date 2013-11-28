@@ -1,0 +1,1 @@
+{"valid_from": 0, "cavity": 39, "photons": [1000, 10000, 100000], "driver": 25, "valid_to": 2385458062, "patch": 39, "cone": "024", "pass": 0, "pulse_width": [7960, 7720, 6750], "pulse_height": 16383, "type": "channel", "channel": 39, "fibre_delay": 0}

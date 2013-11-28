@@ -9,18 +9,36 @@
 import os
 from core import serial_command
 from common import comms_flags
-import scopes
 import math
 import time
-import utils
+try:
+    import utils
+except:
+    pass
 import sys
 
-port = "/dev/tty.usbserial-FTF5YKDL"
+port_name = "/dev/tty.usbserial-FTF5YKDL"
+## TODO: better way of getting the scope type
+scope_name = "Tektronix"
 _boundary = [0,1.5e-3,3e-3,7e-3,15e-3,30e-3,70e-3,150e-3,300e-3,700e-3,1000]
 _v_div = [1e-3,2e-3,5e-3,10e-3,20e-3,50e-3,100e-3,200e-3,500e-3,1.0,1000]
+sc = None
 
 #initialise sc here, faster options setting
-sc = serial_command.SerialCommand(port)
+def start():
+    global sc
+    sc = serial_command.SerialCommand(port_name)
+
+def set_port(port):
+    global port_name
+    port_name = port
+
+def set_scope(scope):
+    global scope_name
+    if scope=="Tektronix" or scope=="LeCroy":
+        scope_name = scope
+    else:
+        raise Exception("Unknown scope")
 
 def get_min_volt(channel,height,width,delay,scope,scale=None,trigger=None,min_trigger=-0.005):
     """Gets the trigger settings by firing a single pulse
@@ -34,7 +52,10 @@ def get_min_volt(channel,height,width,delay,scope,scale=None,trigger=None,min_tr
     sc.set_pulse_number(1)
     if scale==None or trigger==None:
         scope.set_y_scale(1,1) # set to 1V/Div initially
-        scope.set_edge_trigger(-0.5,1,True)
+        if scope_name == "Tektronix":
+            scope.set_edge_trigger(-0.5,1,True)
+        else:
+            scope.set_trigger(1, -0.5, True)
     else:
         #check the scale and trigger are reasonable
         set_scale = scale
@@ -45,17 +66,28 @@ def get_min_volt(channel,height,width,delay,scope,scale=None,trigger=None,min_tr
         if trigger > min_trigger:
             trigger = min_trigger
         scope.set_y_scale(1,set_scale)
-        scope.set_edge_trigger(trigger,1,True)
-    scope.set_single_acquisition()
-    scope.lock()
-    sc.fire()
+        if scope_name == "Tektronix":
+            scope.set_edge_trigger(trigger,1,True)
+        else:
+            scope.set_trigger(1, trigger, True)
+    if scope_name == "Tektronix":
+        scope.set_single_acquisition()
+        scope.lock()
+    else:
+        scope.enable_trigger()
+        time.sleep(0.1)
+    sc.fire_sequence()
     pin = None
-    while not comms_flags.valid_pin(pin,channel):
-        pin = sc.read_pin()
+    while pin==None:
+        pin, _ = sc.read_pin_sequence()
     print "PIN:",pin
     #single pulse fired, read from the scope  
-    min_volt = float(scope.measure(1,"minimum"))
-    scope.unlock()
+    if scope_name == "Tektronix":
+        min_volt = float(scope.measure(1,"minimum"))
+        scope.unlock()
+    else:        
+        print "MEASURE MIN:"
+        min_volt = float(scope.measure(1,"minimum"))
     return min_volt
     
 
@@ -72,15 +104,20 @@ def sweep(dir_out,file_out,box,channel,width,delay,scope,min_volt=None,min_trigg
     pulse_number = 1000
     #first select the correct channel and provide settings
     logical_channel = (box-1)*8 + channel
-
-    #first, run a single acquisition with a forced trigger, effectively to clear the waveform
-    scope.set_single_acquisition()
-    time.sleep(0.1) #needed for now to get the force to work...
-    scope._connection.send("trigger:state ready")
-    time.sleep(0.1)
-    scope._connection.send("trigger force")
-    time.sleep(0.1)
-
+    
+    if scope_name=="Tektronix":
+        # first, run a single acquisition with a forced trigger, effectively to clear the waveform
+        scope.set_single_acquisition()
+        time.sleep(0.1) #needed for now to get the force to work...
+        scope._connection.send("trigger:state ready")
+        time.sleep(0.1)
+        scope._connection.send("trigger force")
+        time.sleep(0.1)
+    else:
+        # Setup averaging and set to 0 averages
+        scope.reset_averaging("A")
+        scope.set_averaging("A", 1, 512)
+        
     #if no trigger settings, run a test fire
     if min_volt==None:
         min_volt = get_min_volt(logical_channel,height,width,
@@ -111,45 +148,61 @@ def sweep(dir_out,file_out,box,channel,width,delay,scope,min_volt=None,min_trigg
     print "VDIV",volts_div,volts_div_setting
 
     scope.set_y_scale(1,volts_div_setting)
-    scope.set_edge_trigger(trigger,1,True)
-    scope.set_average_acquisition(1000)
-    scope.lock()
+    if scope=="Tektronix":
+        scope.set_edge_trigger(trigger,1,True)
+        scope.set_average_acquisition(1000)
+        scope.lock()
+    else:
+        scope.set_trigger(1, trigger, True)
     sc.set_pulse_number(pulse_number)
 
-    sc.fire()
+    sc.fire_sequence()
     #wait for the sequence to end
     tsleep = pulse_number * (delay*1e-3 + 210e-6)
     time.sleep(tsleep) #add the offset in
     pin = None
-    while not comms_flags.valid_pin(pin,channel):
-        pin = sc.read_pin()
+   # while not comms_flags.valid_pin(pin,channel):
+    while pin==None:
+        pin, _ = sc.read_pin_sequence()
     print "PIN:",pin
     #should now have an averaged waveform
-    directory = "%s/channel_%2d"%(dir_out,logical_channel)
+    directory = "%s/channel_%02d"%(dir_out,logical_channel)
     if not os.path.exists(directory):
         os.makedirs(directory)
+
     ## create an output file and save
     fname = "%s/Chan%02d_Width%05d" % (directory,logical_channel,width)
-    waveform = scope.get_waveform(1)
-    if waveform!=None:
-        results = utils.PickleFile(fname,1)
-        results.set_meta_data("timeform_1",scope.get_timeform(1))
-        results.add_data(waveform,1)    
-        results.save()
-        results.close()
+
+    if scope_name=="Tektronix":
+        waveform = scope.get_waveform(1)
+        if waveform!=None:
+            results = utils.PickleFile(fname,1)
+            results.set_meta_data("timeform_1",scope.get_timeform(1))
+            results.add_data(waveform,1)    
+            results.save()
+            results.close()
+        else:
+            print "SKIPPING WAVEFORM FOR WIDTH",width
     else:
-        print "SKIPPING WAVEFORM FOR WIDTH",width
+        waveform = scope.save_waveform("A", fname)
+                
     #have saved a waveform, now save rise,fall,pin etc
     
     results = {}
-
-    results["area"] = (scope.measure(1,"area")) 
-    results["rise"] = (scope.measure(1,"rise")) 
-    results["fall"] = (scope.measure(1,"fall")) 
-    results["width"] = (scope.measure(1,"nwidth")) 
-    results["minimum"] = (scope.measure(1,"minimum"))
-    results["pin"] = pin[8]
-
-    scope.unlock()
+    
+    if scope_name=="Tektronix":
+        results["area"] = (scope.measure(1,"area")) 
+        results["rise"] = (scope.measure(1,"rise")) 
+        results["fall"] = (scope.measure(1,"fall")) 
+        results["width"] = (scope.measure(1,"nwidth")) 
+        results["minimum"] = (scope.measure(1,"minimum"))
+        scope.unlock()    
+    else:
+        results["area"] = (scope.measure("A","area")) 
+        results["rise"] = (scope.measure("A","rise")) 
+        results["fall"] = (scope.measure("A","fall")) 
+        results["width"] = (scope.measure("A","width")) 
+        results["minimum"] = (scope.measure("A","minimum"))        
+    results["pin"] = pin
 
     return results

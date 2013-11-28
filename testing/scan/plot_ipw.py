@@ -9,7 +9,14 @@
 ################################
 
 import waveform_tools
-import utils
+try:
+    import utils
+except ImportError:
+    pass
+try:
+    import get_waveform
+except ImportError:
+    pass
 import ROOT
 import math
 import optparse
@@ -112,9 +119,14 @@ def set_style(gr,style):
     
 if __name__=="__main__":
     parser = optparse.OptionParser()
-    parser.add_option("-f",dest="file")
+    parser.add_option("-f", dest="file")
+    parser.add_option("-s", dest="scope", default="Tektronix")
     (options,args) = parser.parse_args()
     
+    if options.scope!="Tektronix" and options.scope!="LeCroy":
+        print "Can only run for LeCroy or Tektronix"
+        sys.exit()
+
     sweep_type = options.file.split('/')[0]
     file_name = options.file.split('/')[1]
     box = int(file_name.split('_')[0][-2:])
@@ -156,6 +168,8 @@ if __name__=="__main__":
 
     ctr = 0
 
+    wave_can = ROOT.TCanvas("wave_can", "wave_can")
+
     for i in range(len(ipw)):
 
         print "IPW: %04d"%(ipw[i])        
@@ -179,13 +193,30 @@ if __name__=="__main__":
 
         #now, the values from the graphs directly
         waveform_name = os.path.join(dirname,"Chan%02d_Width%05d"%(logical_channel,ipw[i]))
-        if not os.path.exists("%s.pkl"%waveform_name):
-            print "SKIPPING",waveform_name
-            continue
-        waveform = utils.PickleFile(waveform_name,1)
-        waveform.load()
-        wave_times = waveform.get_meta_data("timeform_1")
-        wave_volts = waveform.get_data(1)[0]
+
+        # For Tektronix:
+        if options.scope=="Tektronix":
+            if not os.path.exists("%s.pkl"%waveform_name):
+                print "SKIPPING",waveform_name
+                continue
+            waveform = utils.PickleFile(waveform_name,1)
+            waveform.load()
+            wave_times = waveform.get_meta_data("timeform_1")
+            wave_volts = waveform.get_data(1)[0]
+        else:
+            wave_times, wave_volts = get_waveform.get_waveform(waveform_name)
+        
+        print wave_times
+        print wave_volts
+        wave_can.cd()
+        gr = ROOT.TGraph()
+        for j, t in enumerate(wave_times):
+            gr.SetPoint(j, t, wave_volts[j])
+        gr.Draw("alp")
+        wave_can.Update()
+
+        raw_input("wait:")
+            
         w_area = waveform_tools.integrate(wave_times,wave_volts)
         w_photon = get_photons(w_area,voltage)
         w_rise = waveform_tools.get_rise(wave_times,wave_volts,voltage)
