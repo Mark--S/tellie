@@ -68,6 +68,9 @@ if __name__=="__main__":
             #set a best guess for the trigger and the scale
             #using the last sweeps value
             min_volt = float(results["minimum"])
+            if min_volt < 0:
+                # Flag for undef measurement
+                min_volt = 5.0e-3 # 5mv
         results = sweep.sweep("broad", output_filename, box, channel, width, delay, lecroy, min_volt, min_trigger)    
         output_file.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n"%(width, 
                                                       results["pin"], 
