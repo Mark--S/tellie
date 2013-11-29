@@ -102,8 +102,8 @@ def get_min_volt(channel,height,width,delay,scope,scale=None,trigger=None,min_tr
         min_volt = float(scope.measure(1,"minimum"))
         scope.unlock()
     else:        
-        print "MEASURE MIN:"
         min_volt = float(scope.measure(1,"minimum"))
+    print "MINIMUM MEASUREMENT:", min_volt
     return min_volt
     
 
