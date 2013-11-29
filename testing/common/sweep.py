@@ -40,21 +40,6 @@ def set_scope(scope):
     else:
         raise Exception("Unknown scope")
 
-def get_min_volt_lecroy(channel, height, width, delay, scope, scale=None, trigger=None, min_trigger=-0.005):
-    """LeCoy is douchey.
-    """    
-    sc.select_channel(channel)
-    sc.set_pulse_height(height)
-    sc.set_pulse_width(width)
-    sc.set_pulse_delay(delay)
-    sc.set_trigger_delay(0)
-    sc.set_fibre_delay(0)
-    sc.set_pulse_number(1)
-    if scale is None or trigger is None:
-        scope.set_y_scale(1, 1)
-        scope.set_trigger(1, -0.5, True)
-    
-
 def get_min_volt(channel,height,width,delay,scope,scale=None,trigger=None,min_trigger=-0.005):
     """Gets the trigger settings by firing a single pulse
     """
@@ -103,6 +88,9 @@ def get_min_volt(channel,height,width,delay,scope,scale=None,trigger=None,min_tr
         scope.unlock()
     else:        
         min_volt = float(scope.measure(1,"minimum"))
+        if min_volt<0:
+            print "LeCroy:bad measurement, set min volt to -0.5V"
+            min_volt = -0.5
     print "MINIMUM MEASUREMENT:", min_volt
     return min_volt
     
