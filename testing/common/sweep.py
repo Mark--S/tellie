@@ -88,7 +88,7 @@ def get_min_volt(channel,height,width,delay,scope,scale=None,trigger=None,min_tr
         scope.unlock()
     else:        
         min_volt = float(scope.measure(1,"minimum"))
-        if min_volt<0:
+        if min_volt<-9000:
             print "LeCroy:bad measurement, set min volt to -0.5V"
             min_volt = -0.5
     print "MINIMUM MEASUREMENT:", min_volt
