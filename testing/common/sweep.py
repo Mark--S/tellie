@@ -15,7 +15,7 @@ import time
 import utils
 import sys
 
-port = "/dev/tty.usbserial-FTF5YKDL"
+port = "/dev/tty.usbserial-FTE3C0PG"
 _boundary = [0,1.5e-3,3e-3,7e-3,15e-3,30e-3,70e-3,150e-3,300e-3,700e-3,1000]
 _v_div = [1e-3,2e-3,5e-3,10e-3,20e-3,50e-3,100e-3,200e-3,500e-3,1.0,1000]
 
@@ -33,7 +33,7 @@ def get_min_volt(channel,height,width,delay,scope,scale=None,trigger=None,min_tr
     sc.set_fibre_delay(0)
     sc.set_pulse_number(1)
     if scale==None or trigger==None:
-        scope.set_y_scale(1,1) # set to 1V/Div initially
+        scope.set_y_scale(0.25,1) # set to 1V/Div initially
         scope.set_edge_trigger(-0.5,1,True)
     else:
         #check the scale and trigger are reasonable
@@ -48,10 +48,11 @@ def get_min_volt(channel,height,width,delay,scope,scale=None,trigger=None,min_tr
         scope.set_edge_trigger(trigger,1,True)
     scope.set_single_acquisition()
     scope.lock()
-    sc.fire()
+    sc.fire_sequence()
     pin = None
     while not comms_flags.valid_pin(pin,channel):
-        pin = sc.read_pin()
+        time.sleep(0.1)
+        pin, _ = sc.read_pin_sequence()
     print "PIN:",pin
     #single pulse fired, read from the scope  
     min_volt = float(scope.measure(1,"minimum"))
@@ -116,13 +117,14 @@ def sweep(dir_out,file_out,box,channel,width,delay,scope,min_volt=None,min_trigg
     scope.lock()
     sc.set_pulse_number(pulse_number)
 
-    sc.fire()
+    sc.fire_sequence()
     #wait for the sequence to end
     tsleep = pulse_number * (delay*1e-3 + 210e-6)
     time.sleep(tsleep) #add the offset in
     pin = None
     while not comms_flags.valid_pin(pin,channel):
-        pin = sc.read_pin()
+        time.sleep(0.1)
+        pin, _ = sc.read_pin_sequence()
     print "PIN:",pin
     #should now have an averaged waveform
     directory = "%s/channel_%2d"%(dir_out,logical_channel)
@@ -148,7 +150,8 @@ def sweep(dir_out,file_out,box,channel,width,delay,scope,min_volt=None,min_trigg
     results["fall"] = (scope.measure(1,"fall")) 
     results["width"] = (scope.measure(1,"nwidth")) 
     results["minimum"] = (scope.measure(1,"minimum"))
-    results["pin"] = pin[8]
+    results["pin"] = pin[channel]
+    print results
 
     scope.unlock()
 
