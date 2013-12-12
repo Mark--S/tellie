@@ -42,12 +42,15 @@ class TellieDatabase:
     def login(self, host, name):
         self.host = host
         self.name = name
+        print self.host
+        print self.name
         couch = couchdb.Server(self.host)
         try:
             self.db = couch[self.name]
         except:
             user = raw_input("DB Authentication, username: ")
-            password = getpass.getpass("DB Authentication, password: ")
+            password = getpass.getpass("DB Authentication, password: ")            
+            couch.resource.credentials = (user, password)
             self.db = couch[self.name]
 
     def save(self, doc):

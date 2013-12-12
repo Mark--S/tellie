@@ -3,7 +3,7 @@ import ROOT
 from core import serial_command
 import sys
 
-sc = serial_command.SerialCommand('/dev/ttyS0')
+sc = serial_command.SerialCommand('/dev/tty.usbserial-FTE3C0PG')
 
 channels = range(1,97)
 try:
@@ -86,10 +86,13 @@ for channel in channels:
         pin = None
         while pin==None:
             pin = sc.read_pin()
-        results.pin = int(pin)
+#            print pin, channel, pin[0][channel]
+        results.pin = int(pin[0][channel])
         results.width = width
+        ipin = int(pin[0][channel])
+        iwidth = width
         tt.Fill()
-        tg.SetPoint(ipt,float(width),float(pin))
+        tg.SetPoint(ipt,float(iwidth),float(ipin))
         print "WIDTH:",width,"PIN",pin
         ipt += 1
         tg.Draw("ap")

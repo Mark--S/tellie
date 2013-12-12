@@ -2,7 +2,7 @@ import os
 import sys
 import math
 
-def get_noise_and_RMS(x_values,y_values):
+def get_noise_and_RMS(x_values, y_values, n_baseline):
     ''' Returns the average noise of the PMT and the noise's RMS
     '''
     noise = 0
@@ -19,14 +19,16 @@ def get_noise_and_RMS(x_values,y_values):
     rms = math.sqrt(noise_sq - noise*noise)
     return noise, rms
 
-def get_baseline (x_values,y_values):
-    ''' Returns the baseline offset on the PMT
+def get_baseline (x_values, y_values, x_start=-300e-9, x_end=-100e-9):
+    ''' Returns the baseline offset on the PMT.
+
+    Add args for x_start and x_end to set the range used.
     '''
     baseline = 0 
     n_baseline = 0
     for i in range(len(y_values)):
         #This is an arbitary 200 ns region of noise
-        if x_values[i]<-100e-9 and x_values[i]>-300e-9:
+        if x_values[i]<x_end and x_values[i]>x_start:
             baseline += y_values[i]
             n_baseline += 1
     baseline /= n_baseline
@@ -48,26 +50,29 @@ def get_photons(integ, volt_gain):
     photons /= QE
     return photons
 
-def get_max_y (x_values,y_values):
+def get_max_y (x_values, y_values, baseline=None):
     ''' Returns the maximum y value with the baseline adjusted and its index
     '''
     max_y = 0
-    baseline = get_baseline(x_values, y_values)
+    if baseline is None:
+        baseline = get_baseline(x_values, y_values)
     for i in range(len(y_values)):
         #Adjust baseline
         y_values[i] = y_values[i] - baseline
         if y_values[i]<max_y:
             max_y = y_values[i]
             max_i = i
+    print "MAXS", max_y, max_i
     return max_y, max_i
 
-def integrate (x_values,y_values, x_low = -5e-9, x_high = 23e-9):
+def integrate (x_values,y_values, x_low = -5e-9, x_high = 23e-9, baseline = None):
     ''' Integrates waveform. x values are time in s y values in V
     pass a list of x_values and y_values.
     x_low and x_high are the integration window values
     '''
     #Get Baseline offset
-    baseline = get_baseline(x_values,y_values)
+    if baseline is None:
+        baseline = get_baseline(x_values,y_values)
 
     # tdiff is the time difference between data points from the scope in seconds
     tdiff = (x_values[3]-x_values[2])
@@ -81,14 +86,15 @@ def integrate (x_values,y_values, x_low = -5e-9, x_high = 23e-9):
             integ += (y_values[i] + y_values[i+1] - 2*baseline)/2 * tdiff
     return integ
 
-def get_width(x_values, y_values, volt_gain, x_low = -5e-9, x_high = 23e-9,):
+def get_width(x_values, y_values, volt_gain, x_low = -5e-9, x_high = 23e-9, baseline = None):
     ''' Gets FWHM in ns of the waveform between the time window defined by
     x_low and x_high
     '''
     #print x_values
-    baseline = get_baseline(x_values,y_values)
+    if baseline is None:
+        baseline = get_baseline(x_values,y_values)
     # Get maxmium amplitude and its index
-    max_y, max_i = get_max_y(x_values,y_values)
+    max_y, max_i = get_max_y(x_values,y_values, baseline)
     start_x = 0
     end_x = 0
 
@@ -119,13 +125,15 @@ def get_width(x_values, y_values, volt_gain, x_low = -5e-9, x_high = 23e-9,):
         print 'ERROR: Could not calculate the width time. Returning 0'
         return 0
 
-def get_rise(x_values, y_values, volt_gain, x_low = -5e-9, x_high = 23e-9):
+def get_rise(x_values, y_values, volt_gain, x_low = -5e-9, x_high = 23e-9, baseline = None):
     ''' Gets rise time in ns of the waveform between the time window defined by
     x_low and x_high
     '''
-    baseline = get_baseline(x_values,y_values)
+    if baseline is None:
+        baseline = get_baseline(x_values,y_values)
     # Get maxmium amplitude and its index
-    max_y, max_i = get_max_y(x_values,y_values)
+    max_y, max_i = get_max_y(x_values,y_values, baseline)
+    print "MAXY:", max_y, x_low, x_high
     start_x = 0
     end_x = 0
     # Get 10% max
@@ -152,19 +160,21 @@ def get_rise(x_values, y_values, volt_gain, x_low = -5e-9, x_high = 23e-9):
     #Apply rise correction
     try:
         rise =  1.687*math.sqrt((((end_x-start_x)*(end_x-start_x))/(1.687*1.687))-time_correction*time_correction)
+        print "RISE:", rise, max_y, start_x, end_x
         return rise
     except:
         print 'ERROR: Could not calculate the rise time. Returning 0'
         return 0        
 
 
-def get_fall(x_values, y_values,volt_gain,  x_low = -5e-9, x_high = 23e-9):
+def get_fall(x_values, y_values,volt_gain,  x_low = -5e-9, x_high = 23e-9, baseline = None):
     ''' Gets rise time in ns of the waveform between the time window defined by
     x_low and x_high
     '''
-    baseline = get_baseline(x_values,y_values)
+    if baseline is None:
+        baseline = get_baseline(x_values,y_values)
     # Get maxmium amplitude and its index
-    max_y, max_i = get_max_y(x_values,y_values)
+    max_y, max_i = get_max_y(x_values,y_values, baseline)
     start_x = 0
     end_x = 0
 
