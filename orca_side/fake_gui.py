@@ -132,7 +132,7 @@ class TellieOptions(object):
     def get_full_fire_settings(self):
         """Return options settings, ignoring the number of sequences required
         """
-        lodf_dict = {"channels": [self.get_ch()],
+        load_dict = {"channels": [self.get_ch()],
                      "pulse_delay": float(self.get_pd()),
                      "trigger_delay": int(self.get_td()),
                      "pulse_number": int(self.get_pn())}
