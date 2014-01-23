@@ -422,6 +422,8 @@ if __name__ == "__main__":
     parser.add_option("-a", dest="address", default=None, help="Server address (default 127.0.0.1)")
     parser.add_option("-p", dest="port", default=None, help="Server port (default 50050)")
     parser.add_option("-l", dest="usedb", action="store_true", help="Upload results to database")
+    parser.add_option("--server", dest="dbserver", default="http://127.0.0.1:5984", help="database server")
+    parser.add_option("--name", dest="dbname", default="tellie", help="database name")
     (options, args) = parser.parse_args()
     logger = tellie_logger.TellieLogger.get_instance()
     logger.set_debug_mode(options.debug)
@@ -430,7 +432,7 @@ if __name__ == "__main__":
         try:
             import tellie_database
             database = tellie_database.TellieDatabase.get_instance()
-            database.login("http://127.0.0.1:5984", "tellie")
+            database.login(options.dbserver, options.dbname)
         except ImportError:
             print "WARNING: cannot use TELLIE DB"
     app = OrcaGui(None, "orca_side/PRESETS.js", "orca_side/CHANNELS.js")
