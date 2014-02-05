@@ -181,6 +181,7 @@ class LoadFireThread(CommsThread):
         results["run"] = int(self.tellie_options.get_run())
         results["load_settings"] = self.tellie_options.get_load_settings()
         results["fire_settings"] = self.tellie_options.get_full_fire_settings()
+        results["type"] = "run"
         self.database.save(results)
 
     def save_errors(self, message):
@@ -192,4 +193,5 @@ class LoadFireThread(CommsThread):
         results["run"] = int(self.tellie_options.get_run())
         results["load_settings"] = self.tellie_options.get_load_settings()
         results["fire_settings"] = self.tellie_options.get_full_fire_settings()
+        results["type"] = "run"
         self.database.save(results)
