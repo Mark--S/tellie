@@ -5,7 +5,7 @@ import sys
 
 sc = serial_command.SerialCommand('/dev/tty.usbserial-FTE3C0PG')
 
-channels = range(1,97)
+channels = [12]
 try:
     channels = [int(sys.argv[1])]
     print "RUNNING CHANNEL",channels
@@ -18,7 +18,7 @@ except:
 #    channels.append(i*4+1)
 #channels = [60,65,70,75]
 print channels
-widths = range(0,6000,200)
+widths = range(0,9700,50)
 
 #######################################
 #for the branches
@@ -62,6 +62,8 @@ for channel in channels:
     tt.Branch("width",ROOT.AddressOf(results,"width"),"width/I")
     tt.Branch("pin",ROOT.AddressOf(results,"pin"),"pin/I")
 
+    output = open("PIN_IPW_CH%02d.dat"%channel,'a')
+    
     tg = ROOT.TGraph()
     tg.SetMarkerStyle(23)
     tg.GetXaxis().SetTitle("IPW")
@@ -91,6 +93,7 @@ for channel in channels:
         results.width = width
         ipin = int(pin[0][channel])
         iwidth = width
+        output.write("%d %d\n"%(iwidth,ipin)) 
         tt.Fill()
         tg.SetPoint(ipt,float(iwidth),float(ipin))
         print "WIDTH:",width,"PIN",pin
@@ -99,6 +102,7 @@ for channel in channels:
         tc.Update()
     
 #    raw_input("wait")
+    tc.Print("PINCalib%02d.pdf"%channel)
 
     tt.Write()
     tf.Close()

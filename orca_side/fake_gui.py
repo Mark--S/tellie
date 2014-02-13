@@ -20,6 +20,7 @@ import os
 import json
 import time
 import math
+import copy
 import optparse
 import Tkinter
 import tellie_comms
@@ -123,10 +124,10 @@ class TellieOptions(object):
                       "trigger_delay": int(self.get_td())}
         load_dicts = []
         for i in range(n_max_pn):
-            load_dicts.append(basic_dict)
-            load_dicts[i]["pulse_number"] = parameters.max_pulse_number
-        load_dicts.append(basic_dict)
-        load_dicts[len(load_dicts)-1]["pulse_number"] = final_pn
+            load_dicts.append(copy.copy(basic_dict))
+            load_dicts[i]["pulse_number"] = copy.copy(parameters.max_pulse_number)
+        load_dicts.append(copy.copy(basic_dict))
+        load_dicts[-1]["pulse_number"] = copy.copy(final_pn)
         return load_dicts
 
     def get_full_fire_settings(self):

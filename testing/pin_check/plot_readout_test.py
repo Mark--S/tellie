@@ -24,5 +24,6 @@ def plot_hist(result_name):
     raw_input("any key to quit: ")
 
 if __name__ == '__main__':
+    print sys.argv[1]
     results_name = sys.argv[1]
-    plot_hist(result_name)
+    plot_hist(results_name)

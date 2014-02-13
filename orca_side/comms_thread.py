@@ -92,6 +92,7 @@ class LoadFireThread(CommsThread):
         total_pulses = 0
         for fire in fire_settings:
             total_pulses += fire["pulse_number"]
+            print 'TOTAL',total_pulses
             t_wait = fire["pulse_number"] * (1./rate + 200e-6)
             if self.stopped(): #check at before sending any commands
                 self.save_errors("CALLED STOP")
@@ -182,6 +183,8 @@ class LoadFireThread(CommsThread):
         results["load_settings"] = self.tellie_options.get_load_settings()
         results["fire_settings"] = self.tellie_options.get_full_fire_settings()
         results["type"] = "run"
+        # Should the timestamp come from the TELLIE machine?
+        results["timestamp"] = time.time()
         self.database.save(results)
 
     def save_errors(self, message):
