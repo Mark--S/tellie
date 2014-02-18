@@ -53,5 +53,10 @@ class TellieDatabase:
             couch.resource.credentials = (user, password)
             self.db = couch[self.name]
 
+    def is_logged_in(self):
+        if self.db is None:
+            return False
+        return True
+
     def save(self, doc):
         self.db.save(doc)

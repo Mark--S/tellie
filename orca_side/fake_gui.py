@@ -23,9 +23,11 @@ import math
 import copy
 import optparse
 import Tkinter
+import tkMessageBox
 import tellie_comms
 import comms_thread
 import comms_thread_pool
+import tellie_database
 from common import tellie_logger, parameters
 
 
@@ -70,6 +72,23 @@ class TellieOptions(object):
             return False
         except (ValueError, TypeError):
             return True
+
+    def check_run_number(self):
+        """Check that the run number has not already been used.
+        """
+        database = tellie_database.TellieDatabase.get_instance()
+        if database.is_logged_in() is False:
+            return False
+        run = int(self.get_run())
+        rows = database.db.view("_design/runs/_view/run_by_number", key=run)
+        if len(rows)!=0:
+            # Open the popup
+            result = tkMessageBox.askyesno("Run", "Run %s exists for TELLIE, run anyway?" % run)
+            if result is True:
+                return False
+            else:
+                return True
+        return False
 
     def validate_options(self):
         """Check that the option fields are appropriate
@@ -380,6 +399,8 @@ class OrcaGui(Tkinter.Tk):
             self.message_field.show_message("Missing some settings, cannot run!")
         elif self.tellie_options.check_int_options():
             self.message_field.show_message("Some options are not ints, cannot run!")
+        elif self.tellie_options.check_run_number():
+            self.message_field.show_message("Resolve run number conflict before running!")
         else:
             message = self.tellie_options.validate_options()
             if message:
@@ -431,7 +452,6 @@ if __name__ == "__main__":
     database = None
     if options.usedb:
         try:
-            import tellie_database
             database = tellie_database.TellieDatabase.get_instance()
             database.login(options.dbserver, options.dbname)
         except ImportError:

@@ -89,6 +89,7 @@ class LoadFireThread(CommsThread):
         rate = float(self.tellie_options.get_pr())
         #sequence mode, additional 200us delay
         pin_readings = []
+        sub_pulses = []
         total_pulses = 0
         for fire in fire_settings:
             total_pulses += fire["pulse_number"]
@@ -136,13 +137,14 @@ class LoadFireThread(CommsThread):
                 #should convert
                 print "RESP", response
                 pin_readings.append(comms_flags.get_pin_readings(response))
+                sub_pulses.append(fire["pulse_number"])
                 print "READS", pin_readings
             except IndexError:
                 self.save_errors("PIN READ ERROR: %s"%(response))
                 self.shutdown_thread(1, "PIN READ ERROR: %s"%response)
                 return
         self.ellie_field.show_waiting()
-        self.save_results(pin_readings)
+        self.save_results(sub_pulses, pin_readings)
         average_pin = {}
         for i, pins in enumerate(pin_readings):
             print "PINS", pin_readings
@@ -173,12 +175,13 @@ class LoadFireThread(CommsThread):
         self.fire_button.config(state = Tkinter.NORMAL)
         super(LoadFireThread, self).shutdown_thread()
 
-    def save_results(self, pin_readings):
+    def save_results(self, sub_pulses, pin_readings):
         if not self.database:
             return
         if not self.database.db:
             return
         results = {"pins": pin_readings}
+        results["pulses"] = sub_pulses
         results["run"] = int(self.tellie_options.get_run())
         results["load_settings"] = self.tellie_options.get_load_settings()
         results["fire_settings"] = self.tellie_options.get_full_fire_settings()
