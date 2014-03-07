@@ -45,7 +45,6 @@ class CommsThreadPool:
         self._thread_names.append(thread.name)
 
     def unregister_thread(self, thread):
-        print "REMOVE THREAD!"
         self._threads.remove(thread)
         self._thread_names.remove(thread.name)
 

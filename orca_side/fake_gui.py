@@ -100,7 +100,6 @@ class TellieOptions(object):
         fd = float(self.get_fd())
         #ensure ability to pulse more than 65025 pulses
         n_max_pn, final_pn = self.get_pn_sequence(pn)
-        print n_max_pn, final_pn
         adjusted_pn, actual_pn, _, _ = parameters.pulse_number(final_pn)
         total_pn = n_max_pn * parameters.max_pulse_number + actual_pn
         adjusted_td, actual_td, _ = parameters.trigger_delay(td)
@@ -180,7 +179,6 @@ class TellieOptions(object):
         rate = float(self.get_pr())#Hz
         delay_s = 1.0 / rate
         delay_ms = delay_s * 1000
-        print delay_ms
         return str(delay_ms)
 
     def get_td(self):
@@ -444,11 +442,13 @@ if __name__ == "__main__":
     parser.add_option("-a", dest="address", default=None, help="Server address (default 127.0.0.1)")
     parser.add_option("-p", dest="port", default=None, help="Server port (default 50050)")
     parser.add_option("-l", dest="usedb", action="store_true", help="Upload results to database")
+    parser.add_option("--logfile", dest="logfile", default="logs/gui", help="Log name")
     parser.add_option("--server", dest="dbserver", default="http://127.0.0.1:5984", help="database server")
     parser.add_option("--name", dest="dbname", default="tellie", help="database name")
     (options, args) = parser.parse_args()
     logger = tellie_logger.TellieLogger.get_instance()
     logger.set_debug_mode(options.debug)
+    logger.set_log_file(options.logfile)
     database = None
     if options.usedb:
         try:

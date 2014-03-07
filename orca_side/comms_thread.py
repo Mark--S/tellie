@@ -93,7 +93,6 @@ class LoadFireThread(CommsThread):
         total_pulses = 0
         for fire in fire_settings:
             total_pulses += fire["pulse_number"]
-            print 'TOTAL',total_pulses
             t_wait = fire["pulse_number"] * (1./rate + 200e-6)
             if self.stopped(): #check at before sending any commands
                 self.save_errors("CALLED STOP")
@@ -168,10 +167,14 @@ class LoadFireThread(CommsThread):
         if error_flag:
             self.ellie_field.show_stopped()
             self.message_field.show_warning(message)
+            self.logger.warn(message)
         else:
             self.ellie_field.show_waiting()
             if message:
                 self.message_field.show_message(message)
+                self.logger.debug(message)
+            else:
+                self.logger.debug("Thread shutdown called, no message")
         self.fire_button.config(state = Tkinter.NORMAL)
         super(LoadFireThread, self).shutdown_thread()
 

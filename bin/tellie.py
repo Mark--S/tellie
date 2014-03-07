@@ -39,9 +39,11 @@ if __name__ == "__main__":
     parser.add_option("-d", dest="debug", action="store_true", default=False, help="Debug mode")
     parser.add_option("-p", dest="port", default=None, help="set non-default tellie address")
     parser.add_option("-t", dest="chip_type", default="SNO6C", help="Select TELLIE chip type")
+    parser.add_option("-l", dest="logfile", default="logs/tellie", help="Log filename")
     (options, args) = parser.parse_args()
     logger = tellie_logger.TellieLogger.get_instance()
     logger.set_debug_mode(options.debug)
+    logger.set_log_file(options.logfile)
     try:
         command_object = getattr(serial_command, options.chip_type)
     except AttributeError:
