@@ -128,7 +128,7 @@ class SerialCommand(object):
         Command can be a chr/str (single write) or a list.
         Lists are used for e.g. a high/low bit command where
         the high bit could finish with an endline (i.e. endstream)"""
-        self.logger.debug("_send_command")
+        self.logger.debug("_send_command:%s" % command)
         if type(command) is str:
             command = [command]
         if type(command) is not list:
@@ -156,9 +156,11 @@ class SerialCommand(object):
                 self._serial.write("C") # send a clear
                 time.sleep(0.1)
                 self._serial.read(100)
-                raise tellie_exception.TellieException("Unexpected buffer output:\nsaw: %s, remainder %s\nexpected: %s" % (buffer_read, remainder, buffer_check))
+                message = "Unexpected buffer output:\nsaw: %s, remainder %s\nexpected: %s" % (buffer_read, remainder, buffer_check)
+                self.logger.warn(message)
+                raise tellie_exception.TellieException(message)
             else:
-                self.logger.debug("success reading buffer")
+                self.logger.debug("success reading buffer:%s" % buffer_read)
         else:
             self.logger.debug("not a readout command")
 
