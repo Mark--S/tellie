@@ -1,0 +1,17 @@
+/PhysicsList/OmitAll true
+
+/run/initialize
+
+# May as well fit with Quad, since that's what we actually do 
+# when reading ZDAB files on the buffer machine.
+/rat/proc tellieMonitoring
+/rat/procset file "${OUTPUT}"
+
+# BEGIN EVENT LOOP
+/rat/proc count
+/rat/procset update 500
+
+# Read data from disk.
+/rat/inzdab/read ${INPUT}
+
+exit

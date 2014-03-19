@@ -39,12 +39,12 @@ class TellieDatabase:
         self.host = None
         self.name = None
 
-    def login(self, host, name):
+    def login(self, host, name, user=None, password=None):
         self.host = host
         self.name = name
-        print self.host
-        print self.name
         couch = couchdb.Server(self.host)
+        if user is not None and password is not None:
+            couch.resource.credentials = (user, password)
         try:
             self.db = couch[self.name]
         except:
@@ -59,4 +59,4 @@ class TellieDatabase:
         return True
 
     def save(self, doc):
-        self.db.save(doc)
+        return self.db.save(doc)
