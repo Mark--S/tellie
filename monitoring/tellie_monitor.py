@@ -1,4 +1,5 @@
 import os
+import sys
 import subprocess
 import string
 import optparse
@@ -66,7 +67,7 @@ def get_expected_hits(filename):
     return direct_vectors, reflected_vectors
 
 
-def check_fibre(direct_vectors, output_name, mapping, channel_selected):
+def check_fibre(direct_vectors, output_name, mapping, channel_selected, output_log):
     '''Check the output angles from processed job to expected from simulation.
    
     Compares the best guess fibres to available fibres and the one selected by the GUI.
@@ -106,9 +107,14 @@ def check_fibre(direct_vectors, output_name, mapping, channel_selected):
         # If here, the fibre was not connected...
         dot_product_list.pop(max_index)
         fibre_list.pop(max_index)
+
     print "BEST:     %s\t%s" % (max_fibre, max_dot)
     print "SELECTED: %s\t%s" % (fibre_selected, dot_selected)
-
+    output_file = file(output_log, 'w')
+    output_file.write("BEST\t%s\t%s\n" % (max_fibre, max_dot))
+    output_file.write("SELECTED\t%s\t%s\n" % (fibre_selected, dot_selected))
+    output_file.close()
+                      
 
 def run_from_zdab(input_name):
     '''Get a run number from SNOP_xxxx format name
@@ -161,6 +167,9 @@ def get_tellie_channel(database, run):
             channel = channels[0]
         elif channels[0] != channel:
             raise Exception("Multiple channels fired for this run; cannot monitor")
+    if channel is None:
+        print "No TELLIE events for run %s" % run
+        return None
     return int(channel)
 
 
@@ -194,15 +203,21 @@ if __name__=="__main__":
     orca_database.login(options.database_server, options.database_orca, options.database_user, options.database_password)
 
     channel = get_tellie_channel(database, run)
+    if channel is None:
+        # Don't need an abnormal exit code
+        sys.exit()
     timestamp = get_run_timestamp(orca_database, run)
     mapping = get_mapping_doc(database, timestamp)
+
+    print "channel", channel, timestamp
 
     if channel not in mapping['channels']:
         raise Exception("Channel %s is not in mapping document" % channel)
 
-    #run_rat(options.template_name, options.macro_name, options.input_name, options.output_name)
+    run_rat(options.template_name, options.macro_name, options.input_name, options.output_name)
     
-    if os.path.exists(options.output_name):
-        # Can now check the number of triggers and central spot
-        check_fibre(direct_vectors, options.output_name, mapping, channel)
-        
+    if not os.path.exists(options.output_name):
+        raise Exception("No output %s created" % options.output_name)
+
+    # Can now check the number of triggers and central spot
+    check_fibre(direct_vectors, options.output_name, mapping, channel, "%s.comp" % options.output_name)
