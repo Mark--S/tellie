@@ -16,15 +16,20 @@ def clear_channel(s):
     """Clear things!
     """
     print "clear settings"
-    s.write("C")
+    cmd = "C"
+    s.write(cmd)
     time.sleep(0.1)
+    return cmd
 
 def select_channel(s, channel):
     """Just select the channel.
     """
     print "selecting channel: %s" % channel
-    s.write("I" + chr(channel) + "N") # select channel
+    cmd = "I" + chr(channel) + "N"  # select channel
+    s.write(cmd)
     time.sleep(0.1)
+    return cmd
+
 
 def set_pulse_height(s, height):
     """Set the pulse height.
@@ -33,10 +38,10 @@ def set_pulse_height(s, height):
     print "setting pulse height: %s" % height
     hi = height >> 8
     lo = height & 255
-    s.write("L" + chr(hi))
-    s.write("M" + chr(lo))
-    s.write("P")
+    cmd = "L" + chr(hi) + "M" + chr(lo) + "P"
+    s.write(cmd)
     time.sleep(0.1)
+    return cmd
 
 def set_pulse_delay(s, delay):
     """Set the pulse delay.
@@ -45,8 +50,10 @@ def set_pulse_delay(s, delay):
     print "setting pulse delay: %s ms" % delay
     ms = int(delay)
     us = int((delay - ms)*250)
-    s.write("u" + chr(ms) + chr(us))
+    cmd = "u" + chr(ms) + chr(us)
+    s.write(cmd)
     time.sleep(0.1)
+    return cmd
 
 def set_pulse_number(s, hi, lo):
     """Set the pulse number.
@@ -55,17 +62,20 @@ def set_pulse_number(s, hi, lo):
     Lo: 1 - 255
     """
     print "setting pulse number: %s" % (hi * lo)
-    s.write("H" + chr(hi))
-    s.write("G" + chr(lo))
+    cmd = "H" + chr(hi) + "G" + chr(lo)
+    s.write(cmd)
     time.sleep(0.1)
+    return cmd
 
 def set_trigger_delay(s, delay):
     """Set the trigger delay.
     delay * 5 ns.
     """
     print "setting the trigger delay: %s ns" % (delay * 5)
-    s.write("d" + chr(delay))
+    cmd = "d" + chr(delay)
+    s.write(cmd)
     time.sleep(0.1)
+    return cmd
 
 def fire_continuous(s, seconds):
     """Fire a continuous pulse for n seconds
@@ -95,7 +105,7 @@ if __name__ == "__main__":
     parser.add_option("-c", dest="channel", help="The channel to use",
                       type="int")
     parser.add_option("-p", dest="port", help="Port to run [/dev/tty.usbserial-FTF5YKAZ]",
-                      default="/dev/tty.usbserial-FTF5YKAZ")
+                      default="/dev/tty.usbserial-FTE3C0PG")
     parser.add_option("-z", dest="pulse_height", help="Pulse height [10000]",
                       default=10000, type="int")
     parser.add_option("-s", dest="sequence", help="Run in sequence mode?",
@@ -105,16 +115,19 @@ if __name__ == "__main__":
     s = serial.Serial(port=options.port, timeout=0.5)
 
     #setup the board
-    clear_channel(s)
-    set_pulse_delay(s, 100.0) # 100ms delay -> 10 Hz
-    set_pulse_number(s, 10, 10) # run 100 pulses, no effect for continuous mode
-    set_trigger_delay(s, 0) # no delay
-    select_channel(s, options.channel)
-    set_pulse_height(s, options.pulse_height)
+    cmd = ""
+    cmd += clear_channel(s)
+    cmd += set_pulse_delay(s, 10.0) # 10ms delay -> 100 Hz
+    cmd += set_pulse_number(s, 10, 10) # run 100 pulses, no effect for continuous mode
+    cmd += set_trigger_delay(s, 0) # no delay
+    cmd += select_channel(s, options.channel)
+    cmd += set_pulse_height(s, options.pulse_height)
     
     if options.sequence:
         fire_sequence(s)
     else:
         fire_continuous(s, 10) # run for 10 seconds
     # finally, just check what was in the buffer
-    print "Buffer contents: ", s.read(100)
+    print "Commands sent:", cmd
+    time.sleep(10)
+    print "Buffer contents:", s.read(100)

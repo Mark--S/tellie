@@ -74,5 +74,5 @@ if __name__ == "__main__":
         asyncore.ExitNow('Server is quitting')
         safe_exit(tellie_serial)
     except Exception, e:
-        print "Quitting - not an interrupt"
+        print "Quitting - not an interrupt", e
         safe_exit(tellie_serial)
