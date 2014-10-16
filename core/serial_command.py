@@ -2,17 +2,13 @@
 #
 # serial_command
 #
-# SerialCommand
+# classes: SerialCommand
 #
-# Command functions to send to the Tellie
-# control box
+# Command functions to send to the TELLIE
+# control box.
 #
 # Author: Matt Mottram
-#         <m.mottram@sussex.ac.uk>
-#
-# History:
-# 2013/03/08: First instance
-# 2013/10/21: Added new classes for different chips, pep8
+#         <m.mottram@qmul.ac.uk>
 #
 ###########################################
 ###########################################
@@ -49,17 +45,17 @@ _cmd_channel_select_single_start = "I"
 _cmd_channel_select_single_end = "N"
 _cmd_channel_select_many_start = "J"
 _cmd_channel_select_many_end = "E"
-_cmd_ph_hi = "L"
-_cmd_ph_lo = "M"
-_cmd_ph_end = "P"
-_cmd_pw_hi = "Q"
-_cmd_pw_lo = "R"
-_cmd_pw_end = "S"
-_cmd_pn_hi = "H"
-_cmd_pn_lo = "G"
-_cmd_pd = "u"
-_cmd_td = "d"
-_cmd_fd = "e"
+_cmd_pulse_height_hi = "L"
+_cmd_pulse_height_lo = "M"
+_cmd_pulse_height_end = "P"
+_cmd_pulse_width_hi = "Q"
+_cmd_pulse_width_lo = "R"
+_cmd_pulse_width_end = "S"
+_cmd_pulse_number_hi = "H"
+_cmd_pulse_number_lo = "G"
+_cmd_pulse_delay = "u"
+_cmd_trigger_delay = "d"
+_cmd_fibre_delay = "e"
 _cmd_temp_select_lower = "n"
 _cmd_temp_read_lower = "T"
 _cmd_temp_select_upper = "f"
@@ -68,47 +64,50 @@ _cmd_distable_trig_in = "B"
 
 
 class SerialCommand(object):
-    """Serial command object.
-    Base class, different chips then inheret from this.
+    """Contains a serial command object.
     """
 
-    def __init__(self, port_name=None):
-        """Initialise the serial command"""
-        if not port_name:
-            self._port_name = "/dev/tty.usbserial-FTE3C0PG"
-        else:
-            self._port_name = port_name
-        # This is the same as a sleep, but with the advantage of breaking
-        # if enough characters are seen in the buffer.
-        self._port_timeout = 0.3
-        self._serial = None
+    def __init__(self, port_name = "/dev/tty.usbserial-FTE3C0PG",
+                 port_timeout = 0.3):
+        '''Initialise function: open serial connection.
+        '''
+        self._port_name = port_name
+        self._port_timeout = port_timeout
         self.logger = tellie_logger.TellieLogger.get_instance()
+        self._serial = None
         try:
             self._serial = serial.Serial(port=self._port_name, timeout=self._port_timeout)
             self.logger.debug("Serial connection open: %s" % self._serial)
         except serial.SerialException, e:
             raise tellie_exception.TellieSerialException(e)
-        #cache current settings - remove need to re-command where possible
-        #channel specific settings
+
+        # Cache current settings - remove need to re-command where possible
+        # Channel specific settings
         self._channel = [] #always a list
-        self._current_pw = [-999]*96
-        self._current_ph = [-999]*96
-        self._current_fd = [-999]*96
-        #global settings
-        self._current_pn = None
-        self._current_pd = None
-        self._current_td = None
-        #information on whether the channel is being fired
+        self._current_pulse_width = [-999]*96
+        self._current_pulse_height = [-999]*96
+        self._current_fibre_delay = [-999]*96
+
+        # Global settings
+        self._current_pulse_number = None
+        self._current_pulse_delay = None
+        self._current_trigger_delay = None
+
+        # Information on whether the channel is being fired
         self._firing = 0 #must wait for firing to complete
         self._reading = 0 #once a read command has been sent, dont send again!
-        #temperature settings
+
+        # Temperature settings
         self._current_temp_probe = None
-        #if a new channel is selected should force setting all new parameters
-        #restriction only lifted once a fire command has been called
+
+        # If a new channel is selected should force setting all new parameters
+        # restriction only lifted once a fire command has been called
         self._force_setting = False
-        #send a reset, to ensure the RTS is set to false
+
+        # Send a reset, to ensure the RTS is set to false
         self.reset()
-        #send a clear channel command, just in case
+
+        # Send a clear channel command, just in case
         self.clear_channel()
 
     def __del__(self):
@@ -138,10 +137,12 @@ class SerialCommand(object):
                 self._serial.write(c)
         except:
             raise tellie_exception.TellieException("Lost connection with TELLIE control!")
+
         if not buffer_check: # assume returns same as input
             buffer_check = ''
             for c in command:
                 buffer_check += c
+
         if readout is True:
             # One read command (with default timeout of 0.1s) should be
             # enough to get all the chars from the readout.
@@ -226,7 +227,7 @@ class SerialCommand(object):
         cmd = None
         buffer_check = _cmd_fire_series
         #if the series is less than 0.5 seconds, also check for the end of sequence
-        if (self._current_pn * self._current_pd) < 500:
+        if (self._current_pulse_number * self._current_pulse_delay) < 500:
             buffer_check += _buffer_end_sequence
             self._send_command(_cmd_fire_series, buffer_check=buffer_check)
         else:
@@ -370,17 +371,17 @@ class SerialCommand(object):
         """Check that all settings have been set"""
         not_set = []
         for channel in self._channel:
-            if self._current_pw[channel-1] is None:
+            if self._current_pulse_width[channel-1] is None:
                 not_set += ["Pulse width"]
-            if self._current_ph[channel-1] is None:
+            if self._current_pulse_height[channel-1] is None:
                 not_set += ["Pulse height"]
-            if self._current_fd[channel-1] is None:
+            if self._current_fibre_delay[channel-1] is None:
                 not_set += ["Fibre delay"]
-        if self._current_pn is None:
+        if self._current_pulse_number is None:
             not_set += ["Pulse number"]
-        if self._current_pd is None:
+        if self._current_pulse_delay is None:
             not_set += ["Pulse delay"]
-        if self._current_td is None:
+        if self._current_trigger_delay is None:
             not_set += ["Trigger delay"]
         print not_set
         if not_set != []:
@@ -394,15 +395,15 @@ class SerialCommand(object):
 
     def clear_channel_settings(self, channel):
         """Clear settings for a specific channel"""
-        self._current_pw[channel-1] = None
-        self._current_ph[channel-1] = None
-        self._current_fd[channel-1] = None
+        self._current_pulse_width[channel-1] = None
+        self._current_pulse_height[channel-1] = None
+        self._current_fibre_delay[channel-1] = None
 
     def clear_global_settings(self):
         """Clear settings that affect all channels"""
-        self._current_pn = None
-        self._current_pd = None
-        self._current_td = None
+        self._current_pulse_number = None
+        self._current_pulse_delay = None
+        self._current_trigger_delay = None
 
     def select_channel(self, channel):
         """Select a channel"""
@@ -411,12 +412,12 @@ class SerialCommand(object):
         if self._channel != []:
             if self._channel == [channel]:
                 #channel already selected
-                return
+                return 0
         self.logger.debug("Select channel %s %s" % (channel, type(channel)))
-        command = _cmd_channel_select_single_start+chr(channel)+_cmd_channel_select_single_end
-        buffer_check = "B"+str((int(channel)-1)/8+1)+_cmd_channel_select_single_end
+        command, buffer_check = command_select_channel(channel)
         self._send_command(command=command, buffer_check=buffer_check)
         self._channel = [channel]
+        return 0 # OK status
 
     def select_channels(self, channels):
         """Select multiple channels, expects list for channels"""
@@ -433,75 +434,108 @@ class SerialCommand(object):
         print "DONE!"
         self._channel = channels
 
+    def init_channel(self, channel, pulse_number, pulse_delay, trigger_delay,
+                     pulse_width, pulse_height, fibre_delay):
+        """Select and setup all channel settings.
+        """
+        commands = []
+        buffer_checks = ""
+        commands, buffer_checks = command_append([commands, buffer_checks], command_select_channel(channel))
+        print "INIT", commands, buffer_checks
+        commands, buffer_checks = command_append([commands, buffer_checks], command_pulse_number(pulse_number))
+        commands, buffer_checks = command_append([commands, buffer_checks], command_pulse_delay(pulse_delay))
+        commands, buffer_checks = command_append([commands, buffer_checks], command_trigger_delay(trigger_delay))
+        commands, buffer_checks = command_append([commands, buffer_checks], command_pulse_width(pulse_width))
+        commands, buffer_checks = command_append([commands, buffer_checks], command_pulse_height(pulse_height))
+        commands, buffer_checks = command_append([commands, buffer_checks], command_fibre_delay(fibre_delay))
+        print "COMMAND: ", commands, type(commands)
+        print "BUFFER CHECK: ", buffer_checks, type(buffer_checks)
+        print command_pulse_number(pulse_number)
+        print command_pulse_height(pulse_height)
+        print command_pulse_width(pulse_width)
+        print command_pulse_delay(pulse_delay)
+        self._send_command(command=commands, buffer_check=buffer_checks)
+        self._channel = [channel]
+        self._current_pulse_number = pulse_number
+        self._current_pulse_delay = pulse_delay
+        self._current_trigger_delay = trigger_delay
+        self._current_pulse_width[self._channel[0]] = pulse_width
+        self._current_pulse_height[self._channel[0]] = pulse_height
+        self._current_fibre_delay[self._channel[0]] = fibre_delay
+        return 0
+
     def set_pulse_height(self, par):
         """Set the pulse height for the selected channel"""
         if len(self._channel) != 1:
             raise tellie_exception.TellieException("Cannot set parameter with channels set as %s" % (self._channel))
-        if par == self._current_ph[self._channel[0]] and not self._force_setting:
+        if par == self._current_pulse_height[self._channel[0]] and not self._force_setting:
             pass #same as current setting
         else:
             self.logger.debug("Set pulse height %s %s" % (par, type(par)))
             command, buffer_check = command_pulse_height(par)
             self._send_channel_setting_command(command=command, buffer_check=buffer_check)
-            self._current_ph[self._channel[0]] = par
+            self._current_pulse_height[self._channel[0]] = par
+        return 0
 
-    def set_pulse_width(self, par, while_fire=False):
+    def set_pulse_width(self, par):
         """Set the pulse width for the selected channel.
         This is the only setting that can be modified while in firing mode."""
         if len(self._channel) != 1:
             raise tellie_exception.TellieException("Cannot set parameter with channels set as %s" % (self._channel))
-        if par == self._current_pw[self._channel[0]] and not self._force_setting:
+        if par == self._current_pulse_width[self._channel[0]] and not self._force_setting:
             pass #same as current setting
         else:
             self.logger.debug("Set pulse width %s %s" % (par, type(par)))
             command, buffer_check = command_pulse_width(par)
-            if while_fire and self._firing:
-                self._send_channel_setting_command(command=command, while_fire=while_fire)
-            else:
-                self._send_channel_setting_command(command=command, buffer_check=buffer_check)
-            self._current_pw[self._channel[0]] = par
+            self._send_channel_setting_command(command=command, buffer_check=buffer_check)
+            self._current_pulse_width[self._channel[0]] = par
+        return 0
 
     def set_fibre_delay(self, par):
         """Set the fibre (channel) delay for the selected channel"""
         if len(self._channel) != 1:
             raise tellie_exception.TellieException("Cannot set parameter with channels set as %s" % (self._channel))
-        if par == self._current_fd[self._channel[0]] and not self._force_setting:
+        if par == self._current_fibre_delay[self._channel[0]] and not self._force_setting:
             pass
         else:
             self.logger.debug("Set Fibre delay %s %s" % (par, type(par)))
             command, buffer_check = command_fibre_delay(par)
             self._send_channel_setting_command(command=command, buffer_check=buffer_check)
-            self._current_fd[self._channel[0]] = par
+            self._current_fibre_delay[self._channel[0]] = par
+        return 0
 
     def set_pulse_number(self, par):
         """Set the number of pulses to fire (global setting)"""
-        if par == self._current_pn and not self._force_setting:
+        if par == self._current_pulse_number and not self._force_setting:
             pass
         else:
             self.logger.debug("Set pulse number %s %s" % (par, type(par)))
             command, buffer_check = command_pulse_number(par)
             self._send_global_setting_command(command=command, buffer_check=buffer_check)
-            self._current_pn = par
+            self._current_pulse_number = par
+        return 0
 
     def set_pulse_delay(self, par):
         """Set the delay between pulses (global setting)"""
-        if par == self._current_pd and not self._force_setting:
+        if par == self._current_pulse_delay and not self._force_setting:
             pass
         else:
             self.logger.debug("Set pulse delay %s %s" % (par, type(par)))
             command, buffer_check = command_pulse_delay(par)
             self._send_global_setting_command(command=command, buffer_check=buffer_check)
-            self._current_pd = par
+            self._current_pulse_delay = par
+        return 0
 
     def set_trigger_delay(self, par):
         """Set the trigger delay (global setting)"""
-        if par == self._current_td and not self._force_setting:
+        if par == self._current_trigger_delay and not self._force_setting:
             pass
         else:
             self.logger.debug("Set trigger delay %s %s" % (par, type(par)))
             command, buffer_check = command_trigger_delay(par)
             self._send_global_setting_command(command=command, buffer_check=buffer_check)
-            self._current_td = par
+            self._current_trigger_delay = par
+        return 0
 
     def select_temp_probe(self, par):
         """Select the temperature probe to read"""
@@ -517,6 +551,7 @@ class SerialCommand(object):
             #second reading is sometimes junk
             self.read_temp()
             self.read_temp()
+        return 0
 
     def read_temp(self, timeout=1.0):
         """Read the temperature"""
@@ -554,12 +589,12 @@ class SerialCommand(object):
     def get_pulse_delay(self):
         """Get the pulse delay
         """
-        return self._current_pd
+        return self._current_pulse_delay
 
     def get_pulse_number(self):
         """Get the pulse delay
         """
-        return self._current_pn
+        return self._current_pulse_number
         
 
 
@@ -589,15 +624,28 @@ class SNO6CKapustinsky(SerialCommand):
         if self._channel != []:
             if self._channel == [channel]:
                 #channel already selected
-                return
+                return 0
         self.logger.debug("Select channel %s %s" % (channel, type(channel)))
         command = _cmd_channel_select_single_start+chr(channel)+_cmd_channel_select_single_end
         self._send_command(command=command, buffer_check="N")
         self._channel = [channel]
+        return 0
+
+
 
 ##################################################
 # Command options and corresponding buffer outputs
 #
+# These are retained such that command chains may
+# be called (e.g. set all settings) before running
+# a buffer readout.
+
+def command_select_channel(par):
+    """Get the command to select a single channel"""
+    command = _cmd_channel_select_single_start+chr(par)+_cmd_channel_select_single_end
+    buffer_check = "B"+str((int(par)-1)/8+1)+_cmd_channel_select_single_end
+    return command, buffer_check
+
 
 def command_pulse_height(par):
     """Get the command to set a pulse height"""
@@ -605,10 +653,10 @@ def command_pulse_height(par):
         raise tellie_exception.TellieException("Invalid pulse height: %s" % par)
     hi = par >> 8
     lo = par & 255
-    command = [_cmd_ph_hi+chr(hi)]
-    command+= [_cmd_ph_lo+chr(lo)]
-    command+= [_cmd_ph_end]
-    buffer_check = _cmd_ph_hi + _cmd_ph_lo + _cmd_ph_end
+    command = [_cmd_pulse_height_hi+chr(hi)]
+    command+= [_cmd_pulse_height_lo+chr(lo)]
+    command+= [_cmd_pulse_height_end]
+    buffer_check = _cmd_pulse_height_hi + _cmd_pulse_height_lo + _cmd_pulse_height_end
     return command, buffer_check
 
 
@@ -618,9 +666,9 @@ def command_pulse_width(par):
         raise tellie_exception.TellieException("Invalid pulse width: %s %s %s" % (par, _max_pulse_width, par>_max_pulse_width))
     hi = par >> 8
     lo = par & 255
-    command = [_cmd_pw_hi+chr(hi)]
-    command+= [_cmd_pw_lo+chr(lo)+_cmd_pw_end]
-    buffer_check = _cmd_pw_hi + _cmd_pw_lo + _cmd_pw_end
+    command = [_cmd_pulse_width_hi+chr(hi)]
+    command+= [_cmd_pulse_width_lo+chr(lo)+_cmd_pulse_width_end]
+    buffer_check = _cmd_pulse_width_hi + _cmd_pulse_width_lo + _cmd_pulse_width_end
     return command, buffer_check
 
 
@@ -632,9 +680,9 @@ def command_pulse_number(par):
     adjusted, actual_par, hi, lo = parameters.pulse_number(par)
     if adjusted is True:
         raise tellie_exception.TellieException("Invalid pulse number: %s" % (par))
-    command = [_cmd_pn_hi+chr(hi)]
-    command+= [_cmd_pn_lo+chr(lo)]
-    buffer_check = _cmd_pn_hi + _cmd_pn_lo
+    command = [_cmd_pulse_number_hi+chr(hi)]
+    command+= [_cmd_pulse_number_lo+chr(lo)]
+    buffer_check = _cmd_pulse_number_hi + _cmd_pulse_number_lo
     return command, buffer_check
 
 
@@ -644,9 +692,9 @@ def command_pulse_delay(par):
         raise tellie_exception.TellieException("Invalid pulse delay: %s" % par)
     ms = int(par)
     us = int((par-ms)*250)
-    command = [_cmd_pd+chr(ms)]
+    command = [_cmd_pulse_delay+chr(ms)]
     command+= [chr(us)]
-    buffer_check = _cmd_pd
+    buffer_check = _cmd_pulse_delay
     return command, buffer_check
 
 
@@ -654,8 +702,8 @@ def command_trigger_delay(par):
     """Get the command to set a trigger delay"""
     if par > _max_trigger_delay or par < 0:
         raise tellie_exception.TellieException("Invalid trigger delay: %s" % par)
-    command = [_cmd_td+chr(par/5)]
-    buffer_check = _cmd_td
+    command = [_cmd_trigger_delay+chr(par/5)]
+    buffer_check = _cmd_trigger_delay
     return command, buffer_check
 
 
@@ -667,8 +715,8 @@ def command_fibre_delay(par):
     print "COMMAND", par, adjusted, adj_delay, setting
     if adjusted is True:
         raise tellie_exception.TellieException("Invalid delay: %s" % (par))
-    command = [_cmd_fd+chr(setting)]
-    buffer_check = _cmd_fd
+    command = [_cmd_fibre_delay+chr(setting)]
+    buffer_check = _cmd_fibre_delay
     return command, buffer_check
 
 
@@ -688,3 +736,23 @@ def command_select_temp(par):
         raise tellie_exception.TellieException("Invalid temp. probe number: %s" % par)
     command = [cmd+chr(par)]
     return command, None # nothing in buffer
+
+
+##################################################
+# Helper functions
+def command_append(inputs, values):
+    '''Pass in inputs as (command, buffer_check) and values to append.
+
+    Inputs should be a list.
+    Command should be returned as a list, buffer_check as a string.
+    '''
+    assert len(inputs) == len(values)
+    if type(inputs[0]) is not list:
+        inputs[0] = [inputs[0]]
+    if type(values[0]) is not list:
+        inputs[0] += [values[0]]
+    else:
+        inputs[0] += values[0]
+    inputs[1] = "%s%s" % (inputs[1], values[1])
+    return inputs
+

@@ -14,12 +14,12 @@
 #
 ###########################################
 
+import xmlrpclib
 import time
 import threading
-from common import comms_flags, tellie_logger
+from common import tellie_logger
 from core import tellie_exception
 import comms_thread_pool
-import tellie_comms
 import Tkinter
 
 
@@ -54,7 +54,7 @@ class LoadFireThread(CommsThread):
     """The threading class for any load/fire operations
     """
 
-    def __init__(self, tellie_options, fire_button, message_field, ellie_field):
+    def __init__(self, server, tellie_options, fire_button, message_field, ellie_field):
         try:
             super(LoadFireThread, self).__init__(name="LOADnFIRE", unique=True)
             self.logger = tellie_logger.TellieLogger.get_instance()
@@ -62,6 +62,7 @@ class LoadFireThread(CommsThread):
             self.tellie_options = tellie_options
             self.message_field = message_field
             self.ellie_field = ellie_field
+            self.server = server
         except tellie_exception.ThreadException, e:
             raise tellie_exception.ThreadException(e)
         try:
@@ -70,6 +71,15 @@ class LoadFireThread(CommsThread):
         except ImportError:
             print "WARNING: cannot use TELLIE DB"
             self.database = None
+
+    def attempt_stop(self):
+        '''Try to stop the tellie server.
+        '''
+        try:
+            server.stop()
+        except: xmlrpclib.Fault, e:
+            # Really need some kind of big warning here!
+            pass
 
     def run(self):
         """Expect two python dicts with settings.  Should calculate a
@@ -80,10 +90,16 @@ class LoadFireThread(CommsThread):
         pin_readings = {}
         #first load the settings
         for chan in load_settings:
-            error_state, response = tellie_comms.send_init_command(load_settings)
-            if error_state:
-                self.save_errors("COMMUNICATION ERROR: %s"%(response))
-                self.shutdown_thread(error_state, "COMMUNICATION ERROR: %s"%(response))
+            try:
+                # TODO: compact these and the fire settings into an init_channel call
+                self.server.select_channel(chan)
+                self.server.set_pulse_height(load_settings[chan]["pulse_height"])
+                self.server.set_pulse_width(load_settings[chan]["pulse_width"])
+                self.server.set_fibre_delay(load_settings[chan]["fibre_delay"])
+            except xmlrpclib.Fault, e:
+                self.attempt_stop()
+                self.save_errors("COMMUNICATION ERROR: %s" % e.faultString)
+                self.shutdown_thread(True, "COMMUNICATION ERROR: %s" % (e.faultString))
                 return
         #now fire the channels
         rate = float(self.tellie_options.get_pr())
@@ -95,14 +111,22 @@ class LoadFireThread(CommsThread):
             total_pulses += fire["pulse_number"]
             t_wait = fire["pulse_number"] * (1./rate + 200e-6)
             if self.stopped(): #check at before sending any commands
+                self.attempt_stop()
                 self.save_errors("CALLED STOP")
-                self.shutdown_thread(1, "CALLED STOP!")
+                self.shutdown_thread(True, "CALLED STOP!")
                 return
-            error_state, response = tellie_comms.send_fire_command(fire)
-            t_start = time.time()
-            if error_state:
-                self.save_errors("COMMUNICATION ERROR: %s"%(response))
-                self.shutdown_thread(error_state, "COMMUNICATION ERROR: %s"%(response))
+            try:
+                # TODO: add in handling of multiple channels
+                self.server.select_channel(fire["channels"][0])
+                self.server.set_pulse_number(fire["pulse_number"])
+                self.server.set_pulse_delay(fire["pulse_delay"])
+                self.server.set_trigger_delay(fire["trigger_delay"])
+                self.server.fire_sequence()
+                t_start = time.time()
+            except xmlrpclib.Fault, e:
+                self.attempt_stop()
+                self.save_errors("COMMUNICATION ERROR: %s" % (e.faultString))
+                self.shutdown_thread(True, "COMMUNICATION ERROR: %s" % (e.faultString))
                 return
             t_now = time.time()
             while (t_now - t_start) < t_wait:
@@ -111,37 +135,35 @@ class LoadFireThread(CommsThread):
                 if not self.stopped():
                     t_now = time.time()
                 else:
+                    self.attempt_stop()
                     self.save_errors("CALLED STOP")
-                    self.shutdown_thread(1, "CALLED STOP!")
-                    return
-            error_state, response = tellie_comms.send_read_command()
-            if error_state:
-                self.save_errors("READ ERROR: %s"%(response))
-                self.shutdown_thread(error_state, "READ ERROR: %s"%(response))
-                return
-            while response == comms_flags.tellie_notready:
-                time.sleep(0.1)
-                error_state, response = tellie_comms.send_read_command()
-                if self.stopped():
-                    #Stop the thread here!
-                    self.save_errors("CALLED STOP")
-                    self.shutdown_thread(1, "CALLED STOP!")
-                    return
-                if error_state:
-                    self.save_errors("READ ERROR: %s"%(response))
-                    self.shutdown_thread(error_state, "READ ERROR: %s"%(response))
+                    self.shutdown_thread(True, "CALLED STOP!")
                     return
             try:
-                #pin readings is returned as string with R|{channel: reading}
-                #should convert
-                print "RESP", response
-                pin_readings.append(comms_flags.get_pin_readings(response))
-                sub_pulses.append(fire["pulse_number"])
-                print "READS", pin_readings
-            except IndexError:
-                self.save_errors("PIN READ ERROR: %s"%(response))
-                self.shutdown_thread(1, "PIN READ ERROR: %s"%response)
+                pin_out, channel_list = self.server.read_pin_sequence()
+            except xmlrpclib.Fault, e:
+                self.attempt_stop()
+                self.save_errors("READ ERROR: %s" % (e.faultString))
+                self.shutdown_thread(True, "READ ERROR: %s" % (e.faultString))
                 return
+            while not pin_out:
+                time.sleep(0.1)
+                if self.stopped():
+                    #Stop the thread here!
+                    self.attempt_stop()
+                    self.save_errors("CALLED STOP")
+                    self.shutdown_thread(1, "CALLED STOP!")
+                    return
+                try:
+                    pin_out, channel_list = self.server.read_pin_sequence()
+                except xmlrpclib.Fault, e:
+                    self.attempt_stop()
+                    self.save_errors("READ ERROR: %s" % (e.faultString))
+                    self.shutdown_thread(True, "READ ERROR: %s" % (e.faultString))
+                    return
+            pin_readings.append(pin_out)
+            sub_pulses.append(fire["pulse_number"])
+
         self.ellie_field.show_waiting()
         self.save_results(sub_pulses, pin_readings)
         average_pin = {}
@@ -156,12 +178,6 @@ class LoadFireThread(CommsThread):
                 print "TO", total_pulses
                 average_pin[channel] += float(pins[channel] * fire_settings[i]["pulse_number"]) / float(total_pulses)
         self.shutdown_thread(message="Sequence complete, PIN: %s"%(average_pin))
-
-    def stop(self):
-        super(LoadFireThread, self).stop()
-
-    def stopped(self):
-        return super(LoadFireThread, self).stopped()
 
     def shutdown_thread(self, error_flag=None, message=None):
         if error_flag:
