@@ -109,6 +109,7 @@ class SerialCommand(object):
 
         # Send a clear channel command, just in case
         self.clear_channel()
+        print "Tellie server initialised"
 
     def __del__(self):
         """Deletion function"""
@@ -462,7 +463,17 @@ class SerialCommand(object):
         self._current_pulse_width[self._channel[0]] = pulse_width
         self._current_pulse_height[self._channel[0]] = pulse_height
         self._current_fibre_delay[self._channel[0]] = fibre_delay
-        return 0
+        # Return a dump of the settings
+        settings = {"channels": self._channel,
+                    "pulse_number": self._current_pulse_number,
+                    "pulse_delay": self._current_pulse_delay,
+                    "trigger_delay": self._trigger_delay,
+                    "channel_settings": {}}
+        for c in self._current_pulse_width:
+            settings["channel_settings"][c] = {"pulse_width": self._current_pulse_width[c],
+                                               "pulse_height": self._current_pulse_height[c],
+                                               "fibre_delay": self._current_fibre_delay[c]}
+        return settings
 
     def set_pulse_height(self, par):
         """Set the pulse height for the selected channel"""
