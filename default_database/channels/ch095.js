@@ -1,1 +1,1 @@
-{"valid_from": 0, "cavity": 95, "photons": [1000, 10000, 100000], "driver": 81, "valid_to": 2385458062, "patch": 95, "cone": "086", "pass": 0, "pulse_width": [9040, 8730, 7200], "pulse_height": 16383, "type": "channel", "channel": 95, "fibre_delay": 0}
+{"index": 95, "cavity": 95, "timestamp": 0, "photons": [1000, 10000, 100000], "driver": 81, "patch": 95, "version": 0, "cone": "086", "pass": 0, "pulse_width": [9040, 8730, 7200], "fibre_delay": 0, "type": "CHANNEL", "pulse_height": 16383}

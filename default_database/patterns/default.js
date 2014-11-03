@@ -1,7 +1,1 @@
-{
-    "type": "pattern",
-    "pattern": "default",
-    "pass": 1,
-    "required_pre": ["channel", "pulse_width", "pulse_delay"],
-    "sub_runs": ["__CHANNEL_NUMBER__"]
-}
+{"index": "default", "required_pre": ["channel", "pulse_width", "pulse_delay"], "sub_runs": ["__CHANNEL_NUMBER__"], "version": 0, "pass": 1, "type": "PATTERN"}
