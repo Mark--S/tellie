@@ -123,11 +123,13 @@ class SerialCommand(object):
         if buffer_read != "":
             raise tellie_exception.TellieException("Buffer not clear: %s" % (buffer_read))
 
-    def _send_command(self, command, readout=True, buffer_check=None):
+    def _send_command(self, command, readout=True, buffer_check=None, sleep_after_command=0.1):
         """Send a command to the serial port.
         Command can be a chr/str (single write) or a list.
         Lists are used for e.g. a high/low bit command where
-        the high bit could finish with an endline (i.e. endstream)"""
+        the high bit could finish with an endline (i.e. endstream)
+
+        sleep_after_command is the default time to sleep between each write command"""
         self.logger.debug("_send_command:%s" % command)
         if type(command) is str:
             command = [command]
@@ -136,6 +138,7 @@ class SerialCommand(object):
         try:
             for c in command:
                 self._serial.write(c)
+                time.sleep(sleep_after_command)
         except:
             raise tellie_exception.TellieException("Lost connection with TELLIE control!")
 
@@ -455,6 +458,8 @@ class SerialCommand(object):
         print command_pulse_height(pulse_height)
         print command_pulse_width(pulse_width)
         print command_pulse_delay(pulse_delay)
+        print "COMMANDS:", commands
+        print "BUFFER:", buffer_checks
         self._send_command(command=commands, buffer_check=buffer_checks)
         self._channel = [channel]
         self._current_pulse_number = pulse_number
@@ -467,9 +472,10 @@ class SerialCommand(object):
         settings = {"channels": self._channel,
                     "pulse_number": self._current_pulse_number,
                     "pulse_delay": self._current_pulse_delay,
-                    "trigger_delay": self._trigger_delay,
+                    "trigger_delay": self._current_trigger_delay,
                     "channel_settings": {}}
-        for c in self._current_pulse_width:
+        for c in self._channel:
+            print c
             settings["channel_settings"][c] = {"pulse_width": self._current_pulse_width[c],
                                                "pulse_height": self._current_pulse_height[c],
                                                "fibre_delay": self._current_fibre_delay[c]}
