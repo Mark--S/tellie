@@ -77,7 +77,7 @@ class LoadFireThread(CommsThread):
         '''
         try:
             server.stop()
-        except: xmlrpclib.Fault, e:
+        except xmlrpclib.Fault, e:
             # Really need some kind of big warning here!
             pass
 

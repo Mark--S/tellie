@@ -24,6 +24,7 @@ import copy
 import argparse
 import Tkinter
 import tkMessageBox
+import xmlrpclib
 import comms_thread
 import comms_thread_pool
 import tellie_database
