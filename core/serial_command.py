@@ -151,6 +151,16 @@ class SerialCommand(object):
             # One read command (with default timeout of 0.1s) should be
             # enough to get all the chars from the readout.
             buffer_read = self._serial.read(len(buffer_check))
+            attempt = 0
+            print "READ:", len(buffer_read), buffer_read,
+            print "Check:", len(buffer_check), buffer_check
+            while (len(buffer_read) != len(buffer_check)) and attempt<10:
+                print "read again"
+                # First, try reading again
+                time.sleep(0.1)
+                buffer_read += self._serial.read(len(buffer_check))
+                attempt += 1
+
             if str(buffer_read)!=str(buffer_check):
                 self.logger.debug("problem reading buffer, send %s, read %s" % (command, buffer_read))
                 #clear anything else that might be in there
@@ -368,7 +378,7 @@ class SerialCommand(object):
         elif len(pin) == 0:
             return None, None
         self._firing = False
-        channel_dict = {self._channel[0]: pin[0]}
+        channel_dict = {str(self._channel[0]): pin[0]}
         return channel_dict, self._channel
 
     def check_ready(self):
@@ -442,6 +452,8 @@ class SerialCommand(object):
                      pulse_width, pulse_height, fibre_delay):
         """Select and setup all channel settings.
         """
+        if self._firing:
+            raise tellie_exception.TellieException("Cannot initialise a channel when in firing mode")
         commands = []
         buffer_checks = ""
         commands, buffer_checks = command_append([commands, buffer_checks], command_select_channel(channel))
@@ -476,9 +488,9 @@ class SerialCommand(object):
                     "channel_settings": {}}
         for c in self._channel:
             print c
-            settings["channel_settings"][c] = {"pulse_width": self._current_pulse_width[c],
-                                               "pulse_height": self._current_pulse_height[c],
-                                               "fibre_delay": self._current_fibre_delay[c]}
+            settings["channel_settings"][str(c)] = {"pulse_width": self._current_pulse_width[c],
+                                                    "pulse_height": self._current_pulse_height[c],
+                                                    "fibre_delay": self._current_fibre_delay[c]}
         return settings
 
     def set_pulse_height(self, par):
