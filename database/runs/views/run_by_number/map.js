@@ -1,5 +1,5 @@
 function(doc){
-    if(doc.type=="run"){
+    if(doc.type=="RUN"){
         emit(doc.run, [1]);
     }
 }
