@@ -64,8 +64,10 @@ _cmd_temp_select_lower = "n"
 _cmd_temp_read_lower = "T"
 _cmd_temp_select_upper = "f"
 _cmd_temp_read_upper = "k"
-_cmd_distable_trig_in = "B"
-
+_cmd_disable_ext_trig = "B"
+_cmd_enable_ext_trig = "A"
+_cmd_fire_average_ext_trig = "b"
+_cmd_fire_ext_trig = "F"
 
 class SerialCommand(object):
     """Serial command object.
@@ -75,7 +77,8 @@ class SerialCommand(object):
     def __init__(self, port_name=None):
         """Initialise the serial command"""
         if not port_name:
-            self._port_name = "/dev/tty.usbserial-FTE3C0PG"
+            #self._port_name = "/dev/tty.usbserial-FTE3C0PG"
+            self._port_name = "tty.usbserial-FTGA2OCZ"
         else:
             self._port_name = port_name
         # This is the same as a sleep, but with the advantage of breaking
@@ -110,10 +113,14 @@ class SerialCommand(object):
         self.reset()
         #send a clear channel command, just in case
         self.clear_channel()
+        #By default stop tellie waiting for external trigger (i.e. running in slave mode).
+        #Slave mode can be re-instated later if required.
+        self._send_command(_cmd_disable_ext_trig)
 
     def __del__(self):
         """Deletion function"""
         if self._serial:
+            self._send_command(_cmd_disable_ext_trig) # Stop accecpting external trigs
             self._serial.close()
 
     def _check_clear_buffer(self):
@@ -213,6 +220,33 @@ class SerialCommand(object):
         self._serial.setRTS(False)
         # close the port and reopen?
         time.sleep(3.0)
+
+    def enable_external_trig(self, while_fire=False):
+        """Tell TELLIE to fire on any external trigger.
+
+        Can send a fire command while already in fire mode if required."""
+        self.logger.debug("Enable ext triggering mode")
+        if self._firing is True and while_fire is False:
+            raise tellie_exception.TellieException("Cannot set ext. trig, already in firing mode")
+        self._send_command(_cmd_enable_ext_trig)
+
+    def trigger_single(self):
+        """Fire single pulse upon receiving an external trigger.
+
+        """
+        if self._firing is True:
+            raise tellie_exception.TellieException("Cannot fire, already in firing mode")
+        #if self._channel <= 56: #up to box 7                                                               
+        #    cmd = _cmd_fire_single_lower
+        #else:
+        #    cmd = _cmd_fire_single_upper
+        self._send_command(_cmd_fire_ext_trig, False)
+        self._firing = True
+        time.sleep(0.1)
+        pin = self.read_pin(self._channel[0])
+        while not pin:
+            pin = self.read_pin(self._channel[0])
+        return pin
 
     def fire(self, while_fire=False):
         """Fire tellie, place class into firing mode.

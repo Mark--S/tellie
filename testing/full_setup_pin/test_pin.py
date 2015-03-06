@@ -3,9 +3,10 @@ import ROOT
 from core import serial_command
 import sys
 
-sc = serial_command.SerialCommand('/dev/tty.usbserial-FTE3C0PG')
+#sc = serial_command.SerialCommand('/dev/tty.usbserial-FTE3C0PG')
+sc = serial_command.SerialCommand('/dev/tty.usbserial-FTGA2OCZ')
 
-channels = [12]
+channels = [5]
 try:
     channels = [int(sys.argv[1])]
     print "RUNNING CHANNEL",channels
