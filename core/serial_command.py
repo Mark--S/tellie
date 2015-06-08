@@ -78,7 +78,7 @@ class SerialCommand(object):
         """Initialise the serial command"""
         if not port_name:
             #self._port_name = "/dev/tty.usbserial-FTE3C0PG"
-            self._port_name = "tty.usbserial-FTGA2OCZ"
+            self._port_name = "/dev/tty.usbserial-FTGA2OCZ"
         else:
             self._port_name = port_name
         # This is the same as a sleep, but with the advantage of breaking
@@ -115,7 +115,7 @@ class SerialCommand(object):
         self.clear_channel()
         #By default stop tellie waiting for external trigger (i.e. running in slave mode).
         #Slave mode can be re-instated later if required.
-        self._send_command(_cmd_disable_ext_trig)
+        #self._send_command(_cmd_disable_ext_trig)
 
     def __del__(self):
         """Deletion function"""
@@ -280,6 +280,7 @@ class SerialCommand(object):
             cmd = _cmd_fire_average_lower
         else:
             cmd = _cmd_fire_average_upper
+        print "DONE!"
         self._send_command(cmd, False)
         self._firing = True
         self._force_setting = False
@@ -290,9 +291,9 @@ class SerialCommand(object):
         if self._firing is True:
             raise tellie_exception.TellieException("Cannot fire, already in firing mode")
         if self._channel <= 56: #up to box 7
-            cmd = _cmd_fire_single_lower
+            cmd = _cmd_read_single_lower
         else:
-            cmd = _cmd_fire_single_upper
+            cmd = _cmd_read_single_upper
         self._send_command(cmd, False)
         self._firing = True
         pin = self.read_pin(self._channel[0])
@@ -594,7 +595,47 @@ class SerialCommand(object):
         """Get the pulse delay
         """
         return self._current_pn
-        
+
+    ############################
+    # Special temporary funcs
+    def tmp_read_rms(self):
+        """Read a pin from the sequence firing mode only.
+        """
+        self.logger.debug("Read PINOUT sequence")
+        if self._firing is not True:
+            raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
+        pattern = re.compile(r"""\d+""")
+        output = self._serial.read(100)
+        print output
+        self.logger.debug("BUFFER: %s" % output)
+        numbers = pattern.findall(output)
+        #if len(pin)>1:
+        #    self._firing = False
+        if len(numbers) != 3:
+            raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(numbers), numbers))
+            return None, None, None
+        pin, rms = numbers[0], "%s.%s" % (numbers[1],numbers[2])
+        self._firing = False
+        value_dict = {self._channel[0]: pin}
+        rms_dict = {self._channel[0]: rms}
+        return value_dict, rms_dict, self._channel
+
+    def check_rms_time(self):
+        """Read a pin from the sequence firing mode only.
+        """
+        self.logger.debug("Read PINOUT sequence")
+        if self._firing is not True:
+            raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
+        pattern = re.compile(r"""\d+""")
+        output = self._serial.read(100)
+        self.logger.debug("BUFFER: %s" % output)
+        numbers = pattern.findall(output)
+
+        pin, rms = numbers[0], "%s.%s" % (numbers[1],numbers[2])
+        self._firing = False
+        value_dict = {self._channel[0]: pin}
+        rms_dict = {self._channel[0]: rms}
+        return value_dict, rms_dict, self._channel
 
 
 class SNO6C(SerialCommand):
