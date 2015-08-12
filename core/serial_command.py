@@ -7,13 +7,13 @@
 # Command functions to send to the Tellie
 # control box
 #
-# Author: Matt Mottram
+# Author: <e.leming@sussex.ac.uk>
 #         <m.mottram@sussex.ac.uk>
 #
 # History:
 # 2013/03/08: First instance
 # 2013/10/21: Added new classes for different chips, pep8
-#
+# 2015/08/12: read_sequence updated to handle rms output
 ###########################################
 ###########################################
 
@@ -390,15 +390,18 @@ class SerialCommand(object):
         pattern = re.compile(r"""\d+""")
         output = self._serial.read(100)
         self.logger.debug("BUFFER: %s" % output)
-        pin = pattern.findall(output)
-        if len(pin)>1:
-            self._firing = False
-            raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(pin), pin))
-        elif len(pin) == 0:
-            return None, None
+        numbers = pattern.findall(output)
+        if len(numbers) == 1:
+            pin, rms = numbers[0], 0.
+        elif len(numbers) == 3:
+            pin, rms = numbers[0], "%s.%s" % (numbers[1],numbers[2])
+        else:
+            raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(numbers), numbers))
+            return None, None, None
         self._firing = False
-        channel_dict = {self._channel[0]: pin[0]}
-        return channel_dict, self._channel
+        value_dict = {self._channel[0]: pin}
+        rms_dict = {self._channel[0]: rms}
+        return value_dict, rms_dict, self._channel
 
     def check_ready(self):
         """Check that all settings have been set"""
@@ -596,29 +599,7 @@ class SerialCommand(object):
         return self._current_pn
 
     ############################
-    # Special temporary funcs
-    def tmp_read_rms(self):
-        """Read a pin from the sequence firing mode only.
-        """
-        self.logger.debug("Read PINOUT sequence")
-        if self._firing is not True:
-            raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
-        pattern = re.compile(r"""\d+""")
-        output = self._serial.read(100)
-        print output
-        self.logger.debug("BUFFER: %s" % output)
-        numbers = pattern.findall(output)
-        #if len(pin)>1:
-        #    self._firing = False
-        if len(numbers) != 3:
-            raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(numbers), numbers))
-            return None, None, None
-        pin, rms = numbers[0], "%s.%s" % (numbers[1],numbers[2])
-        self._firing = False
-        value_dict = {self._channel[0]: pin}
-        rms_dict = {self._channel[0]: rms}
-        return value_dict, rms_dict, self._channel
-
+    # A couple of additional check funcs
     def check_rms_time(self):
         """Read a pin from the sequence firing mode only.
         """
@@ -629,7 +610,7 @@ class SerialCommand(object):
         output = self._serial.read(100)
         self.logger.debug("BUFFER: %s" % output)
         numbers = pattern.findall(output)
-
+        
         pin, rms = numbers[0], "%s.%s" % (numbers[1],numbers[2])
         self._firing = False
         value_dict = {self._channel[0]: pin}

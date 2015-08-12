@@ -44,16 +44,16 @@ if __name__=="__main__":
         #sc.fire_single()
         sc.fire_sequence()
         time.sleep(t_wait)
-        pin = None
+        pin, rms = None, None
         ntries = 0
         while pin is None:
             time.sleep(0.1)
-            pin, _ = sc.read_pin_sequence()
+            pin, rms,  _ = sc.read_pin_sequence()
             ntries += 1 
             print ntries, pin
             if ntries>5:
                 break
         #fout.write("%s\n"%pin[channel])
-        print "reading %s: PIN %s"%(i,pin[channel])
+        print "reading %s: PIN %s +/- %s"%(i,pin[channel],rms[channel])
     #fout.close()
     
