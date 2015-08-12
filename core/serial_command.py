@@ -236,10 +236,6 @@ class SerialCommand(object):
         """
         if self._firing is True:
             raise tellie_exception.TellieException("Cannot fire, already in firing mode")
-        #if self._channel <= 56: #up to box 7                                                               
-        #    cmd = _cmd_fire_single_lower
-        #else:
-        #    cmd = _cmd_fire_single_upper
         self._send_command(_cmd_fire_ext_trig, False)
         self._firing = True
         time.sleep(0.1)
