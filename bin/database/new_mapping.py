@@ -109,8 +109,8 @@ if __name__=="__main__":
     parser.add_option('--update', dest='update', help='update the current mapping')
     parser.add_option('-s', dest='server', help='database server [http://couch.snopl.us]',
                       default='http://couch.snopl.us')
-    parser.add_option('-n', dest='name', help='database name [tellie]',
-                      default='tellie')
+    parser.add_option('-n', dest='name', help='database name [telliedb]',
+                      default='telliedb')
     (options, args) = parser.parse_args()
 
     database = tellie_database.TellieDatabase.get_instance()
