@@ -20,7 +20,6 @@ def jsons_to_dict(path):
 
 def connect_to_telliedb():
     server = couchdb.Server("http://couch.snopl.us")
-    server.resourse.credentials = ("snoplus", "PureTe->Dirac!=True")
     return server["telliedb"]
 
 if __name__ == "__main__":

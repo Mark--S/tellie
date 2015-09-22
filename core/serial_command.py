@@ -621,9 +621,14 @@ class SerialCommand(object):
         print output
         self.logger.debug("BUFFER: %s" % output)
         numbers = pattern.findall(output)
-        #if len(pin)>1:
-        #    self._firing = False
-        if len(numbers) != 3:
+        ###############################################
+        if len(numbers) == 1: 
+            self._firing = False
+            channel_dict = {self._channel[0]: numbers[0]}
+            rms_dict = {self._channel[0]: 0.0}
+            return value_dict, rms_dict, self._channel
+        ##############################################
+        if len(numbers) > 3:
             raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(numbers), numbers))
             return None, None, None
         pin, rms = numbers[0], "%s.%s" % (numbers[1],numbers[2])
