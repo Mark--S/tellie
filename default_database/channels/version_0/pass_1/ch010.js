@@ -1,0 +1,1 @@
+{"comment": "", "index": 10, "cavity": 10, "timestamp": "2015-09-18T08:49:00.133734-04:00", "photons": [1000, 10000, 100000], "driver": 43, "patch": 10, "run_range": [0, 9435], "version": 0, "cone": "043", "pass": 1, "pulse_width": [5030, 4870, 4250], "pulse_height": 16383, "type": "CHANNEL", "fibre_delay": 0}
