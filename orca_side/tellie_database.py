@@ -63,6 +63,11 @@ class TellieDatabase:
     def get_db_view(self, view_name, ascending=True):
         '''Return view object'''
         if ascending == True:
-            return self.view(view_name, ascending=True)
+            return self.db.view(view_name, ascending=True)
         elif ascending == False:
-            return self.view(view_name, descending=True)
+            return self.db.view(view_name, descending=True)
+
+    def load_doc(self, doc_id):
+        '''Return specific doc from db
+        '''
+        return self.db.get(doc_id)
