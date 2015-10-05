@@ -1,5 +1,5 @@
 function(doc){
     if(doc.type=="CHANNEL"){
-        emit([doc.index, doc.timestamp, doc.pass], [1]);
+        emit([doc.channel, doc.run_range, doc.version, doc.pass], [1]);
     }
 }
