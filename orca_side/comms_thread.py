@@ -76,7 +76,7 @@ class LoadFireThread(CommsThread):
         '''Try to stop the tellie server.
         '''
         try:
-            server.stop()
+            self.server.stop()
         except xmlrpclib.Fault, e:
             # Really need some kind of big warning here!
             pass
