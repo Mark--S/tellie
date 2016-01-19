@@ -357,17 +357,22 @@ class SerialCommand(object):
                 if len(pin):
                     break
                 time.sleep(0.1)
-            if len(pin)>1:
+            if len(pin)==1:
+		pin.append(0)
+		pin.append(0)
+		
+            elif len(pin)==0:
+                self._reading = True
+                return None, None
+	    else:
                 self._firing = False
                 self._reading = False
                 raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(pin), pin))
-            elif len(pin) == 0:
-                self._reading = True
-                return None, None
             self._reading = False
             if final is True:
                 self._firing = False
-            return pin[0], channel
+	    rms_val = str(pin[1])+"."+str(pin[2])
+            return pin[0],rms_val, channel
         else:
             #check all PINs from the last firing sequence
             #need to store a copy of which pins were read
@@ -377,8 +382,8 @@ class SerialCommand(object):
             for i, channel in enumerate(channel_list):
                 if i == len(channel_list)-1:
                     final_read = True
-                pin, _ = self.read_pin(channel, final=final_read)
-                channel_dict[channel] = pin
+                pin, rms_val, _ = self.read_pin(channel, final=final_read)
+                channel_dict[channel] = [pin,rms_val]
             return channel_dict, channel_list
 
     def read_pin_sequence(self):
@@ -391,13 +396,21 @@ class SerialCommand(object):
         output = self._serial.read(100)
         self.logger.debug("BUFFER: %s" % output)
         pin = pattern.findall(output)
-        if len(pin)>1:
-            self._firing = False
-            raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(pin), pin))
+
+        if len(pin)==1:
+            pin.append(0)
+	    pin.append(0)
         elif len(pin) == 0:
             return None, None
+	elif len(pin)==3:
+	    pass 
+        else:
+            self._firing = False
+            self._reading = False
+            raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(pin), pin))
         self._firing = False
-        channel_dict = {self._channel[0]: pin[0]}
+        rms_val = str(pin[1])+"."+str(pin[2])
+        channel_dict = {self._channel[0]: [pin[0],rms_val]}
         return channel_dict, self._channel
 
     def check_ready(self):
