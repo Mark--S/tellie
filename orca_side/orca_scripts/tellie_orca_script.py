@@ -1,0 +1,37 @@
+#!/usr/bin/env python
+import argparse
+import xmlrpclib
+import time
+
+if __name__=="__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", dest="pulse_delay", type=float, help="Set the delay (ms)")
+    parser.add_argument("-f", dest="fibre", type=int, help="Select the fibre")
+    parser.add_argument("-n", dest="number", type=int, help="Set the number of pulses")
+    parser.add_argument("-i", dest="intensity", type=int, help="Set the pulse width (intensity)")
+    parser.add_argument("-t", dest="trigger_delay", type=float, help="Set the trigger delay")
+    parser.add_argument("-x", dest="fibre_delay", type=float, help="Set the individual fibre delay offset")
+    parser.add_argument('integers', metavar='N', type=int, nargs='+',
+                        help='an integer for the accumulator')
+    args = parser.parse_args()
+
+
+    tellie_server= xmlrpclib.ServerProxy('http://localhost:5030', allow_none = True)
+    try:
+        print tellie_server.select_channel(10)
+        print tellie_server.set_pulse_height(16282)
+        print tellie_server.set_pulse_width(0)
+        print tellie_server.set_fibre_delay(0)
+        print tellie_server.set_trigger_delay(0)
+        print tellie_server.set_pulse_delay(1.0)
+        print tellie_server.set_pulse_number(100)
+        print tellie_server.fire_sequence()
+        time.sleep(10)
+#        print tellie_server.fire_single()
+        print "reading..."
+        print tellie_server.read_pin_sequence()
+        print "DONE"
+    except xmlrpclib.Fault, e:
+        tellie_server.safe_exit()
+        print "ERROR:", e
+        raise
