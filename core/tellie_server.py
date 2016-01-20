@@ -24,7 +24,10 @@ import re
 import sys
 import time
 from common import tellie_logger, parameters
+from snotdaq import Logger
 import argparse
+# TONY's LOG SERVER 
+from snotdaq import logger
 
 port = 5030
 # TODO: server should run with an argument (in case daq and tellie control are separate)
@@ -94,14 +97,13 @@ def initialise_tellie(port_name=None):
         port_name = "/dev/tty.usbserial-FTE3C0PG"
     port_timeout = 0.3
     _serial = None
-    _logger = tellie_logger.TellieLogger.get_instance()
-    _logger.set_debug_mode(True)
     try:
         _serial = serial.Serial(port=port_name, timeout=port_timeout)
-        _logger.debug("Serial connection open: %s" % _serial)
+        _logger.log(logger.DEBUG, "Serial connection open: %s" % _serial)
     except serial.SerialException, e:
         raise tellie_exception.TellieSerialException(e)
     #information on whether the channel is being fired
+    _logger = logger.Logger("tellie", "localhost", port)
     _firing = False
     _reading = False
     _channel = []
@@ -126,7 +128,7 @@ def _send_command(command, readout=True, buffer_check=None):
     Command can be a chr/str (single write) or a list.
     Lists are used for e.g. a high/low bit command where
     the high bit could finish with an endline (i.e. endstream)"""
-    _logger.debug("_send_command:%s" % command)
+    _logger.log(logger.DEBUG, "_send_command:%s" % command)
     if type(command) is str:
         command = [command]
     if type(command) is not list:
@@ -145,7 +147,7 @@ def _send_command(command, readout=True, buffer_check=None):
         # enough to get all the chars from the readout.
         buffer_read = _serial.read(len(buffer_check))
         if str(buffer_read)!=str(buffer_check):
-            _logger.debug("problem reading buffer, send %s, read %s" % (command, buffer_read))
+            _logger.log(logger.DEBUG, "problem reading buffer, send %s, read %s" % (command, buffer_read))
             #clear anything else that might be in there
             time.sleep(0.1)
             remainder = _serial.read(100)
@@ -158,9 +160,9 @@ def _send_command(command, readout=True, buffer_check=None):
             _logger.warn(message)
             raise tellie_exception.TellieException(message)
         else:
-            _logger.debug("success reading buffer:%s" % buffer_read)
+            _logger.log(logger.DEBUG, "success reading buffer:%s" % buffer_read)
     else:
-        _logger.debug("not a readout command")
+        _logger.log(logger.DEBUG, "not a readout command")
 
 def _send_setting_command(command, buffer_check=None, while_fire=False):
     """Send non-firing command.
@@ -168,7 +170,7 @@ def _send_setting_command(command, buffer_check=None, while_fire=False):
     while_fire to True to allow a non-fire command to be sent while firing
     (will cause PIN readout to be flushed to buffer).
     """
-    _logger.debug("Send non-firing command")
+    _logger.log(logger.DEBUG, "Send non-firing command")
     if _firing is True:
         if while_fire is False:
             raise tellie_exception.TellieException("Cannot run command, in firing mode")
@@ -184,7 +186,7 @@ def _send_global_setting_command(command, buffer_check=None, while_fire=False):
     Can set while_fire to True to allow a non-fire command to be sent
     while firing (will cause PIN readout to be flushed to buffer).
     """
-    _logger.debug("Send global setting command %s" % (command))
+    _logger.log(logger.DEBUG, "Send global setting command %s" % (command))
     _send_setting_command(command=command, buffer_check=buffer_check, while_fire=while_fire)
 
 def _send_channel_setting_command(command, buffer_check=None, while_fire=False):
@@ -192,7 +194,7 @@ def _send_channel_setting_command(command, buffer_check=None, while_fire=False):
     Can set while_fire to True to allow a non-fire command to be sent while
     firing (will cause PIN readout to be flushed to buffer).
     """
-    _logger.debug("Send channel setting command %s" % (command))
+    _logger.log(logger.DEBUG, "Send channel setting command %s" % (command))
     if not _channel or _channel == []:
         raise tellie_exception.TellieException("Cannot run channel command, no channel selected")
     if len(_channel)!=1:
@@ -204,7 +206,7 @@ def reset():
 
     Assumes that the port is open (which it is by default)
     """
-    _logger.debug("Reset!")
+    _logger.log(logger.DEBUG, "Reset!")
     _serial.setRTS(True)
     # sleep, just in case
     time.sleep(3.0)
@@ -216,7 +218,7 @@ def fire(while_fire=False):
     """Fire tellie, place class into firing mode.
     Can send a fire command while already in fire mode if required."""
     global _firing, _force_setting
-    _logger.debug("Fire!")
+    _logger.log(logger.DEBUG, "Fire!")
     if _firing is True and while_fire is False:
         raise tellie_exception.TellieException("Cannot fire, already in firing mode")
     check_ready()
@@ -237,7 +239,7 @@ def fire_sequence(while_fire=False):
     """Fire in sequence mode, can only be done for a single channel.
     """
     global _firing, _force_setting
-    _logger.debug("Fire sequence!")
+    _logger.log(logger.DEBUG, "Fire sequence!")
     if len(_channel)!=1:
         raise tellie_exception.TellieException("Cannot fire with >1 channel")
     check_ready()
@@ -283,7 +285,7 @@ def read_buffer(n=100):
 def stop():
     """Stop firing tellie"""
     global _firing
-    _logger.debug("Stop firing!")
+    _logger.log(logger.DEBUG, "Stop firing!")
     _send_command(_cmd_stop, False)
     buffer_contents = _serial.read(100)
     _firing = False
@@ -293,7 +295,7 @@ def read_pin(channel=None, timeout=2.0, final=True):
     """Read the pin diode output, should always follow a fire command,
     Provide channel number to select specific channel, otherwise, receive dict of all channels"""
     global _firing, _reading
-    _logger.debug("Read PINOUT")
+    _logger.log(logger.DEBUG, "Read PINOUT")
     #if in firing mode, check the buffer shows the sequence has ended
     if _firing:
         if _serial.read(100) == _buffer_end_sequence:
@@ -327,17 +329,18 @@ def read_pin(channel=None, timeout=2.0, final=True):
             if len(pin):
                 break
             time.sleep(0.1)
-        if len(pin)>1:
-            _firing = False
-            _reading = False
-            raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(pin), pin))
-        elif len(pin) == 0:
+        if len(pin) == 1:
+            pin.append(0)
+            pin.append(0)
+        elif len(pin) != 3:
             _reading = True
+            raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(pin), pin))
             return None, None
         _reading = False
         if final is True:
             _firing = False
-        print pin, channel
+        rms = str(pin[1])+'.'+str(pin[2])
+        print pin, rms, channel
         return str(0)
 #        return str(pin[0])
     else:
@@ -349,28 +352,32 @@ def read_pin(channel=None, timeout=2.0, final=True):
         for i, channel in enumerate(channel_list):
             if i == len(channel_list)-1:
                 final_read = True
-            pin, _ = read_pin(channel, final=final_read)
-            channel_dict[channel] = pin
+            pin, rms,  _ = read_pin(channel, final=final_read)
+            channel_dict[channel] = [pin, rms]
         return channel_dict, channel_list
 
 def read_pin_sequence():
     """Read a pin from the sequence firing mode only.
     """
     global _firing
-    _logger.debug("Read PINOUT sequence")
+    _logger.log(logger.DEBUG, "Read PINOUT sequence")
     if _firing is not True:
         raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
     pattern = re.compile(r"""\d+""")
     output = _serial.read(100)
-    _logger.debug("BUFFER: %s" % output)
+    _logger.log(logger.DEBUG, "BUFFER: %s" % output)
     pin = pattern.findall(output)
-    if len(pin)>1:
+    if len(pin) == 0:
+        pin.append(0)
+        pin.append(0)
+    elif len(pin) != 3:
         _firing = False
         raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(pin), pin))
     elif len(pin) == 0:
         return None, None
     _firing = False
-    channel_dict = {_channel[0]: pin[0]}
+    rms = str(pin[1])+"."str(pin[2])
+    channel_dict = {_channel[0]: [pin[0], rms]}
     #return channel_dict, _channel
     return str(pin[0])
 
@@ -396,7 +403,7 @@ def check_ready():
 
 def clear_channel():
     """Unselect the channel"""
-    _logger.debug("Clear channel")
+    _logger.log(logger.DEBUG, "Clear channel")
     _send_command(_cmd_channel_clear)
     _channel = []
 
@@ -423,7 +430,7 @@ def select_channel(channel):
         if _channel == [channel]:
             #channel already selected
             return
-    _logger.debug("Select channel %s %s" % (channel, type(channel)))
+    _logger.log(logger.DEBUG, "Select channel %s %s" % (channel, type(channel)))
     command = _cmd_channel_select_single_start+chr(channel)+_cmd_channel_select_single_end
     buffer_check = "B"+str((int(channel)-1)/8+1)+_cmd_channel_select_single_end
     _send_command(command=command, buffer_check=buffer_check)
@@ -433,7 +440,7 @@ def select_channel(channel):
 def select_channels(channels):
     """Select multiple channels, expects list for channels"""
     global _channel
-    _logger.debug("Select channels %s %s" % (channels, type(channels)))
+    _logger.log(logger.DEBUG, "Select channels %s %s" % (channels, type(channels)))
     clear_channel()
     command = _cmd_channel_select_many_start
     for channel in channels:
@@ -454,7 +461,7 @@ def set_pulse_height(par):
     if par == _current_ph[_channel[0]] and not _force_setting:
         pass #same as current setting
     else:
-        _logger.debug("Set pulse height %s %s" % (par, type(par)))
+        _logger.log(logger.DEBUG, "Set pulse height %s %s" % (par, type(par)))
         command, buffer_check = command_pulse_height(par)
         _send_channel_setting_command(command=command, buffer_check=buffer_check)
         _current_ph[_channel[0]] = par
@@ -469,7 +476,7 @@ def set_pulse_width(par, while_fire=False):
     if par == _current_pw[_channel[0]] and not _force_setting:
         pass #same as current setting
     else:
-        _logger.debug("Set pulse width %s %s" % (par, type(par)))
+        _logger.log(logger.DEBUG, "Set pulse width %s %s" % (par, type(par)))
         command, buffer_check = command_pulse_width(par)
         if while_fire and _firing:
             _send_channel_setting_command(command=command, while_fire=while_fire)
@@ -486,7 +493,7 @@ def set_fibre_delay(par):
     if par == _current_fd[_channel[0]] and not _force_setting:
         pass
     else:
-        _logger.debug("Set Fibre delay %s %s" % (par, type(par)))
+        _logger.log(logger.DEBUG, "Set Fibre delay %s %s" % (par, type(par)))
         command, buffer_check = command_fibre_delay(par)
         _send_channel_setting_command(command=command, buffer_check=buffer_check)
         _current_fd[_channel[0]] = par
@@ -497,7 +504,7 @@ def set_pulse_number(par):
     if par == _current_pn and not _force_setting:
         pass
     else:
-        _logger.debug("Set pulse number %s %s" % (par, type(par)))
+        _logger.log(logger.DEBUG, "Set pulse number %s %s" % (par, type(par)))
         command, buffer_check = command_pulse_number(par)
         _send_global_setting_command(command=command, buffer_check=buffer_check)
         _current_pn = par
@@ -509,7 +516,7 @@ def set_pulse_delay(par):
     if par == _current_pd and not _force_setting:
         pass
     else:
-        _logger.debug("Set pulse delay %s %s" % (par, type(par)))
+        _logger.log(logger.DEBUG, "Set pulse delay %s %s" % (par, type(par)))
         command, buffer_check = command_pulse_delay(par)
         _send_global_setting_command(command=command, buffer_check=buffer_check)
         _current_pd = par
@@ -521,7 +528,7 @@ def set_trigger_delay(par):
     if par == _current_td and not _force_setting:
         pass
     else:
-        _logger.debug("Set trigger delay %s %s" % (par, type(par)))
+        _logger.log(logger.DEBUG, "Set trigger delay %s %s" % (par, type(par)))
         command, buffer_check = command_trigger_delay(par)
         _send_global_setting_command(command=command, buffer_check=buffer_check)
         _current_td = par
@@ -533,7 +540,7 @@ def select_temp_probe(par):
     if par == _current_temp_probe and not _force_setting:
         pass
     else:
-        _logger.debug("Select temperature probe %s %s" % (par, type(par)))
+        _logger.log(logger.DEBUG, "Select temperature probe %s %s" % (par, type(par)))
         command, buffer_check = command_select_temp(par)
         _send_command(command=command, readout=False)
         _current_temp_probe = par
@@ -561,7 +568,7 @@ def read_temp(timeout=1.0):
     start = time.time()
     while not temp:
         output = _serial.read(100)
-        _logger.debug("Buffer: %s" % output)
+        _logger.log(logger.DEBUG, "Buffer: %s" % output)
         temp = pattern.findall(output)
         if time.time() - start > timeout:
             raise tellie_exception.TellieException("Temperature read timeout!")
