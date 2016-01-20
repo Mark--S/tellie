@@ -24,7 +24,6 @@ import re
 import sys
 import time
 from common import tellie_logger, parameters
-from snotdaq import Logger
 import argparse
 # TONY's LOG SERVER 
 from snotdaq import logger
@@ -342,7 +341,7 @@ def read_pin(channel=None, timeout=2.0, final=True):
         rms = str(pin[1])+'.'+str(pin[2])
         print pin, rms, channel
         #return str(0)
-        return str(pin[0]), rms
+        return str(pin[0]), rms, channel
     else:
         #check all PINs from the last firing sequence
         #need to store a copy of which pins were read
