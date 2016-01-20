@@ -25,7 +25,7 @@ import sys
 import time
 from common import tellie_logger, parameters
 import argparse
-# TONY's LOG SERVER 
+# TONY'S LOG SERVER 
 from snotdaq import logger
 
 port = 5030
@@ -109,6 +109,27 @@ def initialise_tellie(port_name=None):
     reset()
     #send a clear channel command, just in case
     clear_channel()
+
+def init_channel(channel, pulse_number, pulse_delay, trigger_delay,
+                 pulse_width, pulse_height, fibre_delay):
+    """Set globals ready to fire a specific channel
+    """
+    select_channel(channel)
+    set_pulse_number(int(pulse_number))
+    set_pulse_delay(float(pulse_delay))
+    set_trigger_delay(float(trigger_delay))
+    set_pulse_width(int(pulse_width))
+    set_pulse_height(int(pulse_height))
+    set_fibre_delay(float(fibre_delay))
+
+    settings_dict['channel'] = _channel[0]
+    settings_dict['pulse_number'] = _current_pn
+    settings_dict['pulse_delay'] = _current_pd
+    settings_dict['trigger_delay'] = _current_td
+    settings_dict['pulse_width'] = _current_pw[_channel]
+    settings_dict['pulse_height'] = _current_pn[_channel]
+    settings_dict['fibre_delay'] = _current_fd[_channel]
+    return settings_dict   
 
 def safe_exit():
     """Deletion function"""
@@ -685,7 +706,6 @@ def command_select_temp(par):
         raise tellie_exception.TellieException("Invalid temp. probe number: %s" % par)
     command = [cmd+chr(par)]
     return command, None # nothing in buffer
-
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
