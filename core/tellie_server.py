@@ -396,7 +396,7 @@ def read_pin_sequence():
     elif len(pin) == 0:
         return None, None
     _firing = False
-    rms = str(pin[1])+"."str(pin[2])
+    rms = str(pin[1])+"."+str(pin[2])
     channel_dict = {_channel[0]: [pin[0], rms]}
     return channel_dict, _channel
     #return str(pin[0])
