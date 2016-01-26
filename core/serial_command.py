@@ -18,7 +18,13 @@ import tellie_exception
 import re
 import sys
 import time
-from common import tellie_logger, parameters
+from common import parameters
+try:
+    from snotdaq import logger
+    _snotDaqLog = True
+except ImportError:
+    from common import tellie_logger
+    _snotDaqLo = False
 
 _max_pulse_height = 16383
 _max_pulse_width = 16383
@@ -67,7 +73,7 @@ class SerialCommand(object):
     """Contains a serial command object.
     """
 
-    def __init__(self, port_name = "/dev/tty.usbserial-FTE3C0PG",
+    def __init__(self, port_name = "/dev/tty",#.usbserial-FTE3C0PG",
                  port_timeout = 0.3):
         '''Initialise function: open serial connection.
         '''
@@ -77,7 +83,10 @@ class SerialCommand(object):
         self._serial = None
         try:
             self._serial = serial.Serial(port=self._port_name, timeout=self._port_timeout)
-            self.logger.debug("Serial connection open: %s" % self._serial)
+            if _snotDaqLogger == True:
+                self.logger.debug("Serial connection open: %s" % self._serial)
+            else:
+                self.logger.debug("Serial connection open: %s" % self._serial)
         except serial.SerialException, e:
             raise tellie_exception.TellieSerialException(e)
 
