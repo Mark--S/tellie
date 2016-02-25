@@ -15,9 +15,7 @@ import json
 import sys
 import glob
 
-
 db = None
-
 
 def push_directory(directory, override):
     """Push all JSON files in a directory to the database.
@@ -54,10 +52,10 @@ def push_file(filename, override):
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-s", dest="server", help="Database server [http://127.0.0.1:5984]",
-                        default="http://127.0.0.1:5984")
-    parser.add_argument("-n", dest="name", help="Database name [tellie]", 
-                        default="tellie")
+    parser.add_argument("-s", dest="server", help="Database server [http://couch.snopl.us]",
+                        default="http://couch.snopl.us")
+    parser.add_argument("-n", dest="name", help="Database name [telliedb]", 
+                        default="telliedb")
     parser.add_argument("--override", dest="override", help="Override existing docs (i.e. replace, retain document ID)\n\
 ***This option is for testing purposes only!***",
                         action="store_true")
@@ -73,4 +71,3 @@ if __name__=="__main__":
         push_directory(args.directory, args.override)
     else:
         push_file(args.file, args.override)
-    
