@@ -44,6 +44,7 @@ def ratify_old_json(json_file, run_range, version, pass_no):
     json_file['pass'] = pass_no
     json_file['timestamp'] = timestamp
     json_file['production'] = True
+    json_file['last_valid'] = run_range[1]
     return json_file
 
 
@@ -88,4 +89,3 @@ if __name__ == '__main__':
                 json_file.write(json.dumps(updated_dict))
                 json_file.close()
     print 'Converted all files from %s/version_0/pass_0/' % (options.path)
-        
