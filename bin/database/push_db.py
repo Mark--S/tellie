@@ -15,9 +15,7 @@ import json
 import sys
 import glob
 
-
 db = None
-
 
 def push_directory(directory, override):
     """Push all JSON files in a directory to the database.
