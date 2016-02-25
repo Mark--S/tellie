@@ -24,11 +24,10 @@ if __name__=="__main__":
     width = int(options.width)
     number = int(options.number)
     #defaults
-    readings = 1000
+    readings = 20
     delay = 1.0
     rate = 1./(delay*1e-3 + 200e-6)        
-    readings = 1000
-    t_wait = 1./rate + 0.1 #add 100ms just to be sure
+    t_wait = 1./rate + 0.1#add 100ms just to be sure
     #setup board
     sc = serial_command.SerialCommand(options.port)
     sc.select_channel(channel)
@@ -39,9 +38,10 @@ if __name__=="__main__":
     sc.set_trigger_delay(0)    
     sc.set_pulse_number(number)
     #outputs
-    fname = "check_results/PIN_%s_%02d_%03d_%05d.dat" % (options.label,channel,number,width)
-    fout = file(fname,"w")
+    #fname = "check_results/PIN_%s_%02d_%03d_%05d.dat" % (options.label,channel,number,width)
+    #fout = file(fname,"w")
     for i in range(readings):
+        #sc.fire_single()
         sc.fire_sequence()
         time.sleep(t_wait)
         pin = None
@@ -53,7 +53,7 @@ if __name__=="__main__":
             print ntries, pin
             if ntries>5:
                 break
-        fout.write("%s\n"%pin[channel])
+        #fout.write("%s\n"%pin[channel])
         print "reading %s: PIN %s"%(i,pin[channel])
-    fout.close()
+    #fout.close()
     
