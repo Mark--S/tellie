@@ -229,9 +229,18 @@ class SerialCommand(object):
             raise tellie_exception.TellieException("Cannot set ext. trig, already in firing mode")
         self._send_command(_cmd_enable_ext_trig)
 
-    def trigger_single(self):
-        """Fire single pulse upon receiving an external trigger.
+    def trigger(self):
+        """Fire single pulse upon receiving an external trigger. The final PIN reading of a squence
+        fired via this method can be read with the read_pin() function. 
+        """
+        self.logger.debug("Accepting %i triggers!" % self._current_pn)
+        if self._firing is True:
+            raise tellie_exception.TellieException("Cannot fire, already in firing mode")
+        self._send_command(_cmd_fire_ext_trig, False)
+        self._firing = True
 
+    def trigger_single(self):
+        """Fire single pulse upon receiving an external trigger. Also returns pin read
         """
         if self._firing is True:
             raise tellie_exception.TellieException("Cannot fire, already in firing mode")
@@ -242,6 +251,21 @@ class SerialCommand(object):
         while not pin:
             pin = self.read_pin(self._channel[0])
         return pin
+
+    def trigger_averaged(self):
+        """Request averaged pin reading for externally triggered pulses."""
+        self.logger.debug("Accepting %i triggers for averaging!" % self._current_pn)
+        if len(self._channel)!=1:
+            raise tellie_exception.TellieException("Cannot fire with >1 channel")
+        if self._firing is True:
+            raise tellie_exception.TellieException("Cannot fire, already in firing mode")
+        if self._channel <= 56: #up to box 7
+            cmd = _cmd_fire_average_ext_trig_lower
+        else:
+            cmd = _cmd_fire_average_ext_trig_upper
+        self._send_command(cmd, False)
+        self._firing = True
+
 
     def fire(self, while_fire=False):
         """Fire tellie, place class into firing mode.
