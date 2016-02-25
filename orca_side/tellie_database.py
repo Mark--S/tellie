@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # tellie_database.py
 #
 # TellieDatabase
@@ -57,6 +56,18 @@ class TellieDatabase:
         if self.db is None:
             return False
         return True
-
+    
     def save(self, doc):
         return self.db.save(doc)
+
+    def get_db_view(self, view_name, ascending=True):
+        '''Return view object'''
+        if ascending == True:
+            return self.db.view(view_name, ascending=True)
+        elif ascending == False:
+            return self.db.view(view_name, descending=True)
+
+    def load_doc(self, doc_id):
+        '''Return specific doc from db
+        '''
+        return self.db.get(doc_id)

@@ -77,7 +77,6 @@ class SerialCommand(object):
     def __init__(self, port_name=None):
         """Initialise the serial command"""
         if not port_name:
-            #self._port_name = "/dev/tty.usbserial-FTE3C0PG"
             self._port_name = "/dev/tty.usbserial-FTGA2OCZ"
         else:
             self._port_name = port_name
@@ -595,7 +594,34 @@ class SerialCommand(object):
         return self._current_pn
 
     ############################
-    # A couple of additional check funcs
+    # Special temporary funcs
+    def tmp_read_rms(self):
+        """Read a pin from the sequence firing mode only.
+        """
+        self.logger.debug("Read PINOUT sequence")
+        if self._firing is not True:
+            raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
+        pattern = re.compile(r"""\d+""")
+        output = self._serial.read(100)
+        print output
+        self.logger.debug("BUFFER: %s" % output)
+        numbers = pattern.findall(output)
+        ###############################################
+        if len(numbers) == 1: 
+            self._firing = False
+            channel_dict = {self._channel[0]: numbers[0]}
+            rms_dict = {self._channel[0]: 0.0}
+            return value_dict, rms_dict, self._channel
+        ##############################################
+        if len(numbers) > 3:
+            raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(numbers), numbers))
+            return None, None, None
+        pin, rms = numbers[0], "%s.%s" % (numbers[1],numbers[2])
+        self._firing = False
+        value_dict = {self._channel[0]: pin}
+        rms_dict = {self._channel[0]: rms}
+        return value_dict, rms_dict, self._channel
+
     def check_rms_time(self):
         """Read a pin from the sequence firing mode only.
         """
