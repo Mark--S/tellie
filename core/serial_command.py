@@ -434,15 +434,18 @@ class SerialCommand(object):
             self.logger.log(logger.DEBUG, "BUFFER: %s" % output)
         else:
             self.logger.debug("BUFFER: %s" % output)
-        pin = pattern.findall(output)
-        if len(pin)>1:
-            self._firing = False
-            raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(pin), pin))
-        elif len(pin) == 0:
-            return None, None
+        numbers = pattern.findall(output)
+        if len(numbers) == 1:
+            pin, rms = numbers[0], 0.
+        elif len(numbers) == 3:
+            pin, rms = numbers[0], "%s.%s" % (numbers[1], numbers[2])
+        else:
+            raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(numbers), numbers))
+            return None, None, None
         self._firing = False
-        channel_dict = {str(self._channel[0]): pin[0]}
-        return channel_dict, self._channel
+        value_dict = {self._channel[0]: pin}
+        rms_dict = {self._channel[0]: rms}
+        return value_dict, rms_dict, self._channel
 
     def check_ready(self):
         """Check that all settings have been set"""
