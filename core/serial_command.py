@@ -24,7 +24,7 @@ try:
     _snotDaqLog = True
 except ImportError:
     from common import tellie_logger
-    _snotDaqLog = False
+    _snotDatLog = False
 
 _max_pulse_height = 16383
 _max_pulse_width = 16383
@@ -73,24 +73,31 @@ class SerialCommand(object):
     """Contains a serial command object.
     """
 
-    def __init__(self, port_name = "/dev/tty.usbserial-FTE3C0PG", server_port = 5030, 
+    def __init__(self, port_name = "/dev/tty.usbserial-FTE3C0PG", server_port = 5030, logger_port = 4001,
                  port_timeout = 0.3):
         '''Initialise function: open serial connection.
         '''
         self._port_name = port_name
         self._port_timeout = port_timeout
-        if _SnotDaqLog = True:
-            self.logger = logger.Logger('tellie', 'localhost', server_port)
+        self._logger_port = logger_port
+
+        # Set up logger stuff.
+        if _snotDaqLog:
+            self.logger = logger.Logger()
+            try:
+                self.logger.connect('tellie', 'minard', self._logger_port)
+            except Exception as e:
+                self.logger.warn("unable to connect to log server: %s" % str(e))
+            self.logger.notice("Tellie connected to logger server!")
+
         else:
             self.logger = tellie_logger.TellieLogger.get_instance()
 
+        # Set up serial connection to tellie
         self._serial = None
         try:
             self._serial = serial.Serial(port=self._port_name, timeout=self._port_timeout)
-            if _snotDaqLog == True:
-                self.logger.log(logger.DEBUG, "Serial connection open: %s" % self._serial)
-            else:
-                self.logger.debug("Serial connection open: %s" % self._serial)
+            self.logger.debug("Serial connection open: %s" % self._serial)
         except serial.SerialException, e:
             raise tellie_exception.TellieSerialException(e)
 
@@ -143,10 +150,7 @@ class SerialCommand(object):
         the high bit could finish with an endline (i.e. endstream)
 
         sleep_after_command is the default time to sleep between each write command"""
-        if snotDaqLogger == True:
-            self.logger.log(logger.DEBUG, "_send_command:%s" % command)
-        else:
-            self.logger.debug("_send_command:%s" % command)
+        self.logger.debug("_send_command:%s" % command)
 
         if type(command) is str:
             command = [command]
@@ -179,11 +183,7 @@ class SerialCommand(object):
                 attempt += 1
 
             if str(buffer_read)!=str(buffer_check):
-                if _snotDaqLog == True:
-                    self.logger.log(logger.DEBUG, "problem reading buffer, send %s, read %s" % (command, buffer_read))
-                else:
-                    self.logger.debug("problem reading buffer, send %s, read %s" % (command, buffer_read))                    
-
+                self.logger.debug("problem reading buffer, send %s, read %s" % (command, buffer_read))
                 #clear anything else that might be in there
                 time.sleep(0.1)
                 remainder = self._serial.read(100)
@@ -193,21 +193,12 @@ class SerialCommand(object):
                 time.sleep(0.1)
                 self._serial.read(100)
                 message = "Unexpected buffer output:\nsaw: %s, remainder %s\nexpected: %s" % (buffer_read, remainder, buffer_check)
-                if _snotDaqLog == True:
-                    self.logger.log(logger.DEBUG, message)
-                else:
-                    self.logger.warn(message)
+                self.logger.warn(message)
                 raise tellie_exception.TellieException(message)
             else:
-                if _snotDaqLog == True:
-                    self.logger.log(logger.DEBUG, "success reading buffer:%s" % buffer_read)
-                else:
-                    self.logger.debug("success reading buffer:%s" % buffer_read)
+                self.logger.log(logger.DEBUG, "success reading buffer:%s" % buffer_read)
         else:
-            if _snotDaqLog == True:
-                self.logger.log(logger.DEBUG, "not a readout command")
-            else:
-                self.logger.debug("not a readout command")
+            self.logger.debug("not a readout command")
 
     def _send_setting_command(self, command, buffer_check=None, while_fire=False):
         """Send non-firing command.
@@ -231,11 +222,7 @@ class SerialCommand(object):
         Can set while_fire to True to allow a non-fire command to be sent
         while firing (will cause PIN readout to be flushed to buffer).
         """
-        if _snotDaqLog == True:
-            self.logger.log(logger.DEBUG, "Send global setting command %s" % (command))
-        else:
-            self.logger.debug("Send global setting command %s" % (command))
-
+        self.logger.debug("Send global setting command %s" % (command))
         self._send_setting_command(command=command, buffer_check=buffer_check, while_fire=while_fire)
 
     def _send_channel_setting_command(self, command, buffer_check=None, while_fire=False):
@@ -243,10 +230,7 @@ class SerialCommand(object):
         Can set while_fire to True to allow a non-fire command to be sent while
         firing (will cause PIN readout to be flushed to buffer).
         """
-        if _snotDaqLog == True:
-            self.logger.log(logger.DEBUG, "Send channel setting command %s" % (command))
-        else:
-            self.logger.debug("Send channel setting command %s" % (command))
+        self.logger.debug("Send channel setting command %s" % (command))
 
         if not self._channel or self._channel == []:
             raise tellie_exception.TellieException("Cannot run channel command, no channel selected")
@@ -259,10 +243,7 @@ class SerialCommand(object):
 
         Assumes that the port is open (which it is by default)
         """
-        if _snotDaqLog == True:
-            self.logger.log(logger.DEBUG, "Reset!")
-        else:
-            self.logger.debug("Reset!")            
+        self.logger.debug("Reset!")            
 
         self._serial.setRTS(True)
         # sleep, just in case
@@ -274,10 +255,7 @@ class SerialCommand(object):
     def fire(self, while_fire=False):
         """Fire tellie, place class into firing mode.
         Can send a fire command while already in fire mode if required."""
-        if _snotDaqLog == True:
-            self.logger.log(logger.DEBUG, "Fire!")
-        else:
-            self.logger.debug("Fire!")
+        self.logger.debug("Fire!")
 
         if self._firing is True and while_fire is False:
             raise tellie_exception.TellieException("Cannot fire, already in firing mode")
@@ -298,11 +276,7 @@ class SerialCommand(object):
     def fire_sequence(self, while_fire=False):
         """Fire in sequence mode, can only be done for a single channel.
         """
-        if _snotDaqLog == True:
-            self.logger.log(logger.DEBUG,"Fire sequence!")
-        else:
-            self.logger.debug("Fire sequence!")
-
+        self.logger.debug("Fire sequence!")
         if len(self._channel)!=1:
             raise tellie_exception.TellieException("Cannot fire with >1 channel")
         self.check_ready()
@@ -345,11 +319,7 @@ class SerialCommand(object):
 
     def stop(self):
         """Stop firing tellie"""
-        if _snotDaqLog == True:
-            self.logger.log(log.DEBUG,"Stop firing!")
-        else:
-            self.logger.debug("Stop firing!")
-
+        self.logger.debug("Stop firing!")
         self._send_command(_cmd_stop, False)
         buffer_contents = self._serial.read(100)
         self._firing = False
@@ -358,10 +328,7 @@ class SerialCommand(object):
     def read_pin(self, channel=None, timeout=2.0, final=True):
         """Read the pin diode output, should always follow a fire command,
         Provide channel number to select specific channel, otherwise, receive dict of all channels"""
-        if _snotDaqLog == True:
-            self.logger.log(logger.DEBUG, "Read PINOUT")
-        else:
-            self.logger.debug("Read PINOUT")
+        self.logger.debug("Read PINOUT")
         #if in firing mode, check the buffer shows the sequence has ended
         if self._firing:
             if self._serial.read(100) == _buffer_end_sequence:
@@ -422,18 +389,12 @@ class SerialCommand(object):
     def read_pin_sequence(self):
         """Read a pin from the sequence firing mode only.
         """
-        if _snotDaqLog == True:
-            self.logger.log(logger.DEBUG,"Read PINOUT sequence")
-        else:
-            self.logger.debug("Read PINOUT sequence")            
+        self.logger.debug("Read PINOUT sequence")            
         if self._firing is not True:
             raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
         pattern = re.compile(r"""\d+""")
         output = self._serial.read(100)
-        if _snotDaqLog == True:
-            self.logger.log(logger.DEBUG, "BUFFER: %s" % output)
-        else:
-            self.logger.debug("BUFFER: %s" % output)
+        self.logger.debug("BUFFER: %s" % output)
         pin = pattern.findall(output)
         if len(pin)>1:
             self._firing = False
@@ -466,10 +427,7 @@ class SerialCommand(object):
 
     def clear_channel(self):
         """Unselect the channel"""
-        if _snotDaqLog == True:
-            self.logger.log(logger.DEBUG, "Clear channel")
-        else:
-            self.logger.debug("Clear channel")
+        self.logger.debug("Clear channel")
         self._send_command(_cmd_channel_clear)
         self._channel = []
 
@@ -493,10 +451,7 @@ class SerialCommand(object):
             if self._channel == [channel]:
                 #channel already selected
                 return 0
-        if _snotDaqLog == True:
-            self.logger.log(logger.DEBUG,"Select channel %s %s" % (channel, type(channel)))
-        else:
-            self.logger.debug("Select channel %s %s" % (channel, type(channel)))
+        self.logger.debug("Select channel %s %s" % (channel, type(channel)))
         command, buffer_check = command_select_channel(channel)
         self._send_command(command=command, buffer_check=buffer_check)
         self._channel = [channel]
@@ -504,10 +459,7 @@ class SerialCommand(object):
 
     def select_channels(self, channels):
         """Select multiple channels, expects list for channels"""
-        if _snotDaqLog == True:
-            self.logger.log(logger.DEBUG, "Select channels %s %s" % (channels, type(channels)))
-        else:
-            self.logger.debug("Select channels %s %s" % (channels, type(channels)))
+        self.logger.debug("Select channels %s %s" % (channels, type(channels)))
         self.clear_channel()
         command = _cmd_channel_select_many_start
         for channel in channels:
@@ -572,10 +524,7 @@ class SerialCommand(object):
         if par == self._current_pulse_height[self._channel[0]] and not self._force_setting:
             pass #same as current setting
         else:
-            if _snotDaqLog == True:
-                self.logger.log(logger.DEBUG,"Set pulse height %s %s" % (par, type(par)))
-            else:
-                self.logger.debug("Set pulse height %s %s" % (par, type(par)))
+            self.logger.debug("Set pulse height %s %s" % (par, type(par)))
             command, buffer_check = command_pulse_height(par)
             self._send_channel_setting_command(command=command, buffer_check=buffer_check)
             self._current_pulse_height[self._channel[0]] = par
@@ -589,10 +538,7 @@ class SerialCommand(object):
         if par == self._current_pulse_width[self._channel[0]] and not self._force_setting:
             pass #same as current setting
         else:
-            if _snotDaqLog == True:
-                self.logger.log(logger.DEBUG, "Set pulse width %s %s" % (par, type(par)))
-            else:
-                self.logger.debug("Set pulse width %s %s" % (par, type(par)))                
+            self.logger.debug("Set pulse width %s %s" % (par, type(par)))                
             command, buffer_check = command_pulse_width(par)
             self._send_channel_setting_command(command=command, buffer_check=buffer_check)
             self._current_pulse_width[self._channel[0]] = par
@@ -605,10 +551,7 @@ class SerialCommand(object):
         if par == self._current_fibre_delay[self._channel[0]] and not self._force_setting:
             pass
         else:
-            if _snotDaqLog == True:
-                self.logger.log(logger.DEBUG, "Set Fibre delay %s %s" % (par, type(par)))
-            else:
-                self.logger.debug("Set Fibre delay %s %s" % (par, type(par)))
+            self.logger.debug("Set Fibre delay %s %s" % (par, type(par)))
             command, buffer_check = command_fibre_delay(par)
             self._send_channel_setting_command(command=command, buffer_check=buffer_check)
             self._current_fibre_delay[self._channel[0]] = par
@@ -619,10 +562,7 @@ class SerialCommand(object):
         if par == self._current_pulse_number and not self._force_setting:
             pass
         else:
-            if _snotDaqLog == True:
-                self.logger.log(logger.DEBUG,"Set pulse number %s %s" % (par, type(par)))
-            else:
-                self.logger.debug("Set pulse number %s %s" % (par, type(par)))
+            self.logger.debug("Set pulse number %s %s" % (par, type(par)))
             command, buffer_check = command_pulse_number(par)
             self._send_global_setting_command(command=command, buffer_check=buffer_check)
             self._current_pulse_number = par
@@ -633,10 +573,7 @@ class SerialCommand(object):
         if par == self._current_pulse_delay and not self._force_setting:
             pass
         else:
-            if _snotDaqLog == True:
-                self.logger.log(logger.DEBUG, "Set pulse delay %s %s" % (par, type(par)))
-            else:
-                self.logger.debug("Set pulse delay %s %s" % (par, type(par)))
+            self.logger.debug("Set pulse delay %s %s" % (par, type(par)))
             command, buffer_check = command_pulse_delay(par)
             self._send_global_setting_command(command=command, buffer_check=buffer_check)
             self._current_pulse_delay = par
@@ -647,10 +584,7 @@ class SerialCommand(object):
         if par == self._current_trigger_delay and not self._force_setting:
             pass
         else:
-            if _snotDaqLog == True:
-                self.logger.log(logger.DEBUG,"Set trigger delay %s %s" % (par, type(par)))
-            else:
-                self.logger.debug("Set trigger delay %s %s" % (par, type(par)))
+            self.logger.debug("Set trigger delay %s %s" % (par, type(par)))
             command, buffer_check = command_trigger_delay(par)
             self._send_global_setting_command(command=command, buffer_check=buffer_check)
             self._current_trigger_delay = par
@@ -661,10 +595,7 @@ class SerialCommand(object):
         if par == self._current_temp_probe and not self._force_setting:
             pass
         else:
-            if _snotDaqLog == True:
-                self.logger.log(logger.DEBUG, "Select temperature probe %s %s" % (par, type(par)))
-            else:
-                self.logger.debug("Select temperature probe %s %s" % (par, type(par)))
+            self.logger.debug("Select temperature probe %s %s" % (par, type(par)))
             command, buffer_check = command_select_temp(par)
             self._send_command(command=command, readout=False)
             self._current_temp_probe = par
@@ -693,10 +624,7 @@ class SerialCommand(object):
         start = time.time()
         while not temp:
             output = self._serial.read(100)
-            if _snotDaqLog == True:
-                self.logger.log(logger.DEBUG, "Buffer: %s" % output)
-            else:
-                self.logger.debug("Buffer: %s" % output)
+            self.logger.debug("Buffer: %s" % output)
             temp = pattern.findall(output)
             if time.time() - start > timeout:
                 raise tellie_exception.TellieException("Temperature read timeout!")
@@ -750,10 +678,7 @@ class SNO6CKapustinsky(SerialCommand):
             if self._channel == [channel]:
                 #channel already selected
                 return 0
-        if _snotDaqLog == True:
-            self.logger.log(logger.DEBUG, "Select channel %s %s" % (channel, type(channel)))
-        else:
-            self.logger.debug("Select channel %s %s" % (channel, type(channel)))
+        self.logger.debug("Select channel %s %s" % (channel, type(channel)))
         command = _cmd_channel_select_single_start+chr(channel)+_cmd_channel_select_single_end
         self._send_command(command=command, buffer_check="N")
         self._channel = [channel]
