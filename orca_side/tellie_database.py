@@ -20,37 +20,20 @@ class TellieDatabase:
     Will be replaced by whatever Orca uses.
     """
 
-    #singleton instance - probably not pythonic, but I don't care
-    _instance = None
-
-    class SingletonHelper:
-
-        def __call__(self, *args, **kw):
-            if TellieDatabase._instance is None:
-                object = TellieDatabase()
-                TellieDatabase._instance = object
-            return TellieDatabase._instance
-
-    get_instance = SingletonHelper()
-
-    def __init__(self):
-        self.db = None
-        self.host = None
-        self.name = None
-
-    def login(self, host, name, user=None, password=None):
+    def __init__(self, host, database, username=None, password=None):
         self.host = host
-        self.name = name
+        self.username = username
+        self.database = database
         couch = couchdb.Server(self.host)
-        if user is not None and password is not None:
-            couch.resource.credentials = (user, password)
+        if username is not None and password is not None:
+            couch.resource.credentials = (username, password)
         try:
-            self.db = couch[self.name]
+            self.db = couch[self.database]
         except:
-            user = raw_input("DB Authentication, username: ")
+            username = raw_input("DB Authentication, username: ")
             password = getpass.getpass("DB Authentication, password: ")            
-            couch.resource.credentials = (user, password)
-            self.db = couch[self.name]
+            couch.resource.credentials = (username, password)
+            self.db = couch[self.database]
 
     def is_logged_in(self):
         if self.db is None:
@@ -60,14 +43,22 @@ class TellieDatabase:
     def save(self, doc):
         return self.db.save(doc)
 
-    def get_db_view(self, view_name, ascending=True):
+    def get_view(self, view_name, keys=None, ascending=True, include_docs=False):
         '''Return view object'''
-        if ascending == True:
-            return self.db.view(view_name, ascending=True)
-        elif ascending == False:
-            return self.db.view(view_name, descending=True)
+        if keys == None:
+            return self.db.view(view_name, ascending=ascending, include_docs=include_docs)
+        else:
+            return self.db.view(view_name, keys=keys, ascending=acsending, include_docs=include_docs)
+
+    def get_docs_from_view(self, view_name):
+        '''Get all docs returned by a view
+        '''
+        rows = self.get_view(view_name, include_docs=True)
+        print rows
+        return [row.doc for row in rows]
 
     def load_doc(self, doc_id):
         '''Return specific doc from db
         '''
         return self.db.get(doc_id)
+
