@@ -5,18 +5,13 @@
 #
 # Author: Ed Leming <e.leming@sussex.ac.uk>
 ####################################################
-import csv
-import pytz
-import os
-import sys
-import argparse
-import couchdb
-import json
-import copy
-import time
-import datetime
-import calendar
 from orca_side import tellie_database
+import couchdb
+import csv
+import datetime
+import pytz
+import argparse
+import sys
 
 class bcolors:
     HEADER = '\033[95m'
@@ -27,6 +22,7 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+
 
 def read_csv_patch_map(fname):
     '''Import csv file containing Channel->Patch->Fibre mapping.
@@ -60,7 +56,7 @@ def make_mapping_dict(fname):
     try:
         first_valid = int(raw_input('Which run is this patch map valid from? : '))
     except ValueError as e:
-        print "That wasn't a number!"
+        print bcolors.WARNING + "That wasn't a number!" + bcolors.ENDC
         raise e
 
     last_valid = raw_input('Which run is this patch map valid until? If indefinite please set to 0. [0]: ')
@@ -139,5 +135,3 @@ if __name__=="__main__":
     
     # Check if a doc currently exists on the db with infinite validity
     check_old_mappings(db, new_doc)
-
-
