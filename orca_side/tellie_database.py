@@ -7,6 +7,8 @@
 #         (m.mottram@sussex.ac.uk)
 #
 # History:
+#         Major revisions and additions (19/05/16)
+#         <e.leming@sussex.ac.uk>
 #
 ###########################################
 ###########################################
@@ -50,15 +52,25 @@ class TellieDatabase:
         else:
             return self.db.view(view_name, keys=keys, ascending=acsending, include_docs=include_docs)
 
-    def get_docs_from_view(self, view_name):
-        '''Get all docs returned by a view
-        '''
-        rows = self.get_view(view_name, include_docs=True)
-        print rows
-        return [row.doc for row in rows]
-
     def load_doc(self, doc_id):
         '''Return specific doc from db
         '''
         return self.db.get(doc_id)
 
+    def get_docs_from_view(self, view_name):
+        '''Get all docs returned by a view
+        '''
+        rows = self.get_view(view_name, include_docs=True)
+        return [row.doc for row in rows]
+
+    def update_doc(self, doc_id, update_fields):
+        '''Update document of type _id with fields in update_fields
+        '''
+        old_doc = self.load_doc(doc_id)
+        new_doc = {}
+        for key in old_doc.keys():
+            if key in update_fields:
+                new_doc[key] = update_fields[key]
+            else:
+                new_doc[key] = old_doc[key]
+        self.save(new_doc)
