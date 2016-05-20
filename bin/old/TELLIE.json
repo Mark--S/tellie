@@ -1,0 +1,296 @@
+{
+"doc_type": "source",
+"run_name": "TELLIE",
+"time_stamp": "2012-07-24T01:02:03Z",
+"approved": true,
+
+"hw": [
+    {
+        "id": 1,
+        "pulse_width": 12700,
+        "pulse_height": 16383,
+        "fibre_delay": 0
+    },
+    {
+        "id": 2,
+        "pulse_width": 11000,
+        "pulse_height": 16383,
+        "fibre_delay": 0
+    },
+    {
+        "id": 3,
+        "pulse_width": 12000,
+        "pulse_height": 16383,
+        "fibre_delay": 0
+    },
+    {
+        "id": 4,
+        "pulse_width": 10500,
+        "pulse_height": 16383,
+        "fibre_delay": 0
+    },
+    {
+        "id": 5,
+        "pulse_width": 10500,
+        "pulse_height": 16383,
+        "fibre_delay": 0
+    },
+    {
+        "id": 6,
+        "pulse_width": 12300,
+        "pulse_height": 16383,
+        "fibre_delay": 0
+    },
+    {
+        "id": 7,
+        "pulse_width": 10700,
+        "pulse_height": 16383,
+        "fibre_delay": 0
+    },
+    {
+        "id": 8,
+        "pulse_width": 10700,
+        "pulse_height": 16383,
+        "fibre_delay": 0
+    },
+    {
+        "id": 9,
+        "pulse_width": 12000,
+        "pulse_height": 16383,
+        "fibre_delay": 0
+    },
+    {
+        "id": 10,
+        "pulse_width": 12000,
+        "pulse_height": 16383,
+        "fibre_delay": 0
+    },
+    {
+        "id": 11,
+        "pulse_width": 10000,
+        "pulse_height": 16383,
+        "fibre_delay": 0
+    },
+    {
+        "id": 12,
+        "pulse_width": 10700,
+        "pulse_height": 16383,
+        "fibre_delay": 0
+    },
+    {
+        "id": 13,
+        "pulse_width": 9000,
+        "pulse_height": 16383,
+        "fibre_delay": 0
+    },
+    {
+        "id": 14,
+        "pulse_width": 10700,
+        "pulse_height": 16383,
+        "fibre_delay": 0
+    },
+    {
+        "id": 15,
+        "pulse_width": 8700,
+        "pulse_height": 16383,
+        "fibre_delay": 0
+    },
+    {
+        "id": 24,
+        "pulse_width": 12700,
+        "pulse_height": 16383,
+        "fibre_delay": 0
+    }
+],
+
+"run_list": [
+    {
+        "id": 0,
+        "hw": [ ],
+        "led_selected": [15,16],
+        "ellie_driven": true,
+        "detector_forced_readout": true,
+        "nb_pulses": 12000,
+        "ellie_pulse_rate": 400,
+        "ellie_trigger_delay": 600,
+        "subrun_loop_number": 1
+    },
+    {
+        "id": 1,
+        "hw": [ ],
+        "led_selected": [1],
+        "ellie_driven": true,
+        "detector_forced_readout": true,
+        "nb_pulses": 12000,
+        "ellie_pulse_rate": 400,
+        "ellie_trigger_delay": 600,
+        "subrun_loop_number": 1
+    },
+    {
+        "id": 2,
+        "hw": [ ],
+        "led_selected": [2],
+        "ellie_driven": true,
+        "detector_forced_readout": true,
+        "nb_pulses": 12000,
+        "ellie_pulse_rate": 400,
+        "ellie_trigger_delay": 600,
+        "subrun_loop_number": 1
+    },
+    {
+        "id": 3,
+        "hw": [ ],
+        "led_selected": [3],
+        "ellie_driven": true,
+        "detector_forced_readout": true,
+        "nb_pulses": 12000,
+        "ellie_pulse_rate": 400,
+        "ellie_trigger_delay": 600,
+        "subrun_loop_number": 1
+    },
+    {
+        "id": 4,
+        "hw": [ ],
+        "led_selected": [4],
+        "ellie_driven": true,
+        "detector_forced_readout": true,
+        "nb_pulses": 12000,
+        "ellie_pulse_rate": 400,
+        "ellie_trigger_delay": 600,
+        "subrun_loop_number": 1
+    },
+    {
+        "id": 5,
+        "hw": [ ],
+        "led_selected": [5],
+        "ellie_driven": true,
+        "detector_forced_readout": true,
+        "nb_pulses": 12000,
+        "ellie_pulse_rate": 400,
+        "ellie_trigger_delay": 600,
+        "subrun_loop_number": 1
+    },
+    {
+        "id": 6,
+        "hw": [ ],
+        "led_selected": [6],
+        "ellie_driven": true,
+        "detector_forced_readout": true,
+        "nb_pulses": 12000,
+        "ellie_pulse_rate": 400,
+        "ellie_trigger_delay": 600,
+        "subrun_loop_number": 1
+    },
+    {
+        "id": 7,
+        "hw": [ ],
+        "led_selected": [7],
+        "ellie_driven": true,
+        "detector_forced_readout": true,
+        "nb_pulses": 12000,
+        "ellie_pulse_rate": 400,
+        "ellie_trigger_delay": 600,
+        "subrun_loop_number": 1
+    },
+    {
+        "id": 8,
+        "hw": [ ],
+        "led_selected": [8],
+        "ellie_driven": true,
+        "detector_forced_readout": true,
+        "nb_pulses": 12000,
+        "ellie_pulse_rate": 400,
+        "ellie_trigger_delay": 600,
+        "subrun_loop_number": 1
+    },
+    {
+        "id": 9,
+        "hw": [ ],
+        "led_selected": [9],
+        "ellie_driven": true,
+        "detector_forced_readout": true,
+        "nb_pulses": 12000,
+        "ellie_pulse_rate": 400,
+        "ellie_trigger_delay": 600,
+        "subrun_loop_number": 1
+    },
+    {
+        "id": 10,
+        "hw": [ ],
+        "led_selected": [10],
+        "ellie_driven": true,
+        "detector_forced_readout": true,
+        "nb_pulses": 12000,
+        "ellie_pulse_rate": 400,
+        "ellie_trigger_delay": 600,
+        "subrun_loop_number": 1
+    },
+    {
+        "id": 11,
+        "hw": [ ],
+        "led_selected": [11],
+        "ellie_driven": true,
+        "detector_forced_readout": true,
+        "nb_pulses": 12000,
+        "ellie_pulse_rate": 400,
+        "ellie_trigger_delay": 600,
+        "subrun_loop_number": 1
+    },
+    {
+        "id": 12,
+        "hw": [ ],
+        "led_selected": [12],
+        "ellie_driven": true,
+        "detector_forced_readout": true,
+        "nb_pulses": 12000,
+        "ellie_pulse_rate": 400,
+        "ellie_trigger_delay": 600,
+        "subrun_loop_number": 1
+    },
+    {
+        "id": 13,
+        "hw": [ ],
+        "led_selected": [13],
+        "ellie_driven": true,
+        "detector_forced_readout": true,
+        "nb_pulses": 12000,
+        "ellie_pulse_rate": 400,
+        "ellie_trigger_delay": 600,
+        "subrun_loop_number": 1
+    },
+    {
+        "id": 14,
+        "hw": [ ],
+        "led_selected": [14],
+        "ellie_driven": true,
+        "detector_forced_readout": true,
+        "nb_pulses": 12000,
+        "ellie_pulse_rate": 400,
+        "ellie_trigger_delay": 600,
+        "subrun_loop_number": 1
+    },
+    {
+        "id": 15,
+        "hw": [ ],
+        "led_selected": [15],
+        "ellie_driven": true,
+        "detector_forced_readout": true,
+        "nb_pulses": 12000,
+        "ellie_pulse_rate": 400,
+        "ellie_trigger_delay": 600,
+        "subrun_loop_number": 1
+    },
+    {
+        "id": 24,
+        "hw": [ ],
+        "led_selected": [24],
+        "ellie_driven": true,
+        "detector_forced_readout": true,
+        "nb_pulses": 12000,
+        "ellie_pulse_rate": 400,
+        "ellie_trigger_delay": 600,
+        "subrun_loop_number": 1
+    }
+]
+}
+
