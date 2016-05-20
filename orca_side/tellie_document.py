@@ -62,6 +62,7 @@ class FireParametersDocument(Document):
         self._unique_key = ["last_valid"]
 
 
+
 class PatternDocument(Document):
     """Class for pattern documents.
     """

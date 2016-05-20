@@ -77,3 +77,4 @@ class TellieDatabase:
             else:
                 new_doc[key] = old_doc[key]
         self.save(new_doc)
+
