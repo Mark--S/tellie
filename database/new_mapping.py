@@ -100,7 +100,7 @@ def check_old_mappings(db, new_doc):
             request = raw_input("Another document (%s) currently has infinite validity, would you like to update it? [Y/n] : " % doc["_id"])
             if request == "Y" or request == "y" or request == "":
                 try:
-                    user_valid = int(raw_input("What was the last run number this mapping was valid? "))
+                    user_valid = int(raw_input("What was the last run number this mapping was valid? If you haven't already check the shift reports for the last running period. "))
                 except ValueError as e:
                     print bcolors.WARNING + "That wasn't a number!" + bcolors.ENDC
                     raise e
