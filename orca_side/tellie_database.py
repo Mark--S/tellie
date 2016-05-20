@@ -45,8 +45,8 @@ class TellieDatabase:
     def save(self, doc):
         return self.db.save(doc)
 
-    def delete(self, doc_id):
-        return self.db.delete(doc_id)
+    def delete(self, doc):
+        return self.db.delete(doc)
 
     def get_view(self, view_name, keys=None, ascending=True, include_docs=False):
         '''Return view object'''
