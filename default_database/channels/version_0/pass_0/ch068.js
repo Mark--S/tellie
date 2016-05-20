@@ -1,1 +1,0 @@
-{"index": 68, "cavity": 68, "timestamp": 0, "photons": [1000, 10000, 100000], "driver": 90, "patch": 68, "version": 0, "cone": "050", "pass": 0, "pulse_width": [6570, 6390, 5600], "fibre_delay": 0, "type": "CHANNEL", "pulse_height": 16383}
