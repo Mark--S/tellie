@@ -19,9 +19,9 @@ def send_pulses_dark(sc, channel, width, number):
     # Need to know when to read the pin    
     sequence_time = sc.get_pulse_delay() * sc.get_pulse_number() # ms
     time.sleep((sequence_time + 0.2) * 0.001) # Add 200us offset
-    pin_out = None
+    pin_out, rms = None, None
     while pin_out is None:
-        pin_out, channel_list = sc.read_pin_sequence()
+        pin_out, rms, channel_list = sc.read_pin_sequence()
 
 def send_pulses_light(sc, channel, width, number, scope, init_time):
     sc.select_channel(channel)
@@ -31,9 +31,9 @@ def send_pulses_light(sc, channel, width, number, scope, init_time):
     # Need to know when to read the pin    
     sequence_time = sc.get_pulse_delay() * sc.get_pulse_number() # ms
     time.sleep((sequence_time + 0.2) * 0.001) # Add 200us offset
-    pin_out = None
+    pin_out, rms = None, None
     while pin_out is None:
-        pin_out, channel_list = sc.read_pin_sequence()
+        pin_out, rms, channel_list = sc.read_pin_sequence()
     
     results = {}
     results["time"] = float(time.time()) - float(init_time)
@@ -43,6 +43,7 @@ def send_pulses_light(sc, channel, width, number, scope, init_time):
     results["width"] = (scope.measure(1,"nwidth"))
     results["minimum"] = (scope.measure(1,"minimum"))
     results["pin"] = pin_out[channel]
+    results["pin_rms"] = rms[channel]
     print results
     scope.unlock()
     return results
@@ -150,6 +151,7 @@ if __name__=="__main__":
         output_file.write("%f\t%d\t%s\t%s\t%s\t%s\t%s\t%s\n"%(results["time"],
                                                           width,
                                                           results["pin"],
+                                                          results["pin_rms"],
                                                           results["width"],
                                                           results["rise"],
                                                           results["fall"],

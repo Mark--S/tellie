@@ -49,7 +49,7 @@ class TellieServer(asyncore.dispatcher):
 class TellieEcho(asyncore.dispatcher_with_send):
     """Echo handling class for Tellie responses"""
 
-    def __init__(self, conn_sock, client_address, tellie_serial):
+ def __init__(self, conn_sock, client_address, tellie_serial):
         """Initialisation function"""
         asyncore.dispatcher_with_send.__init__(self, conn_sock)
         self.client_address = client_address
@@ -144,7 +144,7 @@ def tellie_fire(tellie_serial, json_settings):
 def tellie_read(tellie_serial):
     """Read a the PINout from the fired channels"""
     try:
-        pin_out, channel_list = tellie_serial.read_pin_sequence()
+        pin_out, rms, channel_list = tellie_serial.read_pin_sequence()
         if comms_flags.valid_pin(pin_out, channel_list):
             print pin_out
             return '%s|%s' % (comms_flags.tellie_pinout, json.dumps(pin_out))

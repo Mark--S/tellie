@@ -8,9 +8,13 @@ def assign_document(doc):
     try:
         if doc["type"] == "channel":
             return ChannelDocument(doc)
+        elif doc["type"] == "fire_parameters":
+            return FireParamtersDocument(doc)
         elif doc["type"] == "pattern":
             return PatternDocument(doc)
-        elif doc["type"] == "run":
+        elif doc["type"] == "mapping":
+            return MappingDocument(doc)
+        elif doc["type"] == "tellie_run":
             return RunDocument(doc)
         else:
             sys.stderr.write("Unknown document type\n")
@@ -40,7 +44,6 @@ class Document(couchdb.Document):
                 raise
         return (self._unique_view, view_key)
 
-
 class ChannelDocument(Document):
     """Class for channel documents.
     """
@@ -48,6 +51,16 @@ class ChannelDocument(Document):
         super(ChannelDocument, self).__init__(data)
         self._unique_view = "_design/channels/_view/channel_by_number"
         self._unique_key = ["channel", "pass"]
+
+
+class FireParametersDocument(Document):
+    """Class for channel documents.
+    """
+    def __init__(self, data):
+        super(FireParametersDocument, self).__init__(data)
+        self._unique_view = "_design/tellieQuery/_view/fetchFireParameters"
+        self._unique_key = ["last_valid"]
+
 
 
 class PatternDocument(Document):
@@ -59,12 +72,21 @@ class PatternDocument(Document):
         self._unique_key = ["pattern", "pass"]
 
 
+class MappingDocument(Document):
+    """Class for run documents.
+    """
+    def __init__(self, data):
+        super(MappingDocument, self).__init__(data)
+        self._unique_view = "_design/mapping/_view/map_by_run"
+        self._unique_key = ["run_range", "pass"]
+
+
 class RunDocument(Document):
     """Class for run documents.
     """
     def __init__(self, data):
         super(RunDocument, self).__init__(data)
-        self._unique_view = "_design/runs/_view/run_by_name"
-        self._unique_key = ["run", "pass"]
+        self._unique_view = "_design/runs/_view/run_by_number"
+        self._unique_key = ["run"]
 
 

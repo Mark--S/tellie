@@ -7,13 +7,13 @@
 # Command functions to send to the Tellie
 # control box
 #
-# Author: Matt Mottram
+# Author: <e.leming@sussex.ac.uk>
 #         <m.mottram@sussex.ac.uk>
 #
 # History:
 # 2013/03/08: First instance
 # 2013/10/21: Added new classes for different chips, pep8
-#
+# 2015/08/12: read_sequence updated to handle rms output
 ###########################################
 ###########################################
 
@@ -77,7 +77,6 @@ class SerialCommand(object):
     def __init__(self, port_name=None):
         """Initialise the serial command"""
         if not port_name:
-            #self._port_name = "/dev/tty.usbserial-FTE3C0PG"
             self._port_name = "/dev/tty.usbserial-FTGA2OCZ"
         else:
             self._port_name = port_name
@@ -248,6 +247,21 @@ class SerialCommand(object):
             pin = self.read_pin(self._channel[0])
         return pin
 
+    def trigger_averaged(self):
+        """Request averaged pin reading for externally triggered pulses."""
+        self.logger.debug("Accepting %i triggers for averaging!" % self._current_pn)
+        if len(self._channel)!=1:
+            raise tellie_exception.TellieException("Cannot fire with >1 channel")
+        if self._firing is True:
+            raise tellie_exception.TellieException("Cannot fire, already in firing mode")
+        if self._channel <= 56: #up to box 7
+            cmd = _cmd_fire_average_ext_trig_lower
+        else:
+            cmd = _cmd_fire_average_ext_trig_upper
+        self._send_command(cmd, False)
+        self._firing = True
+
+
     def fire(self, while_fire=False):
         """Fire tellie, place class into firing mode.
         Can send a fire command while already in fire mode if required."""
@@ -395,23 +409,19 @@ class SerialCommand(object):
         pattern = re.compile(r"""\d+""")
         output = self._serial.read(100)
         self.logger.debug("BUFFER: %s" % output)
-        pin = pattern.findall(output)
-
-        if len(pin)==1:
-            pin.append(0)
-	    pin.append(0)
-        elif len(pin) == 0:
-            return None, None
-	elif len(pin)==3:
-	    pass 
+        numbers = pattern.findall(output)
+        if len(numbers) == 1:
+            pin, rms = numbers[0], 0.
+        elif len(numbers) == 3:
+            pin, rms = numbers[0], "%s.%s" % (numbers[1],numbers[2])
         else:
-            self._firing = False
-            self._reading = False
-            raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(pin), pin))
+            raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(numbers), numbers))
+            return None, None, None
         self._firing = False
-        rms_val = str(pin[1])+"."+str(pin[2])
-        channel_dict = {self._channel[0]: [pin[0],rms_val]}
-        return channel_dict, self._channel
+        value_dict = {self._channel[0]: pin}
+        rms_dict = {self._channel[0]: rms}
+        return value_dict, rms_dict, self._channel
+
 
     def check_ready(self):
         """Check that all settings have been set"""
@@ -647,7 +657,6 @@ class SerialCommand(object):
         output = self._serial.read(100)
         self.logger.debug("BUFFER: %s" % output)
         numbers = pattern.findall(output)
-
         pin, rms = numbers[0], "%s.%s" % (numbers[1],numbers[2])
         self._firing = False
         value_dict = {self._channel[0]: pin}

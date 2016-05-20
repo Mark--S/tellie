@@ -1,1 +1,0 @@
-{"index": 2, "photonToIPWPars": [6019149, -1770, 0.130227], "cavity": 2, "timestamp": 0, "driver": 2, "patch": 2, "version": 0, "cone": "102", "pass": 0, "photonToIPWEq": "poly2", "fibre_delay": 0, "type": "CHANNEL", "pulse_height": 16383}
