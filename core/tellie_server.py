@@ -23,12 +23,12 @@ import re
 import sys
 import time
 import math
+_snotDaqLog = False
 try:
     from snotdaq import logger
     _snotDaqLog = True
 except ImportError:
     from common import tellie_logger
-    _snotDatLog = False
 
 class TellieException(Exception):
     """General exception for the Tellie command modules"""

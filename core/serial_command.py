@@ -19,12 +19,13 @@ import re
 import sys
 import time
 from common import parameters
+_snotDaqLog = False
 try:
     from snotdaq import logger
     _snotDaqLog = True
 except ImportError:
     from common import tellie_logger
-    _snotDatLog = False
+
 
 _max_pulse_height = 16383
 _max_pulse_width = 16383
@@ -196,7 +197,7 @@ class SerialCommand(object):
                 self.logger.warn(message)
                 raise tellie_exception.TellieException(message)
             else:
-                self.logger.log(logger.DEBUG, "success reading buffer:%s" % buffer_read)
+                self.logger.debug("success reading buffer:%s" % buffer_read)
         else:
             self.logger.debug("not a readout command")
 
