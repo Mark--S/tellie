@@ -129,7 +129,6 @@ class SerialCommand(object):
 
         # Send a clear channel command, just in case
         self.clear_channel()
-        print "Tellie server initialised"
 
     def __del__(self):
         """Deletion function"""
