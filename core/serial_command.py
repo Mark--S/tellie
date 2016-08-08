@@ -66,7 +66,8 @@ _cmd_temp_select_upper = "f"
 _cmd_temp_read_upper = "k"
 _cmd_disable_ext_trig = "B"
 _cmd_enable_ext_trig = "A"
-_cmd_fire_average_ext_trig = "b"
+_cmd_fire_average_ext_trig_lower = "p"
+_cmd_fire_average_ext_trig_upper = "b"
 _cmd_fire_ext_trig = "F"
 
 class SerialCommand(object):
@@ -415,13 +416,12 @@ class SerialCommand(object):
         elif len(numbers) == 3:
             pin, rms = numbers[0], "%s.%s" % (numbers[1],numbers[2])
         else:
-            raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(numbers), numbers))
             return None, None, None
         self._firing = False
         value_dict = {self._channel[0]: pin}
         rms_dict = {self._channel[0]: rms}
-        return value_dict, rms_dict, self._channel
-
+        #return value_dict, rms_dict, self._channel
+        return pin, rms, self._channel
 
     def check_ready(self):
         """Check that all settings have been set"""
@@ -439,7 +439,6 @@ class SerialCommand(object):
             not_set += ["Pulse delay"]
         if self._current_td is None:
             not_set += ["Trigger delay"]
-        print not_set
         if not_set != []:
             raise tellie_exception.TellieException("Undefined options: %s" % (", ".join(opt for opt in not_set)))
 
