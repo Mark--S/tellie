@@ -106,6 +106,8 @@ class SerialCommand(object):
         #if a new channel is selected should force setting all new parameters
         #restriction only lifted once a fire command has been called
         self._force_setting = False
+        #send a reset, to ensure the RTS is set to false
+        self.reset()
         #Clear the channel, just in case
         self.clear_channel()
 
@@ -208,6 +210,18 @@ class SerialCommand(object):
         if len(self._channel)!=1:
             raise tellie_exception.TellieException("Cannot run channel command, must have single channel selected: %s" % (self._channel))
         self._send_setting_command(command=command, buffer_check=buffer_check, while_fire=while_fire)
+
+    def reset(self):
+        """Send a reset command!
+        Assumes that the port is open (which it is by default)
+        """
+        self.logger.debug("Reset!")
+        self._serial.setRTS(True)
+        # sleep, just in case
+        time.sleep(1.0)
+        self._serial.setRTS(False)
+        # close the port and reopen?
+        time.sleep(3.0)
 
     def enable_external_trig(self, while_fire=False):
         """Tell TELLIE to fire on any external trigger.
@@ -394,15 +408,15 @@ class SerialCommand(object):
         self.logger.debug("BUFFER: %s" % output)
         numbers = pattern.findall(output)
         if len(numbers) == 1:
-            self._firing = False
             pin, rms = numbers[0], 0.
         elif len(numbers) == 3:
             pin, rms = numbers[0], "%s.%s" % (numbers[1],numbers[2])
         else:
             return None, None, None
         self._firing = False
-        channel_dict = {self._channel[0]: pin[0]}
-        #return channel_dict, self._channel
+        value_dict = {self._channel[0]: pin}
+        rms_dict = {self._channel[0]: rms}
+        #return value_dict, rms_dict, self._channel
         return pin, rms, self._channel
 
     def check_ready(self):
