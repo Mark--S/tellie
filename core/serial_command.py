@@ -64,8 +64,11 @@ _cmd_temp_select_lower = "n"
 _cmd_temp_read_lower = "T"
 _cmd_temp_select_upper = "f"
 _cmd_temp_read_upper = "k"
-_cmd_distable_trig_in = "B"
-
+_cmd_disable_ext_trig = "B"
+_cmd_enable_ext_trig = "A"
+_cmd_fire_average_ext_trig_lower = "p"
+_cmd_fire_average_ext_trig_upper = "b"
+_cmd_fire_ext_trig = "F"
 
 class SerialCommand(object):
     """Serial command object.
@@ -146,10 +149,24 @@ class SerialCommand(object):
             # enough to get all the chars from the readout.
             buffer_read = self._serial.read(len(buffer_check))
             if str(buffer_read)!=str(buffer_check):
+
+                #self.logger.debug("problem reading buffer, send %s, read %s" % (command, buffer_read))
+                #clear anything else that might be in there
+                #remainder = self._serial.read(100)
+                #raise tellie_exception.TellieException("Unexpected buffer output:\nsaw: %s%s\nexpected: %s" % (buffer_read, remainder, buffer_check))
+
                 self.logger.debug("problem reading buffer, send %s, read %s" % (command, buffer_read))
                 #clear anything else that might be in there
+                time.sleep(0.1)
                 remainder = self._serial.read(100)
-                raise tellie_exception.TellieException("Unexpected buffer output:\nsaw: %s%s\nexpected: %s" % (buffer_read, remainder, buffer_check))
+                self._serial.write("X") # send a stop
+                time.sleep(0.1)
+                self._serial.write("C") # send a clear
+                time.sleep(0.1)
+                self._serial.read(100)
+                message = "Unexpected buffer output:\nsaw: %s, remainder %s\nexpected: %s" % (buffer_read, remainder, buffer_check)
+                self.logger.debug(message)
+                raise tellie_exception.TellieException(message)
             else:
                 self.logger.debug("success reading buffer")
         else:
@@ -191,6 +208,47 @@ class SerialCommand(object):
         if len(self._channel)!=1:
             raise tellie_exception.TellieException("Cannot run channel command, must have single channel selected: %s" % (self._channel))
         self._send_setting_command(command=command, buffer_check=buffer_check, while_fire=while_fire)
+
+    def enable_external_trig(self, while_fire=False):
+        """Tell TELLIE to fire on any external trigger.
+        Can send a fire command while already in fire mode if required."""
+        self.logger.debug("Enable ext triggering mode")
+        if self._firing is True and while_fire is False:
+            raise tellie_exception.TellieException("Cannot set ext. trig, already in firing mode")
+        self._send_command(_cmd_enable_ext_trig)
+
+    def disable_external_trigger(self):
+        """Disable the external trigger"""
+        self.logger.debug("Disable ext triggering mode")
+        self._send_command(_cmd_disable_ext_trig)
+
+    def trigger_single(self):
+        """Fire single pulse upon receiving an external trigger.
+        """
+        if self._firing is True:
+            raise tellie_exception.TellieException("Cannot fire, already in firing mode")
+        self._send_command(_cmd_fire_ext_trig, False)
+        self._firing = True
+        time.sleep(0.1)
+        pin = self.read_pin(self._channel[0])
+        while not pin:
+            pin = self.read_pin(self._channel[0])
+        return pin
+
+    def trigger_averaged(self):
+        """Request averaged pin reading for externally triggered pulses."""
+        self.logger.debug("Accepting %i triggers for averaging!" % self._current_pn)
+        if len(self._channel)!=1:
+            raise tellie_exception.TellieException("Cannot fire with >1 channel")
+        if self._firing is True:
+            raise tellie_exception.TellieException("Cannot fire, already in firing mode")
+        if self._channel <= 56: #up to box 7
+            cmd = _cmd_fire_average_ext_trig_lower
+        else:
+            cmd = _cmd_fire_average_ext_trig_upper
+        self._send_command(cmd, False)
+        self._firing = True
+
 
     def fire(self, while_fire=False):
         """Fire tellie, place class into firing mode.
@@ -334,15 +392,18 @@ class SerialCommand(object):
         pattern = re.compile(r"""\d+""")
         output = self._serial.read(100)
         self.logger.debug("BUFFER: %s" % output)
-        pin = pattern.findall(output)
-        if len(pin)>1:
+        numbers = pattern.findall(output)
+        if len(numbers) == 1:
             self._firing = False
-            raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(pin), pin))
-        elif len(pin) == 0:
-            return None, None
+            pin, rms = numbers[0], 0.
+        elif len(numbers) == 3:
+            pin, rms = numbers[0], "%s.%s" % (numbers[1],numbers[2])
+        else:
+            return None, None, None
         self._firing = False
         channel_dict = {self._channel[0]: pin[0]}
-        return channel_dict, self._channel
+        #return channel_dict, self._channel
+        return pin, rms, self._channel
 
     def check_ready(self):
         """Check that all settings have been set"""
@@ -526,10 +587,6 @@ class SerialCommand(object):
             raise tellie_exception.TellieException("Bad number of temp readouts: %s %s" % (len(temp), temp))
         temp = float(temp[0])
         return temp
-
-    def disable_external_trigger(self):
-        """Disable the external trigger"""
-        self._send_command(command="B")
 
 
 class SNO6C(SerialCommand):
