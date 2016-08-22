@@ -110,6 +110,9 @@ class SerialCommand(object):
         self.reset()
         #Clear the channel, just in case
         self.clear_channel()
+        # By default stop tellie waiting for external trigger (i.e. running in slave mode).
+        #Slave mode can be re-instated later if required.
+        self._send_command(_cmd_disable_ext_trig)
 
     def __del__(self):
         """Deletion function"""
