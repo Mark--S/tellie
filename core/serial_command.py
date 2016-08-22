@@ -117,6 +117,7 @@ class SerialCommand(object):
     def __del__(self):
         """Deletion function"""
         if self._serial:
+            self._send_command(_cmd_disable_ext_trig) # Stop accecpting external trigs
             self._serial.close()
 
     def _check_clear_buffer(self):
