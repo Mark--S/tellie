@@ -66,7 +66,8 @@ _cmd_temp_select_upper = "f"
 _cmd_temp_read_upper = "k"
 _cmd_disable_ext_trig = "B"
 _cmd_enable_ext_trig = "A"
-_cmd_fire_average_ext_trig = "b"
+_cmd_fire_average_ext_trig_lower = "p"
+_cmd_fire_average_ext_trig_upper = "b"
 _cmd_fire_ext_trig = "F"
 
 class SerialCommand(object):
@@ -229,21 +230,16 @@ class SerialCommand(object):
             raise tellie_exception.TellieException("Cannot set ext. trig, already in firing mode")
         self._send_command(_cmd_enable_ext_trig)
 
-    def trigger(self):
-        """Fire single pulse upon receiving an external trigger. The final PIN reading of a squence
-        fired via this method can be read with the read_pin() function. 
-        """
-        self.logger.debug("Accepting %i triggers!" % self._current_pn)
-        if self._firing is True:
-            raise tellie_exception.TellieException("Cannot fire, already in firing mode")
-        self._send_command(_cmd_fire_ext_trig, False)
-        self._firing = True
-
     def trigger_single(self):
-        """Fire single pulse upon receiving an external trigger. Also returns pin read
+        """Fire single pulse upon receiving an external trigger.
+
         """
         if self._firing is True:
             raise tellie_exception.TellieException("Cannot fire, already in firing mode")
+        #if self._channel <= 56: #up to box 7                                                               
+        #    cmd = _cmd_fire_single_lower
+        #else:
+        #    cmd = _cmd_fire_single_upper
         self._send_command(_cmd_fire_ext_trig, False)
         self._firing = True
         time.sleep(0.1)
@@ -376,17 +372,22 @@ class SerialCommand(object):
                 if len(pin):
                     break
                 time.sleep(0.1)
-            if len(pin)>1:
+            if len(pin)==1:
+		pin.append(0)
+		pin.append(0)
+		
+            elif len(pin)==0:
+                self._reading = True
+                return None, None
+	    else:
                 self._firing = False
                 self._reading = False
                 raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(pin), pin))
-            elif len(pin) == 0:
-                self._reading = True
-                return None, None
             self._reading = False
             if final is True:
                 self._firing = False
-            return pin[0], channel
+	    rms_val = str(pin[1])+"."+str(pin[2])
+            return pin[0],rms_val, channel
         else:
             #check all PINs from the last firing sequence
             #need to store a copy of which pins were read
@@ -396,8 +397,8 @@ class SerialCommand(object):
             for i, channel in enumerate(channel_list):
                 if i == len(channel_list)-1:
                     final_read = True
-                pin, _ = self.read_pin(channel, final=final_read)
-                channel_dict[channel] = pin
+                pin, rms_val, _ = self.read_pin(channel, final=final_read)
+                channel_dict[channel] = [pin,rms_val]
             return channel_dict, channel_list
 
     def read_pin_sequence(self):
@@ -415,12 +416,12 @@ class SerialCommand(object):
         elif len(numbers) == 3:
             pin, rms = numbers[0], "%s.%s" % (numbers[1],numbers[2])
         else:
-            raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(numbers), numbers))
             return None, None, None
         self._firing = False
         value_dict = {self._channel[0]: pin}
         rms_dict = {self._channel[0]: rms}
-        return value_dict, rms_dict, self._channel
+        #return value_dict, rms_dict, self._channel
+        return pin, rms, self._channel
 
     def check_ready(self):
         """Check that all settings have been set"""
@@ -438,7 +439,6 @@ class SerialCommand(object):
             not_set += ["Pulse delay"]
         if self._current_td is None:
             not_set += ["Trigger delay"]
-        print not_set
         if not_set != []:
             raise tellie_exception.TellieException("Undefined options: %s" % (", ".join(opt for opt in not_set)))
 
@@ -656,7 +656,6 @@ class SerialCommand(object):
         output = self._serial.read(100)
         self.logger.debug("BUFFER: %s" % output)
         numbers = pattern.findall(output)
-        
         pin, rms = numbers[0], "%s.%s" % (numbers[1],numbers[2])
         self._firing = False
         value_dict = {self._channel[0]: pin}
