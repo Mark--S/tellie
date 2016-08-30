@@ -16,7 +16,7 @@ if __name__=="__main__":
     number = int(number)
     channel = int(channel)
     #print width,number,channel
-    sc = serial_command.SerialCommand("/dev/tty.usbserial-FTGA2OCZ")
+    sc = serial_command.SerialCommand("/dev/tty.usbserial-FTE3C0PG")
     sc.stop()
     sc.select_channel(channel)
     sc.set_pulse_height(16383)

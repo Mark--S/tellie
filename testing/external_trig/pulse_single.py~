@@ -15,7 +15,7 @@ if __name__=="__main__":
     channel = int(channel)
     number = int(number)
     print "Opening serial link..."
-    sc = serial_command.SerialCommand("/dev/tty.usbserial-FTF5YKDL")
+    sc = serial_command.SerialCommand("/dev/tty.usbserial-FTE3C0PG")
     print "Done!"
     sc.stop()
     sc.select_channel(channel)
