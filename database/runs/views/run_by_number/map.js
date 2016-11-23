@@ -1,5 +1,5 @@
 function(doc){
-    if(doc.type=="RUN"){
-        emit(doc.run, [1]);
+    if(doc.type=="TELLIE_RUN"){
+        emit(doc.run, doc.timestamp);
     }
 }
