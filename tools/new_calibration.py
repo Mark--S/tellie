@@ -111,6 +111,9 @@ def make_calibration_files(hardware_file, slave_file, master_file, valid_from):
         if master_settings[i]["channel"] != chan or slave_settings[i]["channel"] != chan:
             raise "LOOPS ARE OUT OF SYNC, EXITING"
 
+        # Add channel depanedent delays
+        new_doc["fibre_delay"] = master_settings[i]["fibre_delay"]
+
         # Add master mode calibrations
         new_doc["master_IPW"] = master_settings[i]["IPW"]
         new_doc["master_photons"] = master_settings[i]["photons_per_pulse"]
@@ -148,7 +151,8 @@ def make_fire_parameters_file(calib_docs, first_valid):
     fire_doc["timestamp"] = timestamp
     for doc in calib_docs:
         channel_fields = {}
-        channel = int(doc["channel"])
+        channel = doc["channel"]
+        channel_fields["fibre_delay"] = doc["fibre_delay"]
         channel_fields["slave_IPW"] = doc["slave_IPW"]
         channel_fields["slave_photons"] = doc["slave_photons"]
         channel_fields["master_IPW"] = doc["master_IPW"]
@@ -216,7 +220,7 @@ if __name__ == "__main__":
     #####################################
     # See if any current documents exist
     #####################################
-    current_docs = get_current_docs(db, "_design/calibrations/_view/channel_by_number")
+    current_docs = get_current_docs(db, "_design/channels/_view/channel_by_number")
     current_fire_parameters = get_current_docs(db, "_design/tellieQuery/_view/fetchFireParameters")
 
     ############################
