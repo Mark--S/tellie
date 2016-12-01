@@ -12,11 +12,11 @@ _boundary = [0,1.5e-3,3e-3,7e-3,15e-3,30e-3,70e-3,150e-3,300e-3,700e-3,1000]
 _v_div = [1e-3,2e-3,5e-3,10e-3,20e-3,50e-3,100e-3,200e-3,500e-3,1.0,1000]
 
 def l(sc, c, n, sp, i):
-    po = None
+    po, rms = None, None
     sc.set_pulse_number(n)
     sc.fire_sequence()
     while po is None:
-        po, cl = sc.read_pin_sequence()
+        po, rms, cl = sc.read_pin_sequence()
     r = {}
     r["t"] = time.time() - i
     r["a"] = (sp.measure(1,"area"))
