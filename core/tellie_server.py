@@ -151,8 +151,11 @@ _cmd_temp_select_lower = "n"
 _cmd_temp_read_lower = "T"
 _cmd_temp_select_upper = "f"
 _cmd_temp_read_upper = "k"
-_cmd_distable_trig_in = "B"
-
+_cmd_disable_ext_trig = "B"
+_cmd_enable_ext_trig = "A"
+_cmd_fire_average_ext_trig_lower = "p"
+_cmd_fire_average_ext_trig_upper = "b"
+_cmd_fire_ext_trig = "F"
 
 class SerialCommand(object):
     """Contains a serial command object.
@@ -349,6 +352,51 @@ class SerialCommand(object):
         self._serial.setRTS(False)
         # close the port and reopen?
         time.sleep(1.0)
+
+    def enable_external_trig(self, while_fire=False):
+        """Tell TELLIE to fire on any external trigger.
+
+        Can send a fire command while already in fire mode if required."""
+        self.logger.debug("Enable ext triggering mode")
+        if self._firing is True and while_fire is False:
+            raise tellie_exception.TellieException("Cannot set ext. trig, already in firing mode")
+        self._send_command(_cmd_enable_ext_trig)
+
+    def disable_external_trigger(self):
+        """Disable the external trigger"""
+        self._send_command(command=_cmd_disable_ext_trig)
+
+    def trigger_single(self):
+        """Fire single pulse upon receiving an external trigger.
+
+        """
+        if self._firing is True:
+            raise tellie_exception.TellieException("Cannot fire, already in firing mode")
+        #if self._channel <= 56: #up to box 7                                                               
+        #    cmd = _cmd_fire_single_lower
+        #else:
+        #    cmd = _cmd_fire_single_upper
+        self._send_command(_cmd_fire_ext_trig, False)
+        self._firing = True
+        time.sleep(0.1)
+        pin = self.read_pin(self._channel[0])
+        while not pin:
+            pin = self.read_pin(self._channel[0])
+        return pin
+
+    def trigger_averaged(self):
+        """Request averaged pin reading for externally triggered pulses."""
+        self.logger.debug("Accepting %i triggers for averaging!" % self._current_pn)
+        if len(self._channel)!=1:
+            raise tellie_exception.TellieException("Cannot fire with >1 channel")
+        if self._firing is True:
+            raise tellie_exception.TellieException("Cannot fire, already in firing mode")
+        if self._channel <= 56: #up to box 7
+            cmd = _cmd_fire_average_ext_trig_lower
+        else:
+            cmd = _cmd_fire_average_ext_trig_upper
+        self._send_command(cmd, False)
+        self._firing = True
 
     def fire(self, while_fire=False):
         """Fire tellie, place class into firing mode.
@@ -727,10 +775,6 @@ class SerialCommand(object):
             raise TellieException("Bad number of temp readouts: %s %s" % (len(temp), temp))
         temp = float(temp[0])
         return temp
-
-    def disable_external_trigger(self):
-        """Disable the external trigger"""
-        self._send_command(command="B")
 
 ##################################################
 # Command options and corresponding buffer outputs
