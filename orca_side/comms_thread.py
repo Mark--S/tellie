@@ -204,7 +204,7 @@ class LoadFireThread(CommsThread):
         results["run"] = int(self.tellie_options.get_run())
         results["load_settings"] = self.tellie_options.get_load_settings()
         results["fire_settings"] = self.tellie_options.get_full_fire_settings()
-        results["type"] = "run"
+        results["type"] = "RUN"
         # Should the timestamp come from the TELLIE machine?
         results["timestamp"] = time.time()
         self.database.save(results)
@@ -218,5 +218,5 @@ class LoadFireThread(CommsThread):
         results["run"] = int(self.tellie_options.get_run())
         results["load_settings"] = self.tellie_options.get_load_settings()
         results["fire_settings"] = self.tellie_options.get_full_fire_settings()
-        results["type"] = "run"
+        results["type"] = "RUN"
         self.database.save(results)
