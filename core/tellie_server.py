@@ -180,6 +180,8 @@ class SerialCommand(object):
 
         else:
             self.logger = tellie_logger.TellieLogger.get_instance()
+            self.logger.set_log_file("testing")
+            self.logger.set_debug_mode(True)
 
         # Set up serial connection to tellie
         self._serial = None
@@ -259,7 +261,7 @@ class SerialCommand(object):
                 self._serial.write(c)
                 time.sleep(sleep_after_command)
         except:
-            raise TellieException("Lost connection with TELLIE control!")
+            raise TellieException("Lost connection with TELLIE hardware! Re-set server")
 
         if not buffer_check: # assume returns same as input
             buffer_check = ''
@@ -359,7 +361,8 @@ class SerialCommand(object):
         Can send a fire command while already in fire mode if required."""
         self.logger.debug("Enable ext triggering mode")
         if self._firing is True and while_fire is False:
-            raise tellie_exception.TellieException("Cannot set ext. trig, already in firing mode")
+            self.logger.warn("Cannot set ext. trig, already in firing mode")
+            return
         self._send_command(_cmd_enable_ext_trig)
 
     def disable_external_trigger(self):
@@ -386,11 +389,13 @@ class SerialCommand(object):
 
     def trigger_averaged(self):
         """Request averaged pin reading for externally triggered pulses."""
-        self.logger.debug("Accepting %i triggers for averaging!" % self._current_pn)
+        self.logger.debug("Accepting %i triggers for averaging!" % self._current_pulse_number)
         if len(self._channel)!=1:
-            raise tellie_exception.TellieException("Cannot fire with >1 channel")
+            self.logger.warn("Cannot fire with >1 channel! Averaging request denied.")
+            return
         if self._firing is True:
-            raise tellie_exception.TellieException("Cannot fire, already in firing mode")
+            self.logger.warn("Cannot set trigger_averaged, already in firing mode.")
+            return
         if self._channel <= 56: #up to box 7
             cmd = _cmd_fire_average_ext_trig_lower
         else:
@@ -424,7 +429,8 @@ class SerialCommand(object):
         """
         self.logger.debug("Fire sequence!")
         if len(self._channel)!=1:
-            raise TellieException("Cannot fire with >1 channel")
+            self.logger.warn("Cannot fire with >1 channel")
+            return 0
         if self._current_pulse_number == 0:
             self.logger.warn("Requested to fire 0 pulses!")
             return 0
@@ -654,7 +660,6 @@ class SerialCommand(object):
                     "trigger_delay": self._current_trigger_delay,
                     "channel_settings": {}}
         for c in self._channel:
-            print c
             settings["channel_settings"][str(c)] = {"pulse_width": self._current_pulse_width[c],
                                                     "pulse_height": self._current_pulse_height[c],
                                                     "fibre_delay": self._current_fibre_delay[c]}
@@ -665,7 +670,7 @@ class SerialCommand(object):
         if len(self._channel) != 1:
             raise TellieException("Cannot set parameter with channels set as %s" % (self._channel))
         if par == self._current_pulse_height[self._channel[0]] and not self._force_setting:
-            pass #same as current setting
+            self.logger.debug("Pulse height: %s,already set" % (par))
         else:
             self.logger.debug("Set pulse height %s %s" % (par, type(par)))
             command, buffer_check = command_pulse_height(par)
@@ -679,7 +684,7 @@ class SerialCommand(object):
         if len(self._channel) != 1:
             raise TellieException("Cannot set parameter with channels set as %s" % (self._channel))
         if par == self._current_pulse_width[self._channel[0]] and not self._force_setting:
-            pass #same as current setting
+            self.logger.debug("Pulse width: %s, already set" % (par))
         else:
             self.logger.debug("Set pulse width %s %s" % (par, type(par)))                
             command, buffer_check = command_pulse_width(par)
@@ -692,7 +697,7 @@ class SerialCommand(object):
         if len(self._channel) != 1:
             raise TellieException("Cannot set parameter with channels set as %s" % (self._channel))
         if par == self._current_fibre_delay[self._channel[0]] and not self._force_setting:
-            pass
+            self.logger.debug("Fibre delay %s, already selected" % (par))
         else:
             self.logger.debug("Set Fibre delay %s %s" % (par, type(par)))
             command, buffer_check = command_fibre_delay(par)
@@ -703,7 +708,7 @@ class SerialCommand(object):
     def set_pulse_number(self, par):
         """Set the number of pulses to fire (global setting)"""
         if par == self._current_pulse_number and not self._force_setting:
-            pass
+            self.logger.debug("Number of pulses: %s already selected" % (par))
         else:
             self.logger.debug("Set pulse number %s %s" % (par, type(par)))
             command, buffer_check = command_pulse_number(par)
@@ -714,7 +719,7 @@ class SerialCommand(object):
     def set_pulse_delay(self, par):
         """Set the delay between pulses (global setting)"""
         if par == self._current_pulse_delay and not self._force_setting:
-            pass
+            self.logger.debug("Pulse delay: %s, already selected" % (par))
         else:
             self.logger.debug("Set pulse delay %s %s" % (par, type(par)))
             command, buffer_check = command_pulse_delay(par)
@@ -725,7 +730,7 @@ class SerialCommand(object):
     def set_trigger_delay(self, par):
         """Set the trigger delay (global setting)"""
         if par == self._current_trigger_delay and not self._force_setting:
-            pass
+            self.logger.debug("Trigger delay: %s,already set" % (par))
         else:
             self.logger.debug("Set trigger delay %s %s" % (par, type(par)))
             command, buffer_check = command_trigger_delay(par)
