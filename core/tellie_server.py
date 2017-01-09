@@ -1,28 +1,28 @@
 #!/usr/bin/env python
 #
-# serial_command
+# tellie_server
 #
 # classes: SerialCommand
+#          TellieException
+#          TellieSerialException
+#          ThreadException
 #
-# Command functions to send to the TELLIE
-# control box.
+# Launches a xmlrpc server containing the 
+# SerialCommand class used to talk to the 
+# tellie control box. 
 #
-# Author: <e.leming@sussex.ac.uk>
-#         <m.mottram@sussex.ac.uk>
+# Author: EdLeming
+#         <e.leming@sussex.ac.uk>
 #
-# History:
-# 2013/03/08: First instance
-# 2013/10/21: Added new classes for different chips, pep8
-# 2015/08/12: read_sequence updated to handle rms output
 ###########################################
 ###########################################
-
+from SimpleXMLRPCServer import SimpleXMLRPCServer
 import serial
 import tellie_exception
 import re
 import sys
 import time
-from common import parameters
+import math
 _snotDaqLog = False
 try:
     from snotdaq import logger
@@ -30,7 +30,27 @@ try:
 except ImportError:
     from common import tellie_logger
 
+class TellieException(Exception):
+    """General exception for the Tellie command modules"""
 
+    def __init__(self, error):
+        Exception.__init__(self, error)
+
+
+class TellieSerialException(Exception):
+    """Exception when communicating with the Serial Port"""
+
+    def __init__(self, error):
+        Exception.__init__(self, error)
+
+
+class ThreadException(Exception):
+    """Exception raised specific to threading issues"""
+
+    def __init__(self, error):
+        Exception.__init__(self, error)
+
+# Global max values
 _max_pulse_height = 16383
 _max_pulse_width = 16383
 _max_lo = 255.
@@ -41,8 +61,68 @@ _max_fibre_delay = 127.5
 _max_pulse_number = 65025
 _max_pulse_number_upper = 255
 _max_pulse_number_lower = 255
-_max_temp_probe = 64
+_max_temp_probe = 64.
+_max_fibre_delay = 63.75 #ns
+_max_trigger_delay = 1275 #ns
 
+class ParametersClass(object):
+    """Class to emulate common/parameters """
+
+    def __init__(self):
+        # Some init stuff
+        self._something = 0;
+
+    def pulse_number(self, number):
+        adjusted = False
+        if type(number)!=int:
+            raise Exception("PN must be an integer")
+        if number > _max_pulse_number:
+            raise Exception("PN must be < %d.  You set %d" % (65025, number))
+        #number = max_pulse_number
+        #adjusted = True
+        hi = -1
+        lo = -1
+        diff = 100000 # bigger than max pn
+        for i in range(1, 256):
+            # assume hi is i
+            lo_check = number/i
+            if lo_check > 255:
+                lo_check = 255
+            check = i * lo_check
+            if math.fabs(check - number) < diff:
+                diff = math.fabs(check - number)
+                hi = i
+                lo = lo_check
+            if check == number:
+                break
+        actual_par = hi * lo
+        if actual_par != number:
+            adjusted = True
+        return adjusted, actual_par, hi, lo
+
+    def trigger_delay(self, delay):
+        adjusted = False
+        delay = float(delay)
+        if delay > _max_trigger_delay or delay < 0:
+            raise Exception("TD must be >%s and <%s" % (0, _max_trigger_delay))
+        parameter = int(round(delay)/5)
+        adj_delay = parameter * 5
+        if delay != adj_delay:
+            adjusted = True
+        return adjusted, adj_delay, parameter
+
+    def fibre_delay(self, delay):
+        adjusted = False
+        delay = float(delay)
+        if delay > _max_fibre_delay or delay < 0:
+            raise Exception("FD must be >%s and <%s" % (0, _max_fibre_delay))
+        parameter = int(round(delay * 4.))
+        adj_delay = float(parameter) / 4.
+        if delay != adj_delay:
+            adjusted = True
+        return adjusted, adj_delay, parameter
+
+# Global char commands to call functions on the ELLIE pic.
 _cmd_fire_continuous = "a"
 _cmd_read_single_lower = "r"
 _cmd_read_single_upper = "m"
@@ -81,12 +161,27 @@ class SerialCommand(object):
     """Contains a serial command object.
     """
 
-    def __init__(self, port_name=None):
-        """Initialise the serial command"""
-        if not port_name:
-            self._port_name = "/dev/tty.usbserial-FTGA2OCZ"
+    def __init__(self, port_name = "/dev/tty.usbserial-FTE3C0PG", server_port = 5030, logger_port = 4001,
+                 port_timeout = 0.3):
+        '''Initialise function: open serial connection.
+        '''
+        self._port_name = port_name
+        self._port_timeout = port_timeout
+        self._logger_port = logger_port
+
+        # Set up logger stuff.
+        if _snotDaqLog:
+            self.logger = logger.Logger()
+            try:
+                self.logger.connect('tellie', 'minard', self._logger_port)
+            except Exception as e:
+                self.logger.warn("unable to connect to log server: %s" % str(e))
+            self.logger.notice("Tellie connected to log server!")
+
         else:
             self.logger = tellie_logger.TellieLogger.get_instance()
+            self.logger.set_log_file("testing")
+            self.logger.set_debug_mode(True)
 
         # Set up serial connection to tellie
         self._serial = None
@@ -123,24 +218,30 @@ class SerialCommand(object):
         self.reset()
 
         # Send a clear channel command, just in case
+        self._clear_buffer()
         self.clear_channel()
-
-        #By default stop tellie waiting for external trigger (i.e. running in slave mode).
-        #Slave mode can be re-instated later if required.
-        self._send_command(_cmd_disable_ext_trig)
 
     def __del__(self):
         """Deletion function"""
         if self._serial:
-            self._send_command(_cmd_disable_ext_trig) # Stop accecpting external trigs
             self._serial.close()
+        self.logger.warn("tellie server dropped out")
+
+    def test(self):
+        self.logger.notice("Tellie server responding")
+
+    def _clear_buffer(self):
+        """Clear any chars left in the buffer"""
+        buffer_read = self._serial.read(100)
+        if buffer_read != "":
+            self.logger.debug("Buffer was not clear: %s" % buffer_read)
 
     def _check_clear_buffer(self):
         """Many commands expect an empty buffer, fail if they are not!
         """
         buffer_read = self._serial.read(100)
         if buffer_read != "":
-            raise tellie_exception.TellieException("Buffer not clear: %s" % (buffer_read))
+            self.logger.warn("Buffer not clear: %s" % (buffer_read))
 
     def _send_command(self, command, readout=True, buffer_check=None, sleep_after_command=0.1):
         """Send a command to the serial port.
@@ -154,13 +255,13 @@ class SerialCommand(object):
         if type(command) is str:
             command = [command]
         if type(command) is not list:
-            raise tellie_exception.TellieException("Command is not a list: %s %s" % (command, type(command)))
+            raise TellieException("Command is not a list: %s %s" % (command, type(command)))
         try:
             for c in command:
                 self._serial.write(c)
                 time.sleep(sleep_after_command)
         except:
-            raise tellie_exception.TellieException("Lost connection with TELLIE control!")
+            raise TellieException("Lost connection with TELLIE hardware! Re-set server")
 
         if not buffer_check: # assume returns same as input
             buffer_check = ''
@@ -172,10 +273,9 @@ class SerialCommand(object):
             # enough to get all the chars from the readout.
             buffer_read = self._serial.read(len(buffer_check))
             attempt = 0
-            print "READ:", len(buffer_read), buffer_read,
-            print "Check:", len(buffer_check), buffer_check
+            self.logger.debug("READ: %s\tCHECK: %s" % (buffer_read, buffer_check))
             while (len(buffer_read) != len(buffer_check)) and attempt<10:
-                print "read again"
+                self.logger.debug("Didn't read correct no of chars, read again")
                 # First, try reading again
                 time.sleep(0.1)
                 buffer_read += self._serial.read(len(buffer_check))
@@ -191,11 +291,15 @@ class SerialCommand(object):
                 self._serial.write("C") # send a clear
                 time.sleep(0.1)
                 self._serial.read(100)
-                message = "Unexpected buffer output:\nsaw: %s, remainder %s\nexpected: %s" % (buffer_read, remainder, buffer_check)
+                if buffer_read == '\x00':
+                    self.logger.warn("Looks like power was lost to tellie...It may still be off?")
+                    # Re-run 
+                    self._send_command(command, readout, buffer_check, sleep_after_command)
+                message = "Unexpected buffer output:\nsaw: %s, remainder %s\nexpected: %s\n" % (buffer_read, remainder, buffer_check)
                 self.logger.warn(message)
-                raise tellie_exception.TellieException(message)
+                raise TellieException(message)
             else:
-                self.logger.debug("success reading buffer:%s" % buffer_read)
+                self.logger.debug("success reading buffer: %s" % buffer_read)
         else:
             self.logger.debug("not a readout command")
 
@@ -208,7 +312,7 @@ class SerialCommand(object):
         self.logger.debug("Send non-firing command")
         if self._firing is True:
             if while_fire is False:
-                raise tellie_exception.TellieException("Cannot run command, in firing mode")
+                raise TellieException("Cannot run command, in firing mode")
             else:
                 #Assume that we CANNOT readout the buffer here!
                 self._send_command(command=command, readout=False)
@@ -232,9 +336,9 @@ class SerialCommand(object):
         self.logger.debug("Send channel setting command %s" % (command))
 
         if not self._channel or self._channel == []:
-            raise tellie_exception.TellieException("Cannot run channel command, no channel selected")
+            raise TellieException("Cannot run channel command, no channel selected")
         if len(self._channel)!=1:
-            raise tellie_exception.TellieException("Cannot run channel command, must have single channel selected: %s" % (self._channel))
+            raise TellieException("Cannot run channel command, must have single channel selected: %s" % (self._channel))
         self._send_setting_command(command=command, buffer_check=buffer_check, while_fire=while_fire)
 
     def reset(self):
@@ -246,10 +350,10 @@ class SerialCommand(object):
 
         self._serial.setRTS(True)
         # sleep, just in case
-        time.sleep(3.0)
+        time.sleep(1.0)
         self._serial.setRTS(False)
         # close the port and reopen?
-        time.sleep(3.0)
+        time.sleep(1.0)
 
     def enable_external_trig(self, while_fire=False):
         """Tell TELLIE to fire on any external trigger.
@@ -257,8 +361,13 @@ class SerialCommand(object):
         Can send a fire command while already in fire mode if required."""
         self.logger.debug("Enable ext triggering mode")
         if self._firing is True and while_fire is False:
-            raise tellie_exception.TellieException("Cannot set ext. trig, already in firing mode")
+            self.logger.warn("Cannot set ext. trig, already in firing mode")
+            return
         self._send_command(_cmd_enable_ext_trig)
+
+    def disable_external_trigger(self):
+        """Disable the external trigger"""
+        self._send_command(command=_cmd_disable_ext_trig)
 
     def trigger_single(self):
         """Fire single pulse upon receiving an external trigger.
@@ -280,11 +389,13 @@ class SerialCommand(object):
 
     def trigger_averaged(self):
         """Request averaged pin reading for externally triggered pulses."""
-        self.logger.debug("Accepting %i triggers for averaging!" % self._current_pn)
+        self.logger.debug("Accepting %i triggers for averaging!" % self._current_pulse_number)
         if len(self._channel)!=1:
-            raise tellie_exception.TellieException("Cannot fire with >1 channel")
+            self.logger.warn("Cannot fire with >1 channel! Averaging request denied.")
+            return
         if self._firing is True:
-            raise tellie_exception.TellieException("Cannot fire, already in firing mode")
+            self.logger.warn("Cannot set trigger_averaged, already in firing mode.")
+            return
         if self._channel <= 56: #up to box 7
             cmd = _cmd_fire_average_ext_trig_lower
         else:
@@ -292,14 +403,13 @@ class SerialCommand(object):
         self._send_command(cmd, False)
         self._firing = True
 
-
     def fire(self, while_fire=False):
         """Fire tellie, place class into firing mode.
         Can send a fire command while already in fire mode if required."""
         self.logger.debug("Fire!")
 
         if self._firing is True and while_fire is False:
-            raise tellie_exception.TellieException("Cannot fire, already in firing mode")
+            raise TellieException("Cannot fire, already in firing mode")
         self.check_ready()
         # Set readout to false when firing (must read
         # averaged pin at some later time).
@@ -319,7 +429,11 @@ class SerialCommand(object):
         """
         self.logger.debug("Fire sequence!")
         if len(self._channel)!=1:
-            raise tellie_exception.TellieException("Cannot fire with >1 channel")
+            self.logger.warn("Cannot fire with >1 channel")
+            return 0
+        if self._current_pulse_number == 0:
+            self.logger.warn("Requested to fire 0 pulses!")
+            return 0
         self.check_ready()
         cmd = None
         if self._channel[0] <= 56: #up to box 7
@@ -334,11 +448,11 @@ class SerialCommand(object):
         """Fire single pulse
         """
         if self._firing is True:
-            raise tellie_exception.TellieException("Cannot fire, already in firing mode")
+            raise TellieException("Cannot fire, already in firing mode")
         if self._channel <= 56: #up to box 7
-            cmd = _cmd_read_single_lower
+            cmd = _cmd_fire_single_lower
         else:
-            cmd = _cmd_read_single_upper
+            cmd = _cmd_fire_single_upper
         self._send_command(cmd, False)
         self._firing = True
         pin = self.read_pin(self._channel[0])
@@ -350,7 +464,7 @@ class SerialCommand(object):
         """Fire Tellie in continous mode.
         """
         if self._firing is True:
-            raise tellie_exception.TellieException("Cannot fire, already in firing mode")
+            raise TellieException("Cannot fire, already in firing mode")
         self._send_command(_cmd_fire_continuous, False)
         self._firing = True
         self._force_setting = False
@@ -381,7 +495,7 @@ class SerialCommand(object):
         if channel:
             if self._reading is True:
                 if channel != self._channel[0]:
-                    raise tellie_exception.TellieException("Cannot read pin for channel %s, already trying to read channel %s" % (channel, self._channel[0]))
+                    raise TellieException("Cannot read pin for channel %s, already trying to read channel %s" % (channel, self._channel[0]))
             else:
                 self.select_channel(channel)
             if self._channel[0] <= 56: #up to box 7
@@ -403,22 +517,17 @@ class SerialCommand(object):
                 if len(pin):
                     break
                 time.sleep(0.1)
-            if len(pin)==1:
-		pin.append(0)
-		pin.append(0)
-		
-            elif len(pin)==0:
-                self._reading = True
-                return None, None
-	    else:
+            if len(pin)>1:
                 self._firing = False
                 self._reading = False
-                raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(pin), pin))
+                raise TellieException("Bad number of PIN readouts: %s %s" % (len(pin), pin))
+            elif len(pin) == 0:
+                self._reading = True
+                return None, None
             self._reading = False
             if final is True:
                 self._firing = False
-	    rms_val = str(pin[1])+"."+str(pin[2])
-            return pin[0],rms_val, channel
+            return pin[0], channel
         else:
             #check all PINs from the last firing sequence
             #need to store a copy of which pins were read
@@ -428,8 +537,8 @@ class SerialCommand(object):
             for i, channel in enumerate(channel_list):
                 if i == len(channel_list)-1:
                     final_read = True
-                pin, rms_val, _ = self.read_pin(channel, final=final_read)
-                channel_dict[channel] = [pin,rms_val]
+                pin, _ = self.read_pin(channel, final=final_read)
+                channel_dict[channel] = pin
             return channel_dict, channel_list
 
     def read_pin_sequence(self):
@@ -437,23 +546,29 @@ class SerialCommand(object):
         """
         self.logger.debug("Read PINOUT sequence")            
         if self._firing is not True:
-            raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
+            raise TellieException("Cannot read pin, not in firing mode")
         pattern = re.compile(r"""\d+""")
         output = self._serial.read(100)
-        self.logger.debug("BUFFER: %s" % output)
+        if _snotDaqLog == True:
+            self.logger.log(logger.DEBUG, "BUFFER: %s" % output)
+        else:
+            self.logger.debug("BUFFER: %s" % output)
         numbers = pattern.findall(output)
+        if len(numbers) == 0:
+            self.logger.debug("Sequence doesn't appear to have finished..")
+            return None
         if len(numbers) == 1:
             pin, rms = numbers[0], 0.
         elif len(numbers) == 3:
-            pin, rms = numbers[0], "%s.%s" % (numbers[1],numbers[2])
+            pin, rms = numbers[0], "%s.%s" % (numbers[1], numbers[2])
         else:
-            return None, None, None
+            self.logger.warn("Bad number of PIN readouts: %s %s" % (len(numbers), numbers))
+            return 1
         self._firing = False
         value_dict = {self._channel[0]: pin}
         rms_dict = {self._channel[0]: rms}
-
-        #return value_dict, rms_dict, self._channel
         return pin, rms, self._channel
+        #return value_dict, rms_dict, self._channel
 
     def check_ready(self):
         """Check that all settings have been set"""
@@ -471,8 +586,7 @@ class SerialCommand(object):
             not_set += ["Pulse delay"]
         if self._current_trigger_delay is None:
             not_set += ["Trigger delay"]
-        if not_set != []:
-            raise tellie_exception.TellieException("Undefined options: %s" % (", ".join(opt for opt in not_set)))
+        self.logger.debug("The following parameters have not been set: %s" % not_set)
 
     def clear_channel(self):
         """Unselect the channel"""
@@ -499,11 +613,13 @@ class SerialCommand(object):
         if self._channel != []:
             if self._channel == [channel]:
                 #channel already selected
+                self.logger.debug("Channel already selected")
                 return 0
         self.logger.debug("Select channel %s %s" % (channel, type(channel)))
         command, buffer_check = command_select_channel(channel)
         self._send_command(command=command, buffer_check=buffer_check)
         self._channel = [channel]
+        self.logger.debug("About to return")
         return 0 # OK status
 
     def select_channels(self, channels):
@@ -525,34 +641,18 @@ class SerialCommand(object):
                      pulse_width, pulse_height, fibre_delay):
         """Select and setup all channel settings.
         """
+        self.logger.debug("inside init_channel")
         if self._firing:
-            raise tellie_exception.TellieException("Cannot initialise a channel when in firing mode")
-        commands = []
-        buffer_checks = ""
-        commands, buffer_checks = command_append([commands, buffer_checks], command_select_channel(channel))
-        print "INIT", commands, buffer_checks
-        commands, buffer_checks = command_append([commands, buffer_checks], command_pulse_number(pulse_number))
-        commands, buffer_checks = command_append([commands, buffer_checks], command_pulse_delay(pulse_delay))
-        commands, buffer_checks = command_append([commands, buffer_checks], command_trigger_delay(trigger_delay))
-        commands, buffer_checks = command_append([commands, buffer_checks], command_pulse_width(pulse_width))
-        commands, buffer_checks = command_append([commands, buffer_checks], command_pulse_height(pulse_height))
-        commands, buffer_checks = command_append([commands, buffer_checks], command_fibre_delay(fibre_delay))
-        print "COMMAND: ", commands, type(commands)
-        print "BUFFER CHECK: ", buffer_checks, type(buffer_checks)
-        print command_pulse_number(pulse_number)
-        print command_pulse_height(pulse_height)
-        print command_pulse_width(pulse_width)
-        print command_pulse_delay(pulse_delay)
-        print "COMMANDS:", commands
-        print "BUFFER:", buffer_checks
-        self._send_command(command=commands, buffer_check=buffer_checks)
-        self._channel = [channel]
-        self._current_pulse_number = pulse_number
-        self._current_pulse_delay = pulse_delay
-        self._current_trigger_delay = trigger_delay
-        self._current_pulse_width[self._channel[0]] = pulse_width
-        self._current_pulse_height[self._channel[0]] = pulse_height
-        self._current_fibre_delay[self._channel[0]] = fibre_delay
+            self.logger.debug("Currently in firing mode. Wait until firing has stopped before retrying channel init.")
+            return 1
+        self.select_channel(int(channel))
+        self.set_pulse_number(int(pulse_number))
+        self.set_pulse_delay(float(pulse_delay))
+        self.set_trigger_delay(int(trigger_delay))
+        self.set_pulse_width(int(pulse_width))
+        self.set_pulse_height(int(pulse_height))
+        self.set_fibre_delay(float(fibre_delay))
+
         # Return a dump of the settings
         settings = {"channels": self._channel,
                     "pulse_number": self._current_pulse_number,
@@ -560,7 +660,6 @@ class SerialCommand(object):
                     "trigger_delay": self._current_trigger_delay,
                     "channel_settings": {}}
         for c in self._channel:
-            print c
             settings["channel_settings"][str(c)] = {"pulse_width": self._current_pulse_width[c],
                                                     "pulse_height": self._current_pulse_height[c],
                                                     "fibre_delay": self._current_fibre_delay[c]}
@@ -569,9 +668,9 @@ class SerialCommand(object):
     def set_pulse_height(self, par):
         """Set the pulse height for the selected channel"""
         if len(self._channel) != 1:
-            raise tellie_exception.TellieException("Cannot set parameter with channels set as %s" % (self._channel))
+            raise TellieException("Cannot set parameter with channels set as %s" % (self._channel))
         if par == self._current_pulse_height[self._channel[0]] and not self._force_setting:
-            pass #same as current setting
+            self.logger.debug("Pulse height: %s,already set" % (par))
         else:
             self.logger.debug("Set pulse height %s %s" % (par, type(par)))
             command, buffer_check = command_pulse_height(par)
@@ -583,9 +682,9 @@ class SerialCommand(object):
         """Set the pulse width for the selected channel.
         This is the only setting that can be modified while in firing mode."""
         if len(self._channel) != 1:
-            raise tellie_exception.TellieException("Cannot set parameter with channels set as %s" % (self._channel))
+            raise TellieException("Cannot set parameter with channels set as %s" % (self._channel))
         if par == self._current_pulse_width[self._channel[0]] and not self._force_setting:
-            pass #same as current setting
+            self.logger.debug("Pulse width: %s, already set" % (par))
         else:
             self.logger.debug("Set pulse width %s %s" % (par, type(par)))                
             command, buffer_check = command_pulse_width(par)
@@ -596,9 +695,9 @@ class SerialCommand(object):
     def set_fibre_delay(self, par):
         """Set the fibre (channel) delay for the selected channel"""
         if len(self._channel) != 1:
-            raise tellie_exception.TellieException("Cannot set parameter with channels set as %s" % (self._channel))
+            raise TellieException("Cannot set parameter with channels set as %s" % (self._channel))
         if par == self._current_fibre_delay[self._channel[0]] and not self._force_setting:
-            pass
+            self.logger.debug("Fibre delay %s, already selected" % (par))
         else:
             self.logger.debug("Set Fibre delay %s %s" % (par, type(par)))
             command, buffer_check = command_fibre_delay(par)
@@ -609,7 +708,7 @@ class SerialCommand(object):
     def set_pulse_number(self, par):
         """Set the number of pulses to fire (global setting)"""
         if par == self._current_pulse_number and not self._force_setting:
-            pass
+            self.logger.debug("Number of pulses: %s already selected" % (par))
         else:
             self.logger.debug("Set pulse number %s %s" % (par, type(par)))
             command, buffer_check = command_pulse_number(par)
@@ -620,7 +719,7 @@ class SerialCommand(object):
     def set_pulse_delay(self, par):
         """Set the delay between pulses (global setting)"""
         if par == self._current_pulse_delay and not self._force_setting:
-            pass
+            self.logger.debug("Pulse delay: %s, already selected" % (par))
         else:
             self.logger.debug("Set pulse delay %s %s" % (par, type(par)))
             command, buffer_check = command_pulse_delay(par)
@@ -631,7 +730,7 @@ class SerialCommand(object):
     def set_trigger_delay(self, par):
         """Set the trigger delay (global setting)"""
         if par == self._current_trigger_delay and not self._force_setting:
-            pass
+            self.logger.debug("Trigger delay: %s,already set" % (par))
         else:
             self.logger.debug("Set trigger delay %s %s" % (par, type(par)))
             command, buffer_check = command_trigger_delay(par)
@@ -658,14 +757,14 @@ class SerialCommand(object):
     def read_temp(self, timeout=1.0):
         """Read the temperature"""
         if not self._current_temp_probe:
-            raise tellie_exception.TellieException("Cannot read temp: no probe selected")
+            raise TellieException("Cannot read temp: no probe selected")
         cmd = ""
         if self._current_temp_probe < 33 and self._current_temp_probe > 0:
             cmd = _cmd_temp_read_lower
         elif self._current_temp_probe < _max_temp_probe + 1:
             cmd = _cmd_temp_read_upper
         else:
-            raise tellie_exception.TellieException("Temp probe not in known range")
+            raise TellieException("Temp probe not in known range")
         self._send_command(command=cmd, readout=False)
         pattern = re.compile(r"""[-+]?\d*\.\d+|\d+""")
         #wait for a few seconds before reading out
@@ -676,109 +775,11 @@ class SerialCommand(object):
             self.logger.debug("Buffer: %s" % output)
             temp = pattern.findall(output)
             if time.time() - start > timeout:
-                raise tellie_exception.TellieException("Temperature read timeout!")
+                raise TellieException("Temperature read timeout!")
         if len(temp)>1:
-            raise tellie_exception.TellieException("Bad number of temp readouts: %s %s" % (len(temp), temp))
+            raise TellieException("Bad number of temp readouts: %s %s" % (len(temp), temp))
         temp = float(temp[0])
         return temp
-
-    def disable_external_trigger(self):
-        """Disable the external trigger"""
-        self._send_command(command="B")
-
-    ########################################
-    # Commands just to check current settings
-    def get_pulse_delay(self):
-        """Get the pulse delay
-        """
-        return self._current_pulse_delay
-
-    def get_pulse_number(self):
-        """Get the pulse delay
-        """
-        return self._current_pn
-
-    ############################
-    # Special temporary funcs
-    def tmp_read_rms(self):
-        """Read a pin from the sequence firing mode only.
-        """
-        self.logger.debug("Read PINOUT sequence")
-        if self._firing is not True:
-            raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
-        pattern = re.compile(r"""\d+""")
-        output = self._serial.read(100)
-        print output
-        self.logger.debug("BUFFER: %s" % output)
-        numbers = pattern.findall(output)
-        ###############################################
-        if len(numbers) == 1: 
-            self._firing = False
-            channel_dict = {self._channel[0]: numbers[0]}
-            rms_dict = {self._channel[0]: 0.0}
-            return value_dict, rms_dict, self._channel
-        ##############################################
-        if len(numbers) > 3:
-            raise tellie_exception.TellieException("Bad number of PIN readouts: %s %s" % (len(numbers), numbers))
-            return None, None, None
-        pin, rms = numbers[0], "%s.%s" % (numbers[1],numbers[2])
-        self._firing = False
-        value_dict = {self._channel[0]: pin}
-        rms_dict = {self._channel[0]: rms}
-        return value_dict, rms_dict, self._channel
-
-    def check_rms_time(self):
-        """Read a pin from the sequence firing mode only.
-        """
-        self.logger.debug("Read PINOUT sequence")
-        if self._firing is not True:
-            raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
-        pattern = re.compile(r"""\d+""")
-        output = self._serial.read(100)
-        self.logger.debug("BUFFER: %s" % output)
-        numbers = pattern.findall(output)
-        pin, rms = numbers[0], "%s.%s" % (numbers[1],numbers[2])
-        self._firing = False
-        value_dict = {self._channel[0]: pin}
-        rms_dict = {self._channel[0]: rms}
-        return value_dict, rms_dict, self._channel
->>>>>>> upstream/master
-
-
-class SNO6C(SerialCommand):
-    """Object for the main TELLIE setup.
-    """
-
-    def __init__(self, port_name=None):
-        """Initialisation command.
-        """
-        super(SNO6C, self).__init__(port_name)
-
-
-class SNO6CKapustinsky(SerialCommand):
-    """Object for the Kapustinsky single channel (4) setup.
-    """
-
-    def __init__(self, port_name=None):
-        """Initialisation command.
-        """
-        super(SNO6CKapustinsky, self).__init__(port_name)
-
-    def select_channel(self, channel):
-        """Select a channel: override"""
-        if type(channel) is not int:
-            channel = int(channel)
-        if self._channel != []:
-            if self._channel == [channel]:
-                #channel already selected
-                return 0
-        self.logger.debug("Select channel %s %s" % (channel, type(channel)))
-        command = _cmd_channel_select_single_start+chr(channel)+_cmd_channel_select_single_end
-        self._send_command(command=command, buffer_check="N")
-        self._channel = [channel]
-        return 0
-
-
 
 ##################################################
 # Command options and corresponding buffer outputs
@@ -797,7 +798,7 @@ def command_select_channel(par):
 def command_pulse_height(par):
     """Get the command to set a pulse height"""
     if par > _max_pulse_height or par < 0:
-        raise tellie_exception.TellieException("Invalid pulse height: %s" % par)
+        raise TellieException("Invalid pulse height: %s" % par)
     hi = par >> 8
     lo = par & 255
     command = [_cmd_pulse_height_hi+chr(hi)]
@@ -810,7 +811,7 @@ def command_pulse_height(par):
 def command_pulse_width(par):
     """Get the command to set a pulse width"""
     if par > _max_pulse_width or par < 0:
-        raise tellie_exception.TellieException("Invalid pulse width: %s %s %s" % (par, _max_pulse_width, par>_max_pulse_width))
+        raise TellieException("Invalid pulse width: %s %s %s" % (par, _max_pulse_width, par>_max_pulse_width))
     hi = par >> 8
     lo = par & 255
     command = [_cmd_pulse_width_hi+chr(hi)]
@@ -822,11 +823,12 @@ def command_pulse_width(par):
 def command_pulse_number(par):
     """Get the command to set a pulse number"""
     if par > _max_pulse_number or par < 0:
-        raise tellie_exception.TellieException("Invalid pulse number: %s" % (par))
+        raise TellieException("Invalid pulse number: %s" % (par))
     par = int(par)
+    parameters  = ParametersClass()
     adjusted, actual_par, hi, lo = parameters.pulse_number(par)
     if adjusted is True:
-        raise tellie_exception.TellieException("Invalid pulse number: %s" % (par))
+        raise TellieException("Invalid pulse number: %s" % (par))
     command = [_cmd_pulse_number_hi+chr(hi)]
     command+= [_cmd_pulse_number_lo+chr(lo)]
     buffer_check = _cmd_pulse_number_hi + _cmd_pulse_number_lo
@@ -836,7 +838,7 @@ def command_pulse_number(par):
 def command_pulse_delay(par):
     """Get the command to set a pulse delay"""
     if par > _max_pulse_delay or par < 0:
-        raise tellie_exception.TellieException("Invalid pulse delay: %s" % par)
+        raise TellieException("Invalid pulse delay: %s" % par)
     ms = int(par)
     us = int((par-ms)*250)
     command = [_cmd_pulse_delay+chr(ms)]
@@ -848,7 +850,7 @@ def command_pulse_delay(par):
 def command_trigger_delay(par):
     """Get the command to set a trigger delay"""
     if par > _max_trigger_delay or par < 0:
-        raise tellie_exception.TellieException("Invalid trigger delay: %s" % par)
+        raise TellieException("Invalid trigger delay: %s" % par)
     command = [_cmd_trigger_delay+chr(par/5)]
     buffer_check = _cmd_trigger_delay
     return command, buffer_check
@@ -857,11 +859,12 @@ def command_trigger_delay(par):
 def command_fibre_delay(par):
     """Get the command to set a fibre delay"""
     if par > _max_fibre_delay or par < 0:
-        raise tellie_exception.TellieException("Invalid fibre delay: %s" % par)
+        raise TellieException("Invalid fibre delay: %s" % par)
+    parameters = ParametersClass()
     adjusted, adj_delay, setting = parameters.fibre_delay(par)
     print "COMMAND", par, adjusted, adj_delay, setting
     if adjusted is True:
-        raise tellie_exception.TellieException("Invalid delay: %s" % (par))
+        raise TellieException("Invalid delay: %s" % (par))
     command = [_cmd_fibre_delay+chr(setting)]
     buffer_check = _cmd_fibre_delay
     return command, buffer_check
@@ -870,7 +873,7 @@ def command_fibre_delay(par):
 def command_select_temp(par):
     """Select a temperature probe to read"""
     if par > _max_temp_probe or par < 0:
-        raise tellie_exception.TellieException("Invalid temp. probe number: %s" % par)
+        raise TellieException("Invalid temp. probe number: %s" % par)
     cmd = ""
     par = par
     if par < 33 and par > 0:
@@ -880,7 +883,7 @@ def command_select_temp(par):
         cmd = _cmd_temp_select_upper
         par = par - 32 #lower
     else:
-        raise tellie_exception.TellieException("Invalid temp. probe number: %s" % par)
+        raise TellieException("Invalid temp. probe number: %s" % par)
     command = [cmd+chr(par)]
     return command, None # nothing in buffer
 
@@ -903,3 +906,13 @@ def command_append(inputs, values):
     inputs[1] = "%s%s" % (inputs[1], values[1])
     return inputs
 
+if __name__ == "__main__":
+    server = SimpleXMLRPCServer(("0.0.0.0", 5030), allow_none=True)
+    
+    server.register_instance(SerialCommand(), allow_dotted_names=True)
+    
+    print "serving..."
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print "Exiting..."

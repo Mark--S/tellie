@@ -21,10 +21,10 @@ import json
 import time
 import math
 import copy
-import optparse
+import argparse
 import Tkinter
 import tkMessageBox
-import tellie_comms
+import xmlrpclib
 import comms_thread
 import comms_thread_pool
 import tellie_database
@@ -269,13 +269,14 @@ class OrcaGui(Tkinter.Tk):
     """The main GUI.
     """
 
-    def __init__(self, parent, presets_file, channels_file):
+    def __init__(self, parent, server, presets_file, channels_file):
         Tkinter.Tk.__init__(self, parent)
         self.parent = parent
         self._presets_file = presets_file
         self._channels_file = channels_file
         self._presets = json.load(open(presets_file))
         self._channels = json.load(open(channels_file))
+        self.tellie_server = server
         self.initialise()
         self.lf_thread = None #will always point to a thread
 
@@ -406,7 +407,7 @@ class OrcaGui(Tkinter.Tk):
             self.fire_button.config(state = Tkinter.DISABLED)
 #            try:
             if True:
-                self.lf_thread = comms_thread.LoadFireThread(self.tellie_options, self.fire_button, self.message_field, self.ellie_field)
+                self.lf_thread = comms_thread.LoadFireThread(self.tellie_server, self.tellie_options, self.fire_button, self.message_field, self.ellie_field)
                 self.lf_thread.start()
 #            except:
 #                print "Unable to start thread!"
@@ -424,9 +425,10 @@ class OrcaGui(Tkinter.Tk):
                 if ctr > 100000:#large number...
                     break
             print "THREADS:", thread_pool._threads
-        #send a stop command, just in case
-        error_state, response = tellie_comms.send_stop_command()
-        if error_state:
+        # We should attempt a stop here as well
+        try:
+            self.tellie_server.stop()
+        except xmlrpclib.Fault, e:
             self.message_field.show_warning("ERROR ON STOP COMMAND!")
         else:
             self.message_field.show_message("STOPPED")
@@ -437,31 +439,28 @@ class OrcaGui(Tkinter.Tk):
 
 
 if __name__ == "__main__":
-    parser = optparse.OptionParser()
-    parser.add_option("-d", dest="debug", action="store_true", default=False, help="Debug mode")
-    parser.add_option("-a", dest="address", default=None, help="Server address (default 127.0.0.1)")
-    parser.add_option("-p", dest="port", default=None, help="Server port (default 50050)")
-    parser.add_option("-l", dest="usedb", action="store_true", help="Upload results to database")
-    parser.add_option("--logfile", dest="logfile", default="logs/gui", help="Log name")
-    parser.add_option("--server", dest="dbserver", default="http://127.0.0.1:5984", help="database server")
-    parser.add_option("--name", dest="dbname", default="tellie", help="database name")
-    (options, args) = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", dest="debug", action="store_true", default=False, help="Debug mode")
+    parser.add_argument("-a", dest="address", default="localhost", help="Server address [localhost]")
+    parser.add_argument("-p", dest="port", type=int, default=5030, help="Server port [5030]")
+    parser.add_argument("-l", dest="usedb", action="store_true", help="Upload results to database")
+    parser.add_argument("--logfile", dest="logfile", default="logs/gui", help="Log name")
+    parser.add_argument("--server", dest="dbserver", default="http://127.0.0.1:5984", help="database server")
+    parser.add_argument("--name", dest="dbname", default="tellie", help="database name")
+    args = parser.parse_args()
     logger = tellie_logger.TellieLogger.get_instance()
-    logger.set_debug_mode(options.debug)
-    logger.set_log_file(options.logfile)
+    logger.set_debug_mode(args.debug)
+    logger.set_log_file(args.logfile)
     database = None
-    if options.usedb:
+    if args.usedb:
         try:
             database = tellie_database.TellieDatabase.get_instance()
-            database.login(options.dbserver, options.dbname)
+            database.login(args.dbserver, args.dbname)
         except ImportError:
             print "WARNING: cannot use TELLIE DB"
-    app = OrcaGui(None, "orca_side/PRESETS.js", "orca_side/CHANNELS.js")
+    tellie_server = xmlrpclib.Server("http://%s:%s" % (args.address, args.port))
+    app = OrcaGui(None, tellie_server, "orca_side/PRESETS.js", "orca_side/CHANNELS.js")
     app.title = "TELLIE Control"
-    if options.address:
-        tellie_comms.HOST = options.address
-    if options.port:
-        tellie_comms.PORT = int(options.port)
     try:
         app.mainloop()
     except KeyboardInterrupt:

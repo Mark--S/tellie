@@ -71,13 +71,13 @@ def make_mapping_dict(fname):
 
     timestamp = datetime.datetime.now(pytz.timezone('US/Eastern')).isoformat()
     channels, patches, fibres = read_csv_patch_map(fname)
-    document['type'] = 'mapping'
+    document['type'] = 'TELLIE_PATCH_MAPPING'
     document['index'] = ""
     document['timestamp'] = timestamp
     document['version'] = 0
-    document['pass'] = 1
-    document['production'] = True
+    document['pass'] = -2
     document['run_range'] = [first_valid, last_valid]
+    document['first_valid'] = first_valid
     document['last_valid'] = last_valid #This is to allow a simple couch key search for current mapping
     document['channels'] = channels
     document['patches'] = patches
