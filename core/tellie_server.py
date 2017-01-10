@@ -162,7 +162,7 @@ class SerialCommand(object):
     """
 
     def __init__(self, port_name = "/dev/tty.usbserial-FTE3C0PG", server_port = 5030, logger_port = 4001,
-                 port_timeout = 0.3):
+                 port_timeout = 1):
         '''Initialise function: open serial connection.
         '''
         self._port_name = port_name
