@@ -161,8 +161,7 @@ class SerialCommand(object):
     """Contains a serial command object.
     """
 
-    def __init__(self, port_name = "/dev/tty.usbserial-FTE3C0PG", server_port = 5030, logger_port = 4001,
-                 port_timeout = 1):
+    def __init__(self, port_name = "/dev/tty.usbserial-FTE3C0PG", server_port = 5030, logger_port = 4001, port_timeout = .2):
         '''Initialise function: open serial connection.
         '''
         self._port_name = port_name
@@ -223,9 +222,13 @@ class SerialCommand(object):
 
     def __del__(self):
         """Deletion function"""
+        self.disconnect()
+        self.logger.warn("tellie server dropped out")
+
+    def disconnect(self):
+        """Disconnect from USB serial port"""
         if self._serial:
             self._serial.close()
-        self.logger.warn("tellie server dropped out")
 
     def test(self):
         self.logger.notice("Tellie server responding")
@@ -274,7 +277,7 @@ class SerialCommand(object):
             buffer_read = self._serial.read(len(buffer_check))
             attempt = 0
             self.logger.debug("READ: %s\tCHECK: %s" % (buffer_read, buffer_check))
-            while (len(buffer_read) != len(buffer_check)) and attempt<10:
+            while (len(buffer_read) != len(buffer_check)) and attempt<5:
                 self.logger.debug("Didn't read correct no of chars, read again")
                 # First, try reading again
                 time.sleep(0.1)
@@ -908,8 +911,9 @@ def command_append(inputs, values):
 
 if __name__ == "__main__":
     server = SimpleXMLRPCServer(("0.0.0.0", 5030), allow_none=True)
-    
-    server.register_instance(SerialCommand(), allow_dotted_names=True)
+
+    tellieCommands = SerialCommand()
+    server.register_instance(tellieCommands, allow_dotted_names=True)
     
     print "serving..."
     try:
