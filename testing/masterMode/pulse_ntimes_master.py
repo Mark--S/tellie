@@ -63,8 +63,8 @@ if __name__=="__main__":
     #print "PIN %s RMS %s " %(pinDict[channel][0], pinDict[channel][1])
     pinDict = None
     while pinDict == None:
-        pinDict, rmsDict, _ = read_pin()
-    print "PIN %s RMS %s " %(pinDict[channel], rmsDict[channel])
+        pin, rms = read_pin()
+    print "PIN %s RMS %s " %(pin, rms)
     sc.stop()
     
 
