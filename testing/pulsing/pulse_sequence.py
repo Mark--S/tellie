@@ -26,7 +26,7 @@ if __name__=="__main__":
     delay = float(sys.argv[2])
     number = int(sys.argv[3])
     channel = int(sys.argv[4])
-    sc = SerialCommand("/dev/ttyUSBO")
+    sc = SerialCommand("/dev/ttyUSB0")
     sc.stop()
     sc.select_channel(channel)
     sc.set_trigger_delay(0)

@@ -34,7 +34,11 @@ if __name__=="__main__":
     print width#, rate
     sc = SerialCommand(port_name="/dev/ttyUSB0")
     sc.stop()
+    print "SELECTED CHANNEL"
+    time.sleep(5)
     sc.select_channel(channel)
+    print "SELECTED CHANNEL"
+    time.sleep(5)
     sc.set_pulse_height(16383)
     sc.set_pulse_width(width)
     sc.set_pulse_number(10000)
@@ -52,7 +56,7 @@ if __name__=="__main__":
         sc.disable_external_trigger()
         sc.stop()
         print "PIN: %s " % pin
-        print "___: %s" % __
+        print "rms %s" % __
     except Exception,e:
         safe_exit(sc,e)
     except KeyboardInterrupt:
