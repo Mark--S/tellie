@@ -191,6 +191,8 @@ class SerialCommand(object):
             raise tellie_exception.TellieSerialException(e)
 
         # Cache current settings - remove need to re-command where possible
+        #Disable external trigger before we do anything
+        self.disable_external_trigger()
         # Channel specific settings
         self._channel = [] #always a list
         self._current_pulse_width = [-999]*96
@@ -477,6 +479,7 @@ class SerialCommand(object):
 
     def stop(self):
         """Stop firing tellie"""
+        self.disable_external_trigger()
         self.logger.debug("Stop firing!")
         self._send_command(_cmd_stop, False)
         buffer_contents = self._serial.read(100)
