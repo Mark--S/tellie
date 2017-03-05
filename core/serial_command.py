@@ -442,21 +442,30 @@ class SerialCommand(object):
         self.logger.debug("Read PINOUT sequence")            
         if self._firing is not True:
             raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
-        pattern = re.compile(r"""\d+""")
         output = self._serial.read(100)
-        self.logger.debug("BUFFER: %s" % output)
-        numbers = pattern.findall(output)
-        if len(numbers) == 1:
-            pin, rms = numbers[0], 0.
-        elif len(numbers) == 3:
-            pin, rms = numbers[0], "%s.%s" % (numbers[1],numbers[2])
+        
+        if _snotDaqLog == True:
+            self.logger.log(logger.DEBUG, "BUFFER: %s" % output)
         else:
+            self.logger.debug("BUFFER: %s" % output)
+        numbers = output.split()
+        if len(numbers) == 0:
+            self.logger.debug("Sequence doesn't appear to have finished..")
+            return None, None, None
+        elif len(numbers) == 2:
+            try:
+                pin = float(numbers[0])
+                rms = float(numbers[1])
+            except:
+                self.logger.warn("Unable to convert numbers to floats Numbers: %s Buffer: %s",str(numbers),output)
+                return None, None, None
+
+        else:
+            self.logger.warn("Bad number of PIN readouts: %s %s" % (len(numbers), numbers))
             return None, None, None
         self._firing = False
         value_dict = {self._channel[0]: pin}
         rms_dict = {self._channel[0]: rms}
-
-        #return value_dict, rms_dict, self._channel
         return pin, rms, self._channel
 
     def check_ready(self):
