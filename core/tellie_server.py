@@ -153,8 +153,8 @@ _cmd_temp_select_upper = "f"
 _cmd_temp_read_upper = "k"
 _cmd_disable_ext_trig = "B"
 _cmd_enable_ext_trig = "A"
-_cmd_fire_average_ext_trig_lower = "p"
-_cmd_fire_average_ext_trig_upper = "b"
+_cmd_fire_average_ext_trig_lower = "b"
+_cmd_fire_average_ext_trig_upper = "p"
 _cmd_fire_ext_trig = "F"
 
 class SerialCommand(object):
@@ -191,6 +191,8 @@ class SerialCommand(object):
             raise tellie_exception.TellieSerialException(e)
 
         # Cache current settings - remove need to re-command where possible
+        #Disable external trigger before we do anything
+        self.disable_external_trigger()
         # Channel specific settings
         self._channel = [] #always a list
         self._current_pulse_width = [-999]*96
@@ -399,7 +401,7 @@ class SerialCommand(object):
         if self._firing is True:
             self.logger.warn("Cannot set trigger_averaged, already in firing mode.")
             return
-        if self._channel <= 56: #up to box 7
+        if self._channel[0] <= 56: #up to box 7
             cmd = _cmd_fire_average_ext_trig_lower
         else:
             cmd = _cmd_fire_average_ext_trig_upper
@@ -477,6 +479,7 @@ class SerialCommand(object):
 
     def stop(self):
         """Stop firing tellie"""
+        self.disable_external_trigger()
         self.logger.debug("Stop firing!")
         self._send_command(_cmd_stop, False)
         buffer_contents = self._serial.read(100)
@@ -550,20 +553,24 @@ class SerialCommand(object):
         self.logger.debug("Read PINOUT sequence")            
         if self._firing is not True:
             raise TellieException("Cannot read pin, not in firing mode")
-        pattern = re.compile(r"""\d+""")
         output = self._serial.read(100)
+        
         if _snotDaqLog == True:
             self.logger.log(logger.DEBUG, "BUFFER: %s" % output)
         else:
             self.logger.debug("BUFFER: %s" % output)
-        numbers = pattern.findall(output)
+        numbers = output.split()
         if len(numbers) == 0:
             self.logger.debug("Sequence doesn't appear to have finished..")
             return None
-        if len(numbers) == 1:
-            pin, rms = numbers[0], 0.
-        elif len(numbers) == 3:
-            pin, rms = numbers[0], "%s.%s" % (numbers[1], numbers[2])
+        elif len(numbers) == 2:
+            try:
+                pin = float(numbers[0])
+                rms = float(numbers[1])
+            except:
+                self.logger.warn("Unable to convert numbers to floats Numbers: %s Buffer: %s",str(numbers),output)
+                return 1
+
         else:
             self.logger.warn("Bad number of PIN readouts: %s %s" % (len(numbers), numbers))
             return 1
