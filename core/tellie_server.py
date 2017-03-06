@@ -359,6 +359,7 @@ class SerialCommand(object):
         self._serial.setRTS(False)
         # close the port and reopen?
         time.sleep(1.0)
+        self.disable_external_trigger()
 
     def enable_external_trig(self, while_fire=False):
         """Tell TELLIE to fire on any external trigger.
@@ -562,18 +563,18 @@ class SerialCommand(object):
         numbers = output.split()
         if len(numbers) == 0:
             self.logger.debug("Sequence doesn't appear to have finished..")
-            return None
+            return None, None, None
         elif len(numbers) == 2:
             try:
                 pin = float(numbers[0])
                 rms = float(numbers[1])
             except:
                 self.logger.warn("Unable to convert numbers to floats Numbers: %s Buffer: %s",str(numbers),output)
-                return 1
+                return None, None, None
 
         else:
             self.logger.warn("Bad number of PIN readouts: %s %s" % (len(numbers), numbers))
-            return 1
+            return None, None, None
         self._firing = False
         value_dict = {self._channel[0]: pin}
         rms_dict = {self._channel[0]: rms}
