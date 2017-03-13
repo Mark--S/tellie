@@ -97,8 +97,6 @@ class SerialCommand(object):
             raise tellie_exception.TellieSerialException(e)
 
         # Cache current settings - remove need to re-command where possible
-        #Disable external trigger before we do anything
-        self.disable_external_trigger()
         # Channel specific settings
         self._channel = [] #always a list
         self._current_pulse_width = [-999]*96
@@ -133,6 +131,7 @@ class SerialCommand(object):
 
     def __del__(self):
         """Deletion function"""
+        self.reset()
         if self._serial:
             self._send_command(_cmd_disable_ext_trig) # Stop accecpting external trigs
             self._serial.close()
@@ -252,6 +251,7 @@ class SerialCommand(object):
         self._serial.setRTS(False)
         # close the port and reopen?
         time.sleep(3.0)
+        self.disable_external_trigger()
 
     def enable_external_trig(self, while_fire=False):
         """Tell TELLIE to fire on any external trigger.
@@ -299,7 +299,7 @@ class SerialCommand(object):
         """Fire tellie, place class into firing mode.
         Can send a fire command while already in fire mode if required."""
         self.logger.debug("Fire!")
-
+        self.disable_external_trigger()
         if self._firing is True and while_fire is False:
             raise tellie_exception.TellieException("Cannot fire, already in firing mode")
         self.check_ready()
@@ -320,6 +320,7 @@ class SerialCommand(object):
         """Fire in sequence mode, can only be done for a single channel.
         """
         self.logger.debug("Fire sequence!")
+        self.disable_external_trigger()
         if len(self._channel)!=1:
             raise tellie_exception.TellieException("Cannot fire with >1 channel")
         self.check_ready()
@@ -335,6 +336,7 @@ class SerialCommand(object):
     def fire_single(self):
         """Fire single pulse
         """
+        self.disable_external_trigger()
         if self._firing is True:
             raise tellie_exception.TellieException("Cannot fire, already in firing mode")
         if self._channel <= 56: #up to box 7
@@ -351,6 +353,7 @@ class SerialCommand(object):
     def fire_continuous(self):
         """Fire Tellie in continous mode.
         """
+        self.disable_external_trigger()
         if self._firing is True:
             raise tellie_exception.TellieException("Cannot fire, already in firing mode")
         self._send_command(_cmd_fire_continuous, False)

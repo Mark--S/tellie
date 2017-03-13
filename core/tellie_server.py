@@ -191,7 +191,6 @@ class SerialCommand(object):
             raise tellie_exception.TellieSerialException(e)
 
         # Cache current settings - remove need to re-command where possible
-        #Disable external trigger before we do anything
         # Channel specific settings
         self._channel = [] #always a list
         self._current_pulse_width = [-999]*96
@@ -434,8 +433,8 @@ class SerialCommand(object):
     def fire_sequence(self, while_fire=False):
         """Fire in sequence mode, can only be done for a single channel.
         """
-        self.disable_external_trigger()
         self.logger.debug("Fire sequence!")
+        self.disable_external_trigger()
         if len(self._channel)!=1:
             self.logger.warn("Cannot fire with >1 channel")
             return 0
