@@ -161,7 +161,7 @@ class SerialCommand(object):
     """Contains a serial command object.
     """
 
-    def __init__(self, port_name = "/dev/tty.usbserial-FTE3C0PG", server_port = 5030, logger_port = 4001, port_timeout = .2):
+    def __init__(self, port_name = "/dev/ttyUSB0", server_port = 5030, logger_port = 4001, port_timeout = .2):
         '''Initialise function: open serial connection.
         '''
         self._port_name = port_name
@@ -192,7 +192,6 @@ class SerialCommand(object):
 
         # Cache current settings - remove need to re-command where possible
         #Disable external trigger before we do anything
-        self.disable_external_trigger()
         # Channel specific settings
         self._channel = [] #always a list
         self._current_pulse_width = [-999]*96
@@ -224,6 +223,7 @@ class SerialCommand(object):
 
     def __del__(self):
         """Deletion function"""
+        self.reset()
         self.disconnect()
         self.logger.warn("tellie server dropped out")
 
@@ -302,6 +302,7 @@ class SerialCommand(object):
                     self._send_command(command, readout, buffer_check, sleep_after_command)
                 message = "Unexpected buffer output:\nsaw: %s, remainder %s\nexpected: %s\n" % (buffer_read, remainder, buffer_check)
                 self.logger.warn(message)
+                self.reset()
                 raise TellieException(message)
             else:
                 self.logger.debug("success reading buffer: %s" % buffer_read)
@@ -413,7 +414,7 @@ class SerialCommand(object):
         """Fire tellie, place class into firing mode.
         Can send a fire command while already in fire mode if required."""
         self.logger.debug("Fire!")
-
+        self.disable_external_trigger()
         if self._firing is True and while_fire is False:
             raise TellieException("Cannot fire, already in firing mode")
         self.check_ready()
@@ -433,6 +434,7 @@ class SerialCommand(object):
     def fire_sequence(self, while_fire=False):
         """Fire in sequence mode, can only be done for a single channel.
         """
+        self.disable_external_trigger()
         self.logger.debug("Fire sequence!")
         if len(self._channel)!=1:
             self.logger.warn("Cannot fire with >1 channel")
@@ -453,6 +455,7 @@ class SerialCommand(object):
     def fire_single(self):
         """Fire single pulse
         """
+        self.disable_external_trigger()
         if self._firing is True:
             raise TellieException("Cannot fire, already in firing mode")
         if self._channel <= 56: #up to box 7
@@ -469,6 +472,7 @@ class SerialCommand(object):
     def fire_continuous(self):
         """Fire Tellie in continous mode.
         """
+        self.disable_external_trigger()
         if self._firing is True:
             raise TellieException("Cannot fire, already in firing mode")
         self._send_command(_cmd_fire_continuous, False)

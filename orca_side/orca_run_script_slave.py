@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import xmlrpclib
+import time
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser("Usage: orca_script.py <options>")
@@ -24,11 +25,14 @@ if __name__=="__main__":
         # But feedback needed for user (e.g. exact pulse number may not be possible)
 	#tellie_server.reset()
         tellie_server.select_channel(args.channel)
-        tellie_server.init_channel(args.channel, args.pulse_number, args.trigger_delay,
-                                   args.pulse_width, args.pulse_height, args.fibre_delay)
-        tellie_server.enable_external_trigger()
-	tellie_server.trigger_averaged(True)
-	tellie_server.diable_external_trigger()
+        tellie_server.set_pulse_number(int(args.pulse_number))
+        tellie_server.set_trigger_delay(int(args.trigger_delay))
+        tellie_server.set_pulse_width(int(args.pulse_width))
+        tellie_server.set_pulse_height(int(args.pulse_height))
+        tellie_server.set_fibre_delay(float(args.fibre_delay))
+        tellie_server.enable_external_trig()
+        print "Trigger Averaged"
+	tellie_server.trigger_averaged()
 	try: 
 	    print "Waiting for sequence to finish..."
             while (mean == -1):
@@ -42,6 +46,7 @@ if __name__=="__main__":
 	    tellie_server.stop()
     except xmlrpclib.Fault, e:
         # Attempt a safe stop and inform in the return type as to the success?
+        print "Exception %s " % e
         tellie_server.stop()
     print "Chan %s Mean %f RMS %f" %(chan,mean,rms)
         
