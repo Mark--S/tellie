@@ -1,5 +1,5 @@
 ### sends a continuous pulse
-from core import serial_command
+from core.tellie_server import SerialCommand
 import sys
 
 def safe_exit(sc,e):
@@ -8,12 +8,25 @@ def safe_exit(sc,e):
     sc.stop()
     sys.exit()
 
+def read_pin():
+    '''Wait keep looking for pin. It will be retuned when the sequence ends
+    '''
+    pin, rms = None, None
+    try:
+        while (pin == None):
+            pin, rms, channel = sc.read_pin_sequence()
+    except KeyboardInterrupt:
+        print "Keyboard interrupt"
+    except TypeError:
+        pin, rms = read_pin()
+    return int(pin), float(rms)
+
 if __name__=="__main__":
     width = int(sys.argv[1])
     delay = float(sys.argv[2])
     number = int(sys.argv[3])
     channel = int(sys.argv[4])
-    sc = serial_command.SerialCommand("/dev/tty.usbserial-FTGA2OCZ")
+    sc = SerialCommand("/dev/ttyUSB0")
     sc.stop()
     sc.select_channel(channel)
     sc.set_trigger_delay(0)
@@ -28,9 +41,7 @@ if __name__=="__main__":
 
     mean = None
     try:
-        print "Waiting for sequence to finish..."
-        while (mean == None):
-            mean, rms, chan = sc.read_pin_sequence()
+        mean, rms = read_pin()
     except Exception,e:
         safe_exit(sc,e)
     except KeyboardInterrupt:

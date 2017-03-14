@@ -1,7 +1,8 @@
 ### sends a continuous pulse
-from core import serial_command
+#from core import serial_command
+from core.tellie_server import SerialCommand
 import sys
-
+import time 
 def safe_exit(sc,e):
     print "Exit safely"
     print e
@@ -15,9 +16,13 @@ if __name__=="__main__":
     #rate = float(rate)
     channel = int(channel)
     print width#, rate
-    sc = serial_command.SerialCommand("/dev/tty.usbserial-FTGA2OCZ")
-    sc.stop()
+    sc = SerialCommand(port_name="/dev/ttyUSB0")
+    #sc.stop()
+    print "SELECTING CHANNEL"
+    time.sleep(5)
     sc.select_channel(channel)
+    print "SELECTED CHANNEL"
+    time.sleep(5)
     sc.set_pulse_height(16383)
     sc.set_pulse_width(width)
     #sc.set_pulse_delay(rate)
