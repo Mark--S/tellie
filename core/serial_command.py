@@ -178,7 +178,7 @@ class SerialCommand(object):
             while (len(buffer_read) != len(buffer_check)) and attempt<10:
                 print "read again"
                 # First, try reading again
-                time.sleep(0.1)
+                time.sleep(0.2)
                 buffer_read += self._serial.read(len(buffer_check))
                 attempt += 1
 

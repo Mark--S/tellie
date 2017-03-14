@@ -17,7 +17,7 @@ if __name__=="__main__":
     channel = int(channel)
     print width#, rate
     sc = SerialCommand(port_name="/dev/ttyUSB0")
-    sc.stop()
+    #sc.stop()
     print "SELECTING CHANNEL"
     time.sleep(5)
     sc.select_channel(channel)
