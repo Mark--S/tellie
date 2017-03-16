@@ -161,7 +161,7 @@ class SerialCommand(object):
     """Contains a serial command object.
     """
 
-    def __init__(self, port_name = "/dev/ttyUSB0", server_port = 5030, logger_port = 4001, port_timeout = .2):
+    def __init__(self, port_name = "COM20", server_port = 5030, logger_port = 4001, port_timeout = 0.2):
         '''Initialise function: open serial connection.
         '''
         self._port_name = port_name
@@ -185,7 +185,7 @@ class SerialCommand(object):
         # Set up serial connection to tellie
         self._serial = None
         try:
-            self._serial = serial.Serial(port=self._port_name, timeout=self._port_timeout)
+            self._serial = serial.Serial(port=self._port_name,timeout=self._port_timeout)
             self.logger.debug("Serial connection open: %s" % self._serial)
         except serial.SerialException, e:
             raise tellie_exception.TellieSerialException(e)
@@ -483,10 +483,10 @@ class SerialCommand(object):
 
     def stop(self):
         """Stop firing tellie"""
-        self.disable_external_trigger()
         self.logger.debug("Stop firing!")
         self._send_command(_cmd_stop, False)
         buffer_contents = self._serial.read(100)
+        self.disable_external_trigger()
         self._firing = False
         return buffer_contents
 
@@ -566,18 +566,18 @@ class SerialCommand(object):
         numbers = output.split()
         if len(numbers) == 0:
             self.logger.debug("Sequence doesn't appear to have finished..")
-            return None, None, None
+            return None
         elif len(numbers) == 2:
             try:
                 pin = float(numbers[0])
                 rms = float(numbers[1])
             except:
                 self.logger.warn("Unable to convert numbers to floats Numbers: %s Buffer: %s",str(numbers),output)
-                return None, None, None
+                return None
 
         else:
             self.logger.warn("Bad number of PIN readouts: %s %s" % (len(numbers), numbers))
-            return None, None, None
+            return None
         self._firing = False
         value_dict = {self._channel[0]: pin}
         rms_dict = {self._channel[0]: rms}
