@@ -20,62 +20,14 @@
 import serial
 import tellie_exception
 import re
-import sys
 import time
-from common import parameters
+from common import parameters as p
 _snotDaqLog = False
 try:
     from snotdaq import logger
     _snotDaqLog = True
 except ImportError:
     from common import tellie_logger
-
-
-_max_pulse_height = 16383
-_max_pulse_width = 16383
-_max_lo = 255.
-_max_pulse_delay = 256.020
-_min_pulse_delay = 0.1
-_max_trigger_delay = 1275
-_max_fibre_delay = 127.5
-_max_pulse_number = 65025
-_max_pulse_number_upper = 255
-_max_pulse_number_lower = 255
-_max_temp_probe = 64
-
-_cmd_fire_continuous = "a"
-_cmd_read_single_lower = "r"
-_cmd_read_single_upper = "m"
-_cmd_fire_average_lower = "s"
-_cmd_fire_average_upper = "U"
-_cmd_fire_series = "g"
-_buffer_end_sequence = "K"
-_cmd_stop = "X"
-_cmd_channel_clear = "C"
-_cmd_channel_select_single_start = "I"
-_cmd_channel_select_single_end = "N"
-_cmd_channel_select_many_start = "J"
-_cmd_channel_select_many_end = "E"
-_cmd_pulse_height_hi = "L"
-_cmd_pulse_height_lo = "M"
-_cmd_pulse_height_end = "P"
-_cmd_pulse_width_hi = "Q"
-_cmd_pulse_width_lo = "R"
-_cmd_pulse_width_end = "S"
-_cmd_pulse_number_hi = "H"
-_cmd_pulse_number_lo = "G"
-_cmd_pulse_delay = "u"
-_cmd_trigger_delay = "d"
-_cmd_fibre_delay = "e"
-_cmd_temp_select_lower = "n"
-_cmd_temp_read_lower = "T"
-_cmd_temp_select_upper = "f"
-_cmd_temp_read_upper = "k"
-_cmd_disable_ext_trig = "B"
-_cmd_enable_ext_trig = "A"
-_cmd_fire_average_ext_trig_lower = "b"
-_cmd_fire_average_ext_trig_upper = "p"
-_cmd_fire_ext_trig = "F"
 
 class SerialCommand(object):
     """Contains a serial command object.
@@ -84,13 +36,13 @@ class SerialCommand(object):
     def __init__(self, port_name=None, port_timeout=None):
         """Initialise the serial command"""
         if not port_name:
-            self._port_name = "/dev/ttyUSB0"
+            self._port_name = p._port_name
         else:
             self.logger = tellie_logger.TellieLogger.get_instance()
             self._port_name = port_name
             
         if not port_timeout:
-            self._port_timeout = 0
+            self._port_timeout = p._port_timeout
         else:
             self._port_timeout = port_timeout
 
@@ -145,11 +97,11 @@ class SerialCommand(object):
     def _check_clear_buffer(self):
         """Many commands expect an empty buffer, fail if they are not!
         """
-        buffer_read = self._serial.read(100)
+        buffer_read = self._serial.read(p._read_bytes)
         if buffer_read != "":
             raise tellie_exception.TellieException("Buffer not clear: %s" % (buffer_read))
 
-    def _send_command(self, command, readout=True, buffer_check=None, sleep_after_command=0.1):
+    def _send_command(self, command, readout=True, buffer_check=None, sleep_after_command=p._short_pause):
         """Send a command to the serial port.
         Command can be a chr/str (single write) or a list.
         Lists are used for e.g. a high/low bit command where
@@ -184,20 +136,20 @@ class SerialCommand(object):
             while (len(buffer_read) != len(buffer_check)) and attempt<10:
                 print "read again"
                 # First, try reading again
-                time.sleep(0.2)
+                time.sleep(p._short_pause)
                 buffer_read += self._serial.read(len(buffer_check))
                 attempt += 1
 
             if str(buffer_read)!=str(buffer_check):
                 self.logger.debug("problem reading buffer, send %s, read %s" % (command, buffer_read))
                 #clear anything else that might be in there
-                time.sleep(0.1)
-                remainder = self._serial.read(100)
+                time.sleep(p._short_pause)
+                remainder = self._serial.read(p._read_bytes)
                 self._serial.write("X") # send a stop
-                time.sleep(0.1)
+                time.sleep(p._short_pause)
                 self._serial.write("C") # send a clear
-                time.sleep(0.1)
-                self._serial.read(100)
+                time.sleep(p._short_pause)
+                self._serial.read(p._read_bytes)
                 message = "Unexpected buffer output:\nsaw: %s, remainder %s\nexpected: %s" % (buffer_read, remainder, buffer_check)
                 self.logger.warn(message)
                 raise tellie_exception.TellieException(message)
@@ -253,10 +205,10 @@ class SerialCommand(object):
 
         self._serial.setRTS(True)
         # sleep, just in case
-        time.sleep(3.0)
+        time.sleep(p._long_pause)
         self._serial.setRTS(False)
         # close the port and reopen?
-        time.sleep(3.0)
+        time.sleep(p._long_pause)
         self.disable_external_trigger()
 
     def enable_external_trig(self, while_fire=False):
@@ -280,7 +232,7 @@ class SerialCommand(object):
         #    cmd = _cmd_fire_single_upper
         self._send_command(_cmd_fire_ext_trig, False)
         self._firing = True
-        time.sleep(0.1)
+        time.sleep(p._short_pause)
         pin = self.read_pin(self._channel[0])
         while not pin:
             pin = self.read_pin(self._channel[0])
@@ -366,7 +318,7 @@ class SerialCommand(object):
         self._firing = True
         self._force_setting = False
 
-    def read_buffer(self, n=100):
+    def read_buffer(self, n=p._read_bytes):
         return self._serial.read(n)
 
     def stop(self):
@@ -375,17 +327,17 @@ class SerialCommand(object):
         #Disable external trigger before we do anything
         self.disable_external_trigger()
         self._send_command(_cmd_stop, False)
-        buffer_contents = self._serial.read(100)
+        buffer_contents = self._serial.read(p._read_bytes)
         self._firing = False
         return buffer_contents
 
-    def read_pin(self, channel=None, timeout=2.0, final=True):
+    def read_pin(self, channel=None, timeout=p._long_pause, final=True):
         """Read the pin diode output, should always follow a fire command,
         Provide channel number to select specific channel, otherwise, receive dict of all channels"""
         self.logger.debug("Read PINOUT")
         #if in firing mode, check the buffer shows the sequence has ended
         if self._firing:
-            if self._serial.read(100) == _buffer_end_sequence:
+            if self._serial.read(p._read_bytes) == _buffer_end_sequence:
                 print "K in buffer"
                 self._firing = False
             else:
@@ -411,11 +363,11 @@ class SerialCommand(object):
             start = time.time()
             pin = []
             while (time.time()-start)<timeout:
-                output = self._serial.read(100)
+                output = self._serial.read(p._read_bytes)
                 pin = pattern.findall(output)
                 if len(pin):
                     break
-                time.sleep(0.1)
+                time.sleep(p._short_pause)
             if len(pin)==1:
 		pin.append(0)
 		pin.append(0)
@@ -451,7 +403,7 @@ class SerialCommand(object):
         self.logger.debug("Read PINOUT sequence")            
         if self._firing is not True:
             raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
-        output = self._serial.read(100)
+        output = self._serial.read(p._read_bytes)
         
         if _snotDaqLog == True:
             self.logger.log(logger.DEBUG, "BUFFER: %s" % output)
@@ -677,7 +629,7 @@ class SerialCommand(object):
             self.read_temp()
         return 0
 
-    def read_temp(self, timeout=1.0):
+    def read_temp(self, timeout=p._long_pause):
         """Read the temperature"""
         if not self._current_temp_probe:
             raise tellie_exception.TellieException("Cannot read temp: no probe selected")
@@ -694,7 +646,7 @@ class SerialCommand(object):
         temp = None
         start = time.time()
         while not temp:
-            output = self._serial.read(100)
+            output = self._serial.read(p._read_bytes)
             self.logger.debug("Buffer: %s" % output)
             temp = pattern.findall(output)
             if time.time() - start > timeout:
@@ -729,7 +681,7 @@ class SerialCommand(object):
         if self._firing is not True:
             raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
         pattern = re.compile(r"""\d+""")
-        output = self._serial.read(100)
+        output = self._serial.read(p._read_bytes)
         print output
         self.logger.debug("BUFFER: %s" % output)
         numbers = pattern.findall(output)
@@ -756,7 +708,7 @@ class SerialCommand(object):
         if self._firing is not True:
             raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
         pattern = re.compile(r"""\d+""")
-        output = self._serial.read(100)
+        output = self._serial.read(p._read_bytes)
         self.logger.debug("BUFFER: %s" % output)
         numbers = pattern.findall(output)
         pin, rms = numbers[0], "%s.%s" % (numbers[1],numbers[2])
@@ -845,7 +797,7 @@ def command_pulse_number(par):
     if par > _max_pulse_number or par < 0:
         raise tellie_exception.TellieException("Invalid pulse number: %s" % (par))
     par = int(par)
-    adjusted, actual_par, hi, lo = parameters.pulse_number(par)
+    adjusted, actual_par, hi, lo = p.pulse_number(par)
     if adjusted is True:
         raise tellie_exception.TellieException("Invalid pulse number: %s" % (par))
     command = [_cmd_pulse_number_hi+chr(hi)]
@@ -879,7 +831,7 @@ def command_fibre_delay(par):
     """Get the command to set a fibre delay"""
     if par > _max_fibre_delay or par < 0:
         raise tellie_exception.TellieException("Invalid fibre delay: %s" % par)
-    adjusted, adj_delay, setting = parameters.fibre_delay(par)
+    adjusted, adj_delay, setting = p.fibre_delay(par)
     print "COMMAND", par, adjusted, adj_delay, setting
     if adjusted is True:
         raise tellie_exception.TellieException("Invalid delay: %s" % (par))
