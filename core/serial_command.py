@@ -748,7 +748,6 @@ class SerialCommand(object):
         value_dict = {self._channel[0]: pin}
         rms_dict = {self._channel[0]: rms}
         return value_dict, rms_dict, self._channel
-#>>>>>>> upstream/master
 
 
 class SNO6C(SerialCommand):
