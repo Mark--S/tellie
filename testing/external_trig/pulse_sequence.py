@@ -1,5 +1,5 @@
 ### sends a continuous pulse
-from core import serial_command
+from core.tellie_server import SerialCommand
 import sys
 
 def safe_exit(sc,e):
@@ -16,7 +16,7 @@ if __name__=="__main__":
     number = int(number)
     channel = int(channel)
     #print width,number,channel
-    sc = serial_command.SerialCommand("/dev/tty.usbserial-FTGA2OCZ")
+    sc = SerialCommand("/dev/ttyUSB0")
     sc.stop()
     sc.select_channel(channel)
     sc.set_pulse_height(16383)

@@ -153,16 +153,15 @@ _cmd_temp_select_upper = "f"
 _cmd_temp_read_upper = "k"
 _cmd_disable_ext_trig = "B"
 _cmd_enable_ext_trig = "A"
-_cmd_fire_average_ext_trig_lower = "p"
-_cmd_fire_average_ext_trig_upper = "b"
+_cmd_fire_average_ext_trig_lower = "b"
+_cmd_fire_average_ext_trig_upper = "p"
 _cmd_fire_ext_trig = "F"
 
 class SerialCommand(object):
     """Contains a serial command object.
     """
 
-    def __init__(self, port_name = "/dev/tty.usbserial-FTE3C0PG", server_port = 5030, logger_port = 4001,
-                 port_timeout = 0.3):
+    def __init__(self, port_name = "/dev/ttyUSB0", server_port = 5030, logger_port = 4001, port_timeout = .2):
         '''Initialise function: open serial connection.
         '''
         self._port_name = port_name
@@ -223,9 +222,14 @@ class SerialCommand(object):
 
     def __del__(self):
         """Deletion function"""
+        self.reset()
+        self.disconnect()
+        self.logger.warn("tellie server dropped out")
+
+    def disconnect(self):
+        """Disconnect from USB serial port"""
         if self._serial:
             self._serial.close()
-        self.logger.warn("tellie server dropped out")
 
     def test(self):
         self.logger.notice("Tellie server responding")
@@ -274,10 +278,10 @@ class SerialCommand(object):
             buffer_read = self._serial.read(len(buffer_check))
             attempt = 0
             self.logger.debug("READ: %s\tCHECK: %s" % (buffer_read, buffer_check))
-            while (len(buffer_read) != len(buffer_check)) and attempt<10:
+            while (len(buffer_read) != len(buffer_check)) and attempt<5:
                 self.logger.debug("Didn't read correct no of chars, read again")
                 # First, try reading again
-                time.sleep(0.1)
+                time.sleep(0.2)
                 buffer_read += self._serial.read(len(buffer_check))
                 attempt += 1
 
@@ -297,6 +301,7 @@ class SerialCommand(object):
                     self._send_command(command, readout, buffer_check, sleep_after_command)
                 message = "Unexpected buffer output:\nsaw: %s, remainder %s\nexpected: %s\n" % (buffer_read, remainder, buffer_check)
                 self.logger.warn(message)
+                self.reset()
                 raise TellieException(message)
             else:
                 self.logger.debug("success reading buffer: %s" % buffer_read)
@@ -354,6 +359,7 @@ class SerialCommand(object):
         self._serial.setRTS(False)
         # close the port and reopen?
         time.sleep(1.0)
+        self.disable_external_trigger()
 
     def enable_external_trig(self, while_fire=False):
         """Tell TELLIE to fire on any external trigger.
@@ -396,7 +402,7 @@ class SerialCommand(object):
         if self._firing is True:
             self.logger.warn("Cannot set trigger_averaged, already in firing mode.")
             return
-        if self._channel <= 56: #up to box 7
+        if self._channel[0] <= 56: #up to box 7
             cmd = _cmd_fire_average_ext_trig_lower
         else:
             cmd = _cmd_fire_average_ext_trig_upper
@@ -407,7 +413,7 @@ class SerialCommand(object):
         """Fire tellie, place class into firing mode.
         Can send a fire command while already in fire mode if required."""
         self.logger.debug("Fire!")
-
+        self.disable_external_trigger()
         if self._firing is True and while_fire is False:
             raise TellieException("Cannot fire, already in firing mode")
         self.check_ready()
@@ -428,6 +434,7 @@ class SerialCommand(object):
         """Fire in sequence mode, can only be done for a single channel.
         """
         self.logger.debug("Fire sequence!")
+        self.disable_external_trigger()
         if len(self._channel)!=1:
             self.logger.warn("Cannot fire with >1 channel")
             return 0
@@ -447,6 +454,7 @@ class SerialCommand(object):
     def fire_single(self):
         """Fire single pulse
         """
+        self.disable_external_trigger()
         if self._firing is True:
             raise TellieException("Cannot fire, already in firing mode")
         if self._channel <= 56: #up to box 7
@@ -463,6 +471,7 @@ class SerialCommand(object):
     def fire_continuous(self):
         """Fire Tellie in continous mode.
         """
+        self.disable_external_trigger()
         if self._firing is True:
             raise TellieException("Cannot fire, already in firing mode")
         self._send_command(_cmd_fire_continuous, False)
@@ -474,6 +483,7 @@ class SerialCommand(object):
 
     def stop(self):
         """Stop firing tellie"""
+        self.disable_external_trigger()
         self.logger.debug("Stop firing!")
         self._send_command(_cmd_stop, False)
         buffer_contents = self._serial.read(100)
@@ -547,23 +557,27 @@ class SerialCommand(object):
         self.logger.debug("Read PINOUT sequence")            
         if self._firing is not True:
             raise TellieException("Cannot read pin, not in firing mode")
-        pattern = re.compile(r"""\d+""")
         output = self._serial.read(100)
+        
         if _snotDaqLog == True:
             self.logger.log(logger.DEBUG, "BUFFER: %s" % output)
         else:
             self.logger.debug("BUFFER: %s" % output)
-        numbers = pattern.findall(output)
+        numbers = output.split()
         if len(numbers) == 0:
             self.logger.debug("Sequence doesn't appear to have finished..")
-            return None
-        if len(numbers) == 1:
-            pin, rms = numbers[0], 0.
-        elif len(numbers) == 3:
-            pin, rms = numbers[0], "%s.%s" % (numbers[1], numbers[2])
+            return None, None, None
+        elif len(numbers) == 2:
+            try:
+                pin = float(numbers[0])
+                rms = float(numbers[1])
+            except:
+                self.logger.warn("Unable to convert numbers to floats Numbers: %s Buffer: %s",str(numbers),output)
+                return None, None, None
+
         else:
             self.logger.warn("Bad number of PIN readouts: %s %s" % (len(numbers), numbers))
-            return 1
+            return None, None, None
         self._firing = False
         value_dict = {self._channel[0]: pin}
         rms_dict = {self._channel[0]: rms}
@@ -908,8 +922,9 @@ def command_append(inputs, values):
 
 if __name__ == "__main__":
     server = SimpleXMLRPCServer(("0.0.0.0", 5030), allow_none=True)
-    
-    server.register_instance(SerialCommand(), allow_dotted_names=True)
+
+    tellieCommands = SerialCommand()
+    server.register_instance(tellieCommands, allow_dotted_names=True)
     
     print "serving..."
     try:
