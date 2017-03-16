@@ -81,7 +81,7 @@ class SerialCommand(object):
     """Contains a serial command object.
     """
 
-    def __init__(self, port_name=None, port_timeout=None):
+    def __init__(self, port_name=None, port_timeout=0):
         """Initialise the serial command"""
         if not port_name:
             self._port_name = "/dev/ttyUSB0"
