@@ -22,14 +22,13 @@ def log_message(message, log_file=None, colour=None):
     '''
     curtime = time.strftime("%Y/%m/%d-%H:%M:%S")
     output = curtime + ": " + message
-    '''if log_file is not None:
+    if log_file is not None:
         curday = time.strftime("_%Y_%m_%d")
         log_file = log_file + curday + '.log'
         f = open(log_file, 'a')
         f.write(output + '\n')
     if colour is not None:
         output = colour + output + '\033[0m'
-	'''
     print output
 
 
