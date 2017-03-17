@@ -19,7 +19,6 @@
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 import serial
 import tellie_exception
-import tellie_logger
 import re
 import sys
 import time
@@ -27,7 +26,7 @@ import math
 _snotDaqLog = False
 try:
     from snotdaq import logger
-    _snotDaqLog = False
+    _snotDaqLog = True
 except ImportError:
     from common import tellie_logger
 
@@ -171,6 +170,7 @@ class SerialCommand(object):
         # Set up logger stuff.
         if _snotDaqLog:
             self.logger = logger.Logger()
+            self.logger.set_verbosity(2)
             try:
                 self.logger.connect('tellie', 'minard', self._logger_port)
             except Exception as e:
