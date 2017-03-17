@@ -324,7 +324,7 @@ class SerialCommand(object):
 
     def disable_external_trigger(self):
         """Disable the external trigger"""
-        self._send_command(command=p._cmd_disable_ext_trig)
+        self._send_command(p._cmd_disable_ext_trig)
 
     def trigger_single(self):
         """Fire single pulse upon receiving an external trigger.

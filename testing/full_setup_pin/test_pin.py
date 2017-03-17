@@ -4,7 +4,7 @@ import ROOT
 from core.tellie_server import SerialCommand
 from common import parameters as p
 
-sc = SerialCommand(port_name=p._serial_port)   # set in tellie.cfg
+sc = SerialCommand(p._serial_port)   # set in tellie.cfg
 
 channels = [5]
 try:

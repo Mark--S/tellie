@@ -16,7 +16,7 @@ if __name__=="__main__":
     #rate = float(rate)     # external trigger
     channel = int(channel)
     #print width
-    sc = SerialCommand(port_name=p._serial_port)
+    sc = SerialCommand(p._serial_port)
     #sc.stop()
     print "SELECTING CHANNEL"
     time.sleep(p._long_pause)

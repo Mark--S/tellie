@@ -1,7 +1,7 @@
 ### sends a continuous pulse
-import sys
 from core.tellie_server import SerialCommand
 from common import parameters as p
+import sys
 
 def safe_exit(sc,e):
     print "Exit safely"
@@ -16,7 +16,7 @@ if __name__=="__main__":
     rate = float(rate)
     channel = int(channel)
     print width,rate
-    sc = SerialCommand(port_name=p._serial_port)   # set in tellie.cfg
+    sc = SerialCommand(p._serial_port)   # set in tellie.cfg
     sc.stop()
     sc.select_channel(channel)
     sc.set_pulse_height(p._max_pulse_height)

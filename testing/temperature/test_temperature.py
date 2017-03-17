@@ -11,7 +11,7 @@ def safe_exit(sc,e):
     sc.stop()
 
 if __name__=="__main__":
-    sc = SerialCommand(port_name=p._serial_port)   # set in tellie.cfg
+    sc = SerialCommand(p._serial_port)   # set in tellie.cfg
     sc.stop()
     logger = tellie_logger.TellieLogger.get_instance()
     logger.set_debug_mode(True)
