@@ -7,8 +7,8 @@
 # channels and IPW settings
 ########################
 
-from core import serial_command
 import time
+from core.tellie_server import SerialCommand
 
 sc = serial_command.SerialCommand()
 offset = 19.6e-6 #additional offset in delay
@@ -19,7 +19,7 @@ def run_settings(n_pulse,chan,delay,width):
     sc.select_channel(chan)
     sc.set_pulse_number(n_pulse)
     sc.set_pulse_delay(delay)
-    sc.set_pulse_height(16383)
+    sc.set_pulse_height(p._max_pulse_height)
     sc.set_pulse_width(width)
     sc.fire()
     time.sleep(t_run)
@@ -59,12 +59,12 @@ if __name__=="__main__":
                 print "\tdelay: %.3f" % delay
 
                 delay_actual = delay * 1e-3 + offset
-                _ = run_settings(n_pulse = 1000,
+                _ = run_settings(n_pulse = p._pulse_num,
                                  chan = chan,
                                  delay = delay,
-                                 width = 16383)
+                                 width = height(p._max_pulse_width))
                 for width in widths:
-                    pin = run_settings(n_pulse = 1000,
+                    pin = run_settings(n_pulse = p._pulse_num,
                                        chan = chan,
                                        delay = delay,
                                        width = width)                    

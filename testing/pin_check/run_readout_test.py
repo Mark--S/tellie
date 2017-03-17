@@ -10,7 +10,8 @@
 
 import time
 import optparse
-from core import serial_command
+from core.tellie_server import SerialCommand
+from common import parameters as p
 
 if __name__=="__main__":
     parser = optparse.OptionParser()
@@ -31,10 +32,10 @@ if __name__=="__main__":
     #setup board
     sc = serial_command.SerialCommand(options.port)
     sc.select_channel(channel)
-    sc.set_pulse_height(16383)
+    sc.set_pulse_height(p._max_pulse_height)
     sc.set_pulse_width(width)
     sc.set_fibre_delay(0)
-    sc.set_pulse_delay(1.0)
+    sc.set_pulse_delay(p._pulse_delay)
     sc.set_trigger_delay(0)    
     sc.set_pulse_number(number)
     #outputs
@@ -47,7 +48,7 @@ if __name__=="__main__":
         pin, rms = None, None
         ntries = 0
         while pin is None:
-            time.sleep(0.1)
+            time.sleep(p._short_pause)
             pin, rms,  _ = sc.read_pin_sequence()
             ntries += 1 
             print ntries, pin
