@@ -81,12 +81,18 @@ class SerialCommand(object):
     """Contains a serial command object.
     """
 
-    def __init__(self, port_name=None):
+    def __init__(self, port_name=None, port_timeout=None):
         """Initialise the serial command"""
         if not port_name:
-            self._port_name = "/dev/tty.usbserial-FTGA2OCZ"
+            self._port_name = "/dev/ttyUSB0"
         else:
             self.logger = tellie_logger.TellieLogger.get_instance()
+            self._port_name = port_name
+            
+        if not port_timeout:
+            self._port_timeout = 0.2
+        else:
+            self._port_timeout = port_timeout
 
         # Set up serial connection to tellie
         self._serial = None
@@ -758,6 +764,7 @@ class SerialCommand(object):
         value_dict = {self._channel[0]: pin}
         rms_dict = {self._channel[0]: rms}
         return value_dict, rms_dict, self._channel
+
 
 class SNO6C(SerialCommand):
     """Object for the main TELLIE setup.
