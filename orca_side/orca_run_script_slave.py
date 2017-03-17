@@ -23,7 +23,6 @@ if __name__=="__main__":
         # TODO:
         # Parameter checks need to be performed here
         # But feedback needed for user (e.g. exact pulse number may not be possible)
-	#tellie_server.reset()
         tellie_server.select_channel(args.channel)
         tellie_server.set_pulse_number(int(args.pulse_number))
         tellie_server.set_trigger_delay(int(args.trigger_delay))
@@ -48,6 +47,8 @@ if __name__=="__main__":
         # Attempt a safe stop and inform in the return type as to the success?
         print "Exception %s " % e
         tellie_server.stop()
+    tellie_server.stop()
+    tellie_server.clear_channel()
     print "Chan %s Mean %f RMS %f" %(chan,mean,rms)
         
 

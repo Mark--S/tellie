@@ -215,6 +215,7 @@ class SerialCommand(object):
 
         # Send a reset, to ensure the RTS is set to false
         self.reset()
+        self.disable_external_trigger()
 
         # Send a clear channel command, just in case
         self._clear_buffer()
@@ -222,7 +223,9 @@ class SerialCommand(object):
 
     def __del__(self):
         """Deletion function"""
-        self.reset()
+        self.disable_external_trigger()
+        self.clear_channel()
+
         self.disconnect()
         self.logger.warn("tellie server dropped out")
 
@@ -306,7 +309,8 @@ class SerialCommand(object):
                     self._send_command(command, readout, buffer_check, sleep_after_command)
                 message = "Unexpected buffer output:\nsaw: %s, remainder %s\nexpected: %s\n" % (buffer_read, remainder, buffer_check)
                 self.logger.warn(message)
-                self.reset()
+                self.disable_external_trigger()
+                self.clear_channel()
                 raise TellieException(message)
             else:
                 self.logger.debug("success reading buffer: %s" % buffer_read)
@@ -364,7 +368,6 @@ class SerialCommand(object):
         self._serial.setRTS(False)
         # close the port and reopen?
         time.sleep(1.0)
-        self.disable_external_trigger()
 
     def enable_external_trig(self, while_fire=False):
         """Tell TELLIE to fire on any external trigger.
@@ -490,6 +493,7 @@ class SerialCommand(object):
         """Stop firing tellie"""
         self.logger.debug("Stop firing!")
         self._send_command(_cmd_stop, False)
+        time.sleep(0.1)
         buffer_contents = self._serial.read(100)
         self.disable_external_trigger()
         self._firing = False
