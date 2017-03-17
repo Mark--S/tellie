@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
+import numpy
+import sys
 import time
 import ROOT
-import numpy
-from core import serial_command
-import sys
+from core.tellie_server import SerialCommand
+from common import parameters as p
 
-#sc = serial_command.SerialCommand('/dev/ttyS0')
-sc = serial_command.SerialCommand('/dev/tty.usbserial-FTGA2OCZ')
+sc = SerialCommand(port_name=p._serial_port)   # set in tellie.cfg
 
 channels = range(1,25)
 
@@ -47,20 +47,20 @@ tc = ROOT.TCanvas("can","can")
 
 
 sc.select_channel(channels[0])
-sc.set_pulse_height(16383)
-sc.set_pulse_delay(1.0)
-sc.set_pulse_number(500)
+sc.set_pulse_height(p._max_pulse_height)
+sc.set_pulse_delay(p._pulse_delay)
+sc.set_pulse_number(p._pulse_num)
 sc.set_fibre_delay(0)
 sc.set_trigger_delay(0)
 sc.disable_external_trigger()
-sc.set_pulse_width(16383)
+sc.set_pulse_width(p._max_pulse_width)
 sc.fire()
-time.sleep(1)
+time.sleep(p._medium_pause)
 pin = None
 while pin==None:
     pin = sc.read_pin()
 print "DARK FIRE OVER: PIN",pin
-time.sleep(1)
+time.sleep(p._medium_pause)
 
 noReads=50
 pinReads = range(1, noReads)
@@ -88,9 +88,9 @@ for channel in channels:
 
     sc.clear_channel()
     sc.select_channel(channel)
-    sc.set_pulse_width(16383)
-    sc.set_pulse_delay(1.0)
-    sc.set_pulse_number(500)
+    sc.set_pulse_width(p._max_pulse_width)
+    sc.set_pulse_delay(p._pulse_delay)
+    sc.set_pulse_number(p._pulse_num)
     sc.set_fibre_delay(0)
     sc.set_trigger_delay(0)
     sc.disable_external_trigger()
@@ -101,11 +101,11 @@ for channel in channels:
         print height
         sc.set_pulse_height(height)
         #sc.fire()
-        #time.sleep(0.25)
+        #time.sleep(p._short_pause)
         for num in pinReads:
             pin = None
             sc.fire()
-            time.sleep(0.25)
+            time.sleep(p._short_pause)
             while pin==None:
                 pin = sc.read_pin()
                 tmpList = pin[0].values()

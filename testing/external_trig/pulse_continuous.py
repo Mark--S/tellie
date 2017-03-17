@@ -1,8 +1,9 @@
 ### sends a continuous pulse
-#from core import serial_command
 from core.tellie_server import SerialCommand
 import sys
-import time 
+import time
+from common import parameters as p
+
 def safe_exit(sc,e):
     print "Exit safely"
     print e
@@ -10,22 +11,20 @@ def safe_exit(sc,e):
 
 if __name__=="__main__":
     width = sys.argv[1]
-    #rate = sys.argv[3]
     channel = sys.argv[2]
     width = int(width)
-    #rate = float(rate)
+    #rate = float(rate)     # external trigger
     channel = int(channel)
-    print width#, rate
-    sc = SerialCommand(port_name="/dev/ttyUSB0")
+    #print width
+    sc = SerialCommand(port_name=p._serial_port)
     #sc.stop()
     print "SELECTING CHANNEL"
-    time.sleep(5)
+    time.sleep(p._long_pause)
     sc.select_channel(channel)
     print "SELECTED CHANNEL"
-    time.sleep(5)
-    sc.set_pulse_height(16383)
+    time.sleep(p._long_pause)
+    sc.set_pulse_height(p._max_pulse_height)
     sc.set_pulse_width(width)
-    #sc.set_pulse_delay(rate)
     try:
         sc.enable_external_trig()
         while True:
@@ -34,5 +33,4 @@ if __name__=="__main__":
         safe_exit(sc,e)
     except KeyboardInterrupt:
         safe_exit(sc,"keyboard interrupt")
-        
-        
+

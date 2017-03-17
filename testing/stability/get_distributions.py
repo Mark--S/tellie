@@ -1,17 +1,18 @@
 import os
 import sys
 import waveform_tools as wt
-from core import serial_command
 import scopes
 import scope_connections
 import math
 import time
 import utils
 import optparse
+from core.tellie_server import SerialCommand
+from common import parameters as p
 
 _boundary = [0,1.5e-3,3e-3,7e-3,15e-3,30e-3,70e-3,150e-3,300e-3,700e-3,1000]
 _v_div = [1e-3,2e-3,5e-3,10e-3,20e-3,50e-3,100e-3,200e-3,500e-3,1.0,1000]
-sc = serial_command.SerialCommand()
+sc = SerialCommand()
 
 def get_min_volt(channel,height,width,delay,scope,scale=None,trigger=None,min_trigger=-0.005):
     """Gets the trigger settings by firing a single pulse
@@ -37,7 +38,7 @@ def get_min_volt(channel,height,width,delay,scope,scale=None,trigger=None,min_tr
         scope.set_edge_trigger(trigger,1,True)
     scope.set_single_acquisition()
     scope.lock()
-    time.sleep(0.1)
+    time.sleep(p._short_pause)
 #    sc.fire()
 #    pin = None
 #    while pin==None:
@@ -53,7 +54,7 @@ def measure(box,channel,width,delay,scope,min_volt=None,min_trigger=-0.005):
     pulses, with user defined width, channel and rate settings.
     """
     #fixed options
-    height = 16383    
+    height = p._max_pulse_height   
     fibre_delay = 0
     trigger_delay = 0
 #    pulse_number = 1
@@ -63,16 +64,16 @@ def measure(box,channel,width,delay,scope,min_volt=None,min_trigger=-0.005):
 
 #    #first, run a single acquisition with a forced trigger, effectively to clear the waveform
 #    scope.set_single_acquisition()
-#    time.sleep(0.1) #needed for now to get the force to work...
+#    time.sleep(p._short_pause) #needed for now to get the force to work...
 #    scope._connection.send("trigger:state ready")
-#    time.sleep(0.1)
+#    time.sleep(p._short_pause)
 #    scope._connection.send("trigger force")
-#    time.sleep(0.1)
+#    time.sleep(p._short_pause)
 
 
     sc.select_channel(logical_channel)
     sc.set_pulse_width(width)
-    sc.set_pulse_height(16383)
+    sc.set_pulse_height(height)
     sc.set_pulse_delay(delay)
     sc.set_fibre_delay(fibre_delay)
     sc.set_trigger_delay(trigger_delay)
@@ -163,7 +164,7 @@ if __name__ == '__main__':
         output_file = file(output_filename,"w")
 
         logical_channel = (box-1)*8 + channel
-        min_volt = get_min_volt(logical_channel,16383,width,
+        min_volt = get_min_volt(logical_channel,p._max_pulse_height,width,
                                 0.1,scope,scale=last_scale,trigger=last_trigger)
         last_scale = -min_volt
         last_trigger = min_volt/20

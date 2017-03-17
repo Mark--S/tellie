@@ -33,13 +33,13 @@ class SerialCommand(object):
     """Contains a serial command object.
     """
 
-    def __init__(self, port_name=None, port_timeout=None):
+    def __init__(self, serial_port=None, port_timeout=None):
         """Initialise the serial command"""
-        if not port_name:
-            self._port_name = p._port_name
+        if not serial_port:
+            self._serial_port = p._serial_port
         else:
             self.logger = tellie_logger.TellieLogger.get_instance()
-            self._port_name = port_name
+            self._serial_port = serial_port
             
         if not port_timeout:
             self._port_timeout = p._port_timeout
@@ -49,7 +49,7 @@ class SerialCommand(object):
         # Set up serial connection to tellie
         self._serial = None
         try:
-            self._serial = serial.Serial(port=self._port_name, timeout=self._port_timeout)
+            self._serial = serial.Serial(port=self._serial_port, timeout=self._port_timeout)
             self.logger.debug("Serial connection open: %s" % self._serial)
         except serial.SerialException, e:
             raise tellie_exception.TellieSerialException(e)
@@ -145,9 +145,9 @@ class SerialCommand(object):
                 #clear anything else that might be in there
                 time.sleep(p._short_pause)
                 remainder = self._serial.read(p._read_bytes)
-                self._serial.write("X") # send a stop
+                self._serial.write(p._cmd_stop) # send a stop
                 time.sleep(p._short_pause)
-                self._serial.write("C") # send a clear
+                self._serial.write(p._cmd_channel_clear) # send a clear
                 time.sleep(p._short_pause)
                 self._serial.read(p._read_bytes)
                 message = "Unexpected buffer output:\nsaw: %s, remainder %s\nexpected: %s" % (buffer_read, remainder, buffer_check)
@@ -205,10 +205,10 @@ class SerialCommand(object):
 
         self._serial.setRTS(True)
         # sleep, just in case
-        time.sleep(p._long_pause)
+        time.sleep(p._medium_pause)
         self._serial.setRTS(False)
         # close the port and reopen?
-        time.sleep(p._long_pause)
+        time.sleep(p._medium_pause)
         self.disable_external_trigger()
 
     def enable_external_trig(self, while_fire=False):
@@ -331,7 +331,7 @@ class SerialCommand(object):
         self._firing = False
         return buffer_contents
 
-    def read_pin(self, channel=None, timeout=p._long_pause, final=True):
+    def read_pin(self, channel=None, timeout=p._medium_pause, final=True):
         """Read the pin diode output, should always follow a fire command,
         Provide channel number to select specific channel, otherwise, receive dict of all channels"""
         self.logger.debug("Read PINOUT")
@@ -489,7 +489,7 @@ class SerialCommand(object):
             print channel
             command += chr(channel)
         command += _cmd_channel_select_many_end
-        buffer_check = "B"+str((int(channels[0])-1)/8+1)+_cmd_channel_select_many_end
+        buffer_check = p._cmd_disable_ext_trig+str((int(channels[0])-1)/8+1)+_cmd_channel_select_many_end
         print "SEND CHANNELS", "CMD", command, "BUF", buffer_check
         self._send_command(command=command, buffer_check=buffer_check)
         print "DONE!"
@@ -629,7 +629,7 @@ class SerialCommand(object):
             self.read_temp()
         return 0
 
-    def read_temp(self, timeout=p._long_pause):
+    def read_temp(self, timeout=p._medium_pause):
         """Read the temperature"""
         if not self._current_temp_probe:
             raise tellie_exception.TellieException("Cannot read temp: no probe selected")
@@ -658,7 +658,7 @@ class SerialCommand(object):
 
     def disable_external_trigger(self):
         """Disable the external trigger"""
-        self._send_command(command="B")
+        self._send_command(command=p._cmd_disable_ext_trig)
 
     ########################################
     # Commands just to check current settings
@@ -722,20 +722,20 @@ class SNO6C(SerialCommand):
     """Object for the main TELLIE setup.
     """
 
-    def __init__(self, port_name=None):
+    def __init__(self, serial_port=None):
         """Initialisation command.
         """
-        super(SNO6C, self).__init__(port_name)
+        super(SNO6C, self).__init__(serial_port)
 
 
 class SNO6CKapustinsky(SerialCommand):
     """Object for the Kapustinsky single channel (4) setup.
     """
 
-    def __init__(self, port_name=None):
+    def __init__(self, serial_port=None):
         """Initialisation command.
         """
-        super(SNO6CKapustinsky, self).__init__(port_name)
+        super(SNO6CKapustinsky, self).__init__(serial_port)
 
     def select_channel(self, channel):
         """Select a channel: override"""
@@ -747,7 +747,7 @@ class SNO6CKapustinsky(SerialCommand):
                 return 0
         self.logger.debug("Select channel %s %s" % (channel, type(channel)))
         command = _cmd_channel_select_single_start+chr(channel)+_cmd_channel_select_single_end
-        self._send_command(command=command, buffer_check="N")
+        self._send_command(command=command, buffer_check=p._cmd_channel_select_single_end)
         self._channel = [channel]
         return 0
 
@@ -763,7 +763,7 @@ class SNO6CKapustinsky(SerialCommand):
 def command_select_channel(par):
     """Get the command to select a single channel"""
     command = _cmd_channel_select_single_start+chr(par)+_cmd_channel_select_single_end
-    buffer_check = "B"+str((int(par)-1)/8+1)+_cmd_channel_select_single_end
+    buffer_check = p._cmd_disable_ext_trig+str((int(par)-1)/8+1)+_cmd_channel_select_single_end
     return command, buffer_check
 
 
@@ -771,8 +771,8 @@ def command_pulse_height(par):
     """Get the command to set a pulse height"""
     if par > _max_pulse_height or par < 0:
         raise tellie_exception.TellieException("Invalid pulse height: %s" % par)
-    hi = par >> 8
-    lo = par & 255
+    hi = par >> 8   # binary right shift
+    lo = par & 255  # binary AND operator
     command = [_cmd_pulse_height_hi+chr(hi)]
     command+= [_cmd_pulse_height_lo+chr(lo)]
     command+= [_cmd_pulse_height_end]
@@ -784,8 +784,8 @@ def command_pulse_width(par):
     """Get the command to set a pulse width"""
     if par > _max_pulse_width or par < 0:
         raise tellie_exception.TellieException("Invalid pulse width: %s %s %s" % (par, _max_pulse_width, par>_max_pulse_width))
-    hi = par >> 8
-    lo = par & 255
+    hi = par >> 8   # binary right shift
+    lo = par & 255  # binary AND operator
     command = [_cmd_pulse_width_hi+chr(hi)]
     command+= [_cmd_pulse_width_lo+chr(lo)+_cmd_pulse_width_end]
     buffer_check = _cmd_pulse_width_hi + _cmd_pulse_width_lo + _cmd_pulse_width_end

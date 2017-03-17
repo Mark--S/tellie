@@ -12,20 +12,28 @@ config = ConfigParser.ConfigParser()
 config.readfp(open('tellie.cfg'))
 
 # Connection to host
-_port_name = config.get('CONNECTION', 'port_name')
+_serial_port = config.get('CONNECTION', 'serial_port')
 _server_port = config.getint('CONNECTION', 'server_port')
 _logger_port = config.getint('CONNECTION', 'logger_port')
+_logger_file = config.get('CONNECTION', 'logger_file')
 _port_timeout = config.getfloat('CONNECTION', 'port_timeout')
+_chip_type = config.get('CONNECTION', 'chip_type')
+_scope_name = config.get('CONNECTION', 'scope_name')
 
 # Parameters for read/write commands
+_debug_mode = config.getboolean('PARAMETERS', 'debug_mode')
 _short_pause = config.getfloat('PARAMETERS', 'short_pause')
+_medium_pause = config.getfloat('PARAMETERS', 'medium_pause')
 _long_pause = config.getfloat('PARAMETERS', 'long_pause')
-_read_bytes = config.getfloat('PARAMETERS', 'read_bytes')
+_read_bytes = config.getint('PARAMETERS', 'read_bytes')
+
+# Pulse settings (defaults only, you can still set them at runtime)
+_pulse_num = config.getint('PULSING', 'pulse_num')
+_pulse_delay = config.getint('PULSING', 'pulse_delay')
 
 # Limitations for pulse settings
 _max_pulse_height = config.getint('LIMITATIONS', 'max_pulse_height')
 _max_pulse_width = config.getint('LIMITATIONS', 'max_pulse_width')
-_max_lo = config.getfloat('LIMITATIONS', 'max_pulse_height')
 _max_pulse_delay = config.getfloat('LIMITATIONS', 'max_pulse_delay')
 _min_pulse_delay = config.getfloat('LIMITATIONS', 'min_pulse_delay')
 _max_trigger_delay = config.getfloat('LIMITATIONS', 'max_trigger_delay')
@@ -122,3 +130,4 @@ def fibre_delay(delay):
     if delay != adj_delay:
         adjusted = True
     return adjusted, adj_delay, parameter
+

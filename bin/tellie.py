@@ -20,15 +20,15 @@ import inspect
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 from core import tellie_exception, serial_command
 from common import tellie_logger
-
+from common import parameters as p
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", dest="debug", action="store_true", default=False, help="Debug mode")
-    parser.add_argument("-p", dest="server_port", type=int, default=5030, help="XMLRPC server port")
-    parser.add_argument("-s", dest="serial_port", default="/dev/tty.usbserial-FTE3C0PG", help="Set TELLIE usb port")
-    parser.add_argument("-t", dest="chip_type", default="SNO6C", help="Select TELLIE chip type")
-    parser.add_argument("-l", dest="logfile", default="logs/tellie", help="Log filename")
+    parser.add_argument("-d", dest="debug", action="store_true", default=p._debug_mode, help="Debug mode")
+    parser.add_argument("-p", dest="server_port", type=int, default=p._server_port, help="XMLRPC server port")
+    parser.add_argument("-s", dest="serial_port", default=p._serial_port, help="Set TELLIE usb port")
+    parser.add_argument("-t", dest="chip_type", default=p._chip_type, help="Select TELLIE chip type")
+    parser.add_argument("-l", dest="logfile", default=p._logger_file, help="Log filename")
     args = parser.parse_args()
     logger = tellie_logger.TellieLogger.get_instance()
     logger.set_debug_mode(args.debug)
@@ -52,7 +52,11 @@ if __name__ == "__main__":
         print "Could not connect on serial port %s" % (args.serial_port)
         ports = []
         for p in os.listdir('/dev'):
-            if p.startswith('tty.usbserial'):
+            if p.startswith('ttyUSB'):          # Ubuntu
+                ports.append(p)
+            if p.startswith('tty.usbserial'):   # Mac
+                ports.append(p)
+            if p.startswith('ttyS'):            # Windows / CentOS  (?)
                 ports.append(p)
         if len(ports) == 0:
             print "Could not find appropriate address! Is the TELLIE usb plugged in?"

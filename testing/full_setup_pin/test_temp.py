@@ -1,8 +1,9 @@
 import time
 import ROOT
-from core import serial_command
+from core.tellie_server import SerialCommand
+from common import parameters as p
 
-sc = serial_command.SerialCommand()
+sc = SerialCommand(port_name=p._serial_port)   # set in tellie.cfg
 
 boxes = range(12)
 

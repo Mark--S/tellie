@@ -2,6 +2,7 @@
 import argparse
 import xmlrpclib
 import time
+from common import parameters as p
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
@@ -15,18 +16,19 @@ if __name__=="__main__":
                         help='an integer for the accumulator')
     args = parser.parse_args()
 
-
+    # TODO - Have the server proxy string interpreted from the parameters file tellie.cfg
     tellie_server= xmlrpclib.ServerProxy('http://localhost:5030', allow_none = True)
     try:
         print tellie_server.select_channel(10)
-        print tellie_server.set_pulse_height(16282)
+        print tellie_server.set_pulse_height(p._max_pulse_height)
         print tellie_server.set_pulse_width(0)
         print tellie_server.set_fibre_delay(0)
         print tellie_server.set_trigger_delay(0)
         print tellie_server.set_pulse_delay(1.0)
         print tellie_server.set_pulse_number(100)
         print tellie_server.fire_sequence()
-        time.sleep(10)
+        time.sleep(p._long_pause)
+        time.sleep(p._long_pause)
 #        print tellie_server.fire_single()
         print "reading..."
         print tellie_server.read_pin_sequence()

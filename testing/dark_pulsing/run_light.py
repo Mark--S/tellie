@@ -7,6 +7,7 @@ import scopes
 import scope_connections
 import sweep
 import math
+from common import parameters as p
 
 _boundary = [0,1.5e-3,3e-3,7e-3,15e-3,30e-3,70e-3,150e-3,300e-3,700e-3,1000]
 _v_div = [1e-3,2e-3,5e-3,10e-3,20e-3,50e-3,100e-3,200e-3,500e-3,1.0,1000]
@@ -52,10 +53,10 @@ if __name__=="__main__":
 
 
     # Channel parameters
-    height = 16383
+    height = p._max_pulse_height
     fibre_delay = 0
     trigger_delay = 0
-    pulse_number = 1000
+    pulse_number = p._pulse_num
     delay = 1
     channel =  options.channel
     width = options.width
@@ -69,11 +70,11 @@ if __name__=="__main__":
     # Set up scope
         #first, run a single acquisition with a forced trigger, effectively to clear the waveform
     scope.set_single_acquisition()
-    time.sleep(0.1) #needed for now to get the force to work...
+    time.sleep(p._short_pause) #needed for now to get the force to work...
     scope._connection.send("trigger:state ready")
-    time.sleep(0.1)
+    time.sleep(p._short_pause)
     scope._connection.send("trigger force")
-    time.sleep(0.1)
+    time.sleep(p._short_pause)
 
     #if no trigger settings, run a test fire
     min_volt = sweep.get_min_volt(channel,height,width,
@@ -115,10 +116,10 @@ if __name__=="__main__":
 
     # Setup the initial settings
     sc.select_channel(options.channel)
-    sc.set_pulse_height(16383)
+    sc.set_pulse_height(p._max_pulse_height)
     sc.set_trigger_delay(0)
     sc.set_fibre_delay(0)
-    sc.set_pulse_delay(0.1)
+    sc.set_pulse_delay(p._min_pulse_delay)
     
     stop = 1
     # Loop over lots of times...

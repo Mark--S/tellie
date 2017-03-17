@@ -1,7 +1,9 @@
 ### sends a continuous pulse
-from core import serial_command, tellie_exception
-from common import tellie_logger
 import sys
+from core import tellie_exception
+from common import tellie_logger
+from core.tellie_server import SerialCommand
+from common import parameters as p
 
 def safe_exit(sc,e):
     print "Exit safely"
@@ -9,7 +11,7 @@ def safe_exit(sc,e):
     sc.stop()
 
 if __name__=="__main__":
-    sc = serial_command.SerialCommand("/dev/tty.usbserial-FTE3C0PG")
+    sc = SerialCommand(port_name=p._serial_port)   # set in tellie.cfg
     sc.stop()
     logger = tellie_logger.TellieLogger.get_instance()
     logger.set_debug_mode(True)
