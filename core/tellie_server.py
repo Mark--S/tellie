@@ -19,6 +19,7 @@
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 import serial
 import tellie_exception
+import tellie_logger
 import re
 import sys
 import time
@@ -26,7 +27,7 @@ import math
 _snotDaqLog = False
 try:
     from snotdaq import logger
-    _snotDaqLog = True
+    _snotDaqLog = False
 except ImportError:
     from common import tellie_logger
 
@@ -167,7 +168,6 @@ class SerialCommand(object):
         self._port_name = port_name
         self._port_timeout = port_timeout
         self._logger_port = logger_port
-
         # Set up logger stuff.
         if _snotDaqLog:
             self.logger = logger.Logger()
@@ -262,7 +262,10 @@ class SerialCommand(object):
             raise TellieException("Command is not a list: %s %s" % (command, type(command)))
         try:
             for c in command:
-                self._serial.write(c)
+	    	self.logger.debug("Writing char %s" % c)
+                bytesWritten = self._serial.write(c.encode('utf-8'))
+	    	self.logger.debug("Written char %s" % c)
+	    	self.logger.debug("Bytes Written %d" % bytesWritten)
                 time.sleep(sleep_after_command)
         except:
             raise TellieException("Lost connection with TELLIE hardware! Re-set server")
@@ -282,7 +285,9 @@ class SerialCommand(object):
                 self.logger.debug("Didn't read correct no of chars, read again")
                 # First, try reading again
                 time.sleep(0.2)
+		self.logger.debug("Reading Buffer")
                 buffer_read += self._serial.read(len(buffer_check))
+		self.logger.debug("Read Buffer")
                 attempt += 1
 
             if str(buffer_read)!=str(buffer_check):
@@ -921,12 +926,14 @@ def command_append(inputs, values):
     return inputs
 
 if __name__ == "__main__":
+    runTime = time.time()
     server = SimpleXMLRPCServer(("0.0.0.0", 5030), allow_none=True)
 
     tellieCommands = SerialCommand()
     server.register_instance(tellieCommands, allow_dotted_names=True)
     
     print "serving..."
+    print "Setup time was: %f" % (time.time()-runTime)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
