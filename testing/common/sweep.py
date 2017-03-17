@@ -18,21 +18,21 @@ except:
 import sys
 from common import parameters as p
 
-port_name = p._serial_port
+serial_port = p._serial_port
 scope_name = p._scope_name
 _boundary = [0,1.5e-3,3e-3,7e-3,15e-3,30e-3,70e-3,150e-3,300e-3,700e-3,1000]
 _v_div = [1e-3,2e-3,5e-3,10e-3,20e-3,50e-3,100e-3,200e-3,500e-3,1.0,1000]
 sc = None
-sc = serial_command.SerialCommand(port_name)
+sc = serial_command.SerialCommand(serial_port)
 
 #initialise sc here, faster options setting
 def start():
     global sc
-    sc = serial_command.SerialCommand(port_name)
+    sc = serial_command.SerialCommand(serial_port)
 
 def set_port(port):
-    global port_name
-    port_name = port
+    global serial_port
+    serial_port = port
 
 def set_scope(scope):
     global scope_name

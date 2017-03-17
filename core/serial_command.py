@@ -20,6 +20,7 @@
 import serial
 import tellie_exception
 import re
+import sys
 import time
 from common import parameters as p
 _snotDaqLog = False
@@ -136,7 +137,7 @@ class SerialCommand(object):
             while (len(buffer_read) != len(buffer_check)) and attempt<10:
                 print "read again"
                 # First, try reading again
-                time.sleep(p._short_pause)
+                time.sleep(0.2)
                 buffer_read += self._serial.read(len(buffer_check))
                 attempt += 1
 
