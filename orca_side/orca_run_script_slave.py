@@ -35,7 +35,10 @@ if __name__=="__main__":
 	try: 
 	    print "Waiting for sequence to finish..."
             while (mean == -1):
-                mean, rms, chan = tellie_server.read_pin_sequence()
+                try:
+                    mean, rms, chan = tellie_server.read_pin_sequence()
+                except TypeError:
+                    mean = None
 		if mean == None:
 		    mean = -1 
 	            rms = -1
