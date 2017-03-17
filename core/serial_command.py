@@ -43,7 +43,7 @@ class SerialCommand(object):
             self._serial_port = serial_port
             
         if not port_timeout:
-            self._port_timeout = p._port_timeout
+        self._port_timeout = p._port_timeout
         else:
             self._port_timeout = port_timeout
 
