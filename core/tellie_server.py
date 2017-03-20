@@ -24,6 +24,7 @@ import sys
 import time
 import math
 from common import parameters as p
+from core import serial_command as s
 _snotDaqLog = False
 try:
     from snotdaq import logger
@@ -52,62 +53,62 @@ class ThreadException(Exception):
         Exception.__init__(self, error)
 
 
-class ParametersClass(object):
-    """Class to emulate common/parameters """
-
-    def __init__(self):
-        # Some init stuff
-        self._something = 0;
-
-    def pulse_number(self, number):
-        adjusted = False
-        if type(number)!=int:
-            raise Exception("PN must be an integer")
-        if number > p._max_pulse_number:
-            raise Exception("PN must be < %d.  You set %d" % (p._max_pulse_number, number))
-        #number = max_pulse_number
-        #adjusted = True
-        hi = -1
-        lo = -1
-        diff = 100000 # bigger than max pn
-        for i in range(1, 256):
-            # assume hi is i
-            lo_check = number/i
-            if lo_check > p._max_pulse_number_lower:
-                lo_check = p._max_pulse_number_lower
-            check = i * lo_check
-            if math.fabs(check - number) < diff:
-                diff = math.fabs(check - number)
-                hi = i
-                lo = lo_check
-            if check == number:
-                break
-        actual_par = hi * lo
-        if actual_par != number:
-            adjusted = True
-        return adjusted, actual_par, hi, lo
-
-    def trigger_delay(self, delay):
-        adjusted = False
-        delay = float(delay)
-        if delay > p._max_trigger_delay or delay < 0:
-            raise Exception("TD must be >%s and <%s" % (0, p._max_trigger_delay))
-        parameter = int(round(delay)/5)
-        adj_delay = parameter * 5
-        if delay != adj_delay:
-            adjusted = True
-        return adjusted, adj_delay, parameter
-
-    def fibre_delay(self, delay):
-        adjusted = False
-        delay = float(delay)
-        if delay > p._max_fibre_delay or delay < 0:
-            raise Exception("FD must be >%s and <%s" % (0, p._max_fibre_delay))
-        parameter = int(round(delay * 4.))
-        adj_delay = float(parameter) / 4.
-        if delay != adj_delay:
-            adjusted = True
-        return adjusted, adj_delay, parameter
+#class ParametersClass(object):
+#    """Class to emulate common/parameters """
+#
+#    def __init__(self):
+#        # Some init stuff
+#        self._something = 0;
+#
+#    def pulse_number(self, number):
+#        adjusted = False
+#        if type(number)!=int:
+#            raise Exception("PN must be an integer")
+#        if number > p._max_pulse_number:
+#            raise Exception("PN must be < %d.  You set %d" % (p._max_pulse_number, number))
+#        #number = max_pulse_number
+#        #adjusted = True
+#        hi = -1
+#        lo = -1
+#        diff = 100000 # bigger than max pn
+#        for i in range(1, 256):
+#            # assume hi is i
+#            lo_check = number/i
+#            if lo_check > p._max_pulse_number_lower:
+#                lo_check = p._max_pulse_number_lower
+#            check = i * lo_check
+#            if math.fabs(check - number) < diff:
+#                diff = math.fabs(check - number)
+#                hi = i
+#                lo = lo_check
+#            if check == number:
+#                break
+#        actual_par = hi * lo
+#        if actual_par != number:
+#            adjusted = True
+#        return adjusted, actual_par, hi, lo
+#
+#    def trigger_delay(self, delay):
+#        adjusted = False
+#        delay = float(delay)
+#        if delay > p._max_trigger_delay or delay < 0:
+#            raise Exception("TD must be >%s and <%s" % (0, p._max_trigger_delay))
+#        parameter = int(round(delay)/5)
+#        adj_delay = parameter * 5
+#        if delay != adj_delay:
+#            adjusted = True
+#        return adjusted, adj_delay, parameter
+#
+#    def fibre_delay(self, delay):
+#        adjusted = False
+#        delay = float(delay)
+#        if delay > p._max_fibre_delay or delay < 0:
+#            raise Exception("FD must be >%s and <%s" % (0, p._max_fibre_delay))
+#        parameter = int(round(delay * 4.))
+#        adj_delay = float(parameter) / 4.
+#        if delay != adj_delay:
+#            adjusted = True
+#        return adjusted, adj_delay, parameter
 
 
 class SerialCommand(object):
@@ -141,7 +142,7 @@ class SerialCommand(object):
             self._serial = serial.Serial(port=self._serial_port, timeout=self._port_timeout)
             self.logger.debug("Serial connection open: %s" % self._serial)
         except serial.SerialException, e:
-            raise tellie_exception.TellieSerialException(e)
+            raise TellieSerialException(e)
 
         # Cache current settings - remove need to re-command where possible
         # Channel specific settings
@@ -333,7 +334,7 @@ class SerialCommand(object):
 
         """
         if self._firing is True:
-            raise tellie_exception.TellieException("Cannot fire, already in firing mode")
+            raise TellieException("Cannot fire, already in firing mode")
         #if self._channel <= 56: #up to box 7                                                               
         #    cmd = p._cmd_fire_single_lower
         #else:
@@ -583,7 +584,7 @@ class SerialCommand(object):
                 self.logger.debug("Channel already selected")
                 return 0
         self.logger.debug("Select channel %s %s" % (channel, type(channel)))
-        command, buffer_check = command_select_channel(channel)
+        command, buffer_check = s.command_select_channel(channel)
         self._send_command(command=command, buffer_check=buffer_check)
         self._channel = [channel]
         self.logger.debug("About to return")
@@ -640,7 +641,7 @@ class SerialCommand(object):
             self.logger.debug("Pulse height: %s,already set" % (par))
         else:
             self.logger.debug("Set pulse height %s %s" % (par, type(par)))
-            command, buffer_check = command_pulse_height(par)
+            command, buffer_check = s.command_pulse_height(par)
             self._send_channel_setting_command(command=command, buffer_check=buffer_check)
             self._current_pulse_height[self._channel[0]] = par
         return 0
@@ -654,7 +655,7 @@ class SerialCommand(object):
             self.logger.debug("Pulse width: %s, already set" % (par))
         else:
             self.logger.debug("Set pulse width %s %s" % (par, type(par)))                
-            command, buffer_check = command_pulse_width(par)
+            command, buffer_check = s.command_pulse_width(par)
             self._send_channel_setting_command(command=command, buffer_check=buffer_check)
             self._current_pulse_width[self._channel[0]] = par
         return 0
@@ -667,7 +668,7 @@ class SerialCommand(object):
             self.logger.debug("Fibre delay %s, already selected" % (par))
         else:
             self.logger.debug("Set Fibre delay %s %s" % (par, type(par)))
-            command, buffer_check = command_fibre_delay(par)
+            command, buffer_check = s.command_fibre_delay(par)
             self._send_channel_setting_command(command=command, buffer_check=buffer_check)
             self._current_fibre_delay[self._channel[0]] = par
         return 0
@@ -678,7 +679,7 @@ class SerialCommand(object):
             self.logger.debug("Number of pulses: %s already selected" % (par))
         else:
             self.logger.debug("Set pulse number %s %s" % (par, type(par)))
-            command, buffer_check = command_pulse_number(par)
+            command, buffer_check = s.command_pulse_number(par)
             self._send_global_setting_command(command=command, buffer_check=buffer_check)
             self._current_pulse_number = par
         return 0
@@ -689,7 +690,7 @@ class SerialCommand(object):
             self.logger.debug("Pulse delay: %s, already selected" % (par))
         else:
             self.logger.debug("Set pulse delay %s %s" % (par, type(par)))
-            command, buffer_check = command_pulse_delay(par)
+            command, buffer_check = s.command_pulse_delay(par)
             self._send_global_setting_command(command=command, buffer_check=buffer_check)
             self._current_pulse_delay = par
         return 0
@@ -700,7 +701,7 @@ class SerialCommand(object):
             self.logger.debug("Trigger delay: %s,already set" % (par))
         else:
             self.logger.debug("Set trigger delay %s %s" % (par, type(par)))
-            command, buffer_check = command_trigger_delay(par)
+            command, buffer_check = s.command_trigger_delay(par)
             self._send_global_setting_command(command=command, buffer_check=buffer_check)
             self._current_trigger_delay = par
         return 0
@@ -711,7 +712,7 @@ class SerialCommand(object):
             pass
         else:
             self.logger.debug("Select temperature probe %s %s" % (par, type(par)))
-            command, buffer_check = command_select_temp(par)
+            command, buffer_check = s.command_select_temp(par)
             self._send_command(command=command, readout=False)
             self._current_temp_probe = par
             #read the temperature twice
@@ -755,123 +756,123 @@ class SerialCommand(object):
 # be called (e.g. set all settings) before running
 # a buffer readout.
 
-def command_select_channel(par):
-    """Get the command to select a single channel"""
-    command = p._cmd_channel_select_single_start+chr(par)+p._cmd_channel_select_single_end
-    buffer_check = p._cmd_disable_ext_trig+str((int(par)-1)/8+1)+p._cmd_channel_select_single_end
-    return command, buffer_check
-
-
-def command_pulse_height(par):
-    """Get the command to set a pulse height"""
-    if par > p._max_pulse_height or par < 0:
-        raise TellieException("Invalid pulse height: %s" % par)
-    hi = par >> 8   # binary right shift
-    lo = par & 255  # binary AND operator
-    command = [p._cmd_pulse_height_hi+chr(hi)]
-    command+= [p._cmd_pulse_height_lo+chr(lo)]
-    command+= [p._cmd_pulse_height_end]
-    buffer_check = p._cmd_pulse_height_hi + p._cmd_pulse_height_lo + p._cmd_pulse_height_end
-    return command, buffer_check
-
-
-def command_pulse_width(par):
-    """Get the command to set a pulse width"""
-    if par > p._max_pulse_width or par < 0:
-        raise TellieException("Invalid pulse width: %s %s %s" % (par, p._max_pulse_width, par>p._max_pulse_width))
-    hi = par >> 8   # binary right shift
-    lo = par & 255  # binary AND operator
-    command = [p._cmd_pulse_width_hi+chr(hi)]
-    command+= [p._cmd_pulse_width_lo+chr(lo)+p._cmd_pulse_width_end]
-    buffer_check = p._cmd_pulse_width_hi + p._cmd_pulse_width_lo + p._cmd_pulse_width_end
-    return command, buffer_check
-
-
-def command_pulse_number(par):
-    """Get the command to set a pulse number"""
-    if par > p._max_pulse_number or par < 0:
-        raise TellieException("Invalid pulse number: %s" % (par))
-    par = int(par)
-    parameters  = ParametersClass()
-    adjusted, actual_par, hi, lo = parameters.pulse_number(par)
-    if adjusted is True:
-        raise TellieException("Invalid pulse number: %s" % (par))
-    command = [p._cmd_pulse_number_hi+chr(hi)]
-    command+= [p._cmd_pulse_number_lo+chr(lo)]
-    buffer_check = p._cmd_pulse_number_hi + p._cmd_pulse_number_lo
-    return command, buffer_check
-
-
-def command_pulse_delay(par):
-    """Get the command to set a pulse delay"""
-    if par > p._max_pulse_delay or par < 0:
-        raise TellieException("Invalid pulse delay: %s" % par)
-    ms = int(par)
-    us = int((par-ms)*250)
-    command = [p._cmd_pulse_delay+chr(ms)]
-    command+= [chr(us)]
-    buffer_check = p._cmd_pulse_delay
-    return command, buffer_check
-
-
-def command_trigger_delay(par):
-    """Get the command to set a trigger delay"""
-    if par > p._max_trigger_delay or par < 0:
-        raise TellieException("Invalid trigger delay: %s" % par)
-    command = [p._cmd_trigger_delay+chr(par/5)]
-    buffer_check = p._cmd_trigger_delay
-    return command, buffer_check
-
-
-def command_fibre_delay(par):
-    """Get the command to set a fibre delay"""
-    if par > p._max_fibre_delay or par < 0:
-        raise TellieException("Invalid fibre delay: %s" % par)
-    parameters = ParametersClass()
-    adjusted, adj_delay, setting = parameters.fibre_delay(par)
-    print "COMMAND", par, adjusted, adj_delay, setting
-    if adjusted is True:
-        raise TellieException("Invalid delay: %s" % (par))
-    command = [p._cmd_fibre_delay+chr(setting)]
-    buffer_check = p._cmd_fibre_delay
-    return command, buffer_check
-
-
-def command_select_temp(par):
-    """Select a temperature probe to read"""
-    if par > p._max_temp_probe or par < 0:
-        raise TellieException("Invalid temp. probe number: %s" % par)
-    cmd = ""
-    par = par
-    if par < 33 and par > 0:
-        cmd = p._cmd_temp_select_lower
-        par = par
-    elif par < p._max_temp_probe + 1:
-        cmd = p._cmd_temp_select_upper
-        par = par - 32 #lower
-    else:
-        raise TellieException("Invalid temp. probe number: %s" % par)
-    command = [cmd+chr(par)]
-    return command, None # nothing in buffer
-
+#def command_select_channel(par):
+#    """Get the command to select a single channel"""
+#    command = p._cmd_channel_select_single_start+chr(par)+p._cmd_channel_select_single_end
+#    buffer_check = p._cmd_disable_ext_trig+str((int(par)-1)/8+1)+p._cmd_channel_select_single_end
+#    return command, buffer_check
+#
+#
+#def command_pulse_height(par):
+#    """Get the command to set a pulse height"""
+#    if par > p._max_pulse_height or par < 0:
+#        raise TellieException("Invalid pulse height: %s" % par)
+#    hi = par >> 8   # binary right shift
+#    lo = par & 255  # binary AND operator
+#    command = [p._cmd_pulse_height_hi+chr(hi)]
+#    command+= [p._cmd_pulse_height_lo+chr(lo)]
+#    command+= [p._cmd_pulse_height_end]
+#    buffer_check = p._cmd_pulse_height_hi + p._cmd_pulse_height_lo + p._cmd_pulse_height_end
+#    return command, buffer_check
+#
+#
+#def command_pulse_width(par):
+#    """Get the command to set a pulse width"""
+#    if par > p._max_pulse_width or par < 0:
+#        raise TellieException("Invalid pulse width: %s %s %s" % (par, p._max_pulse_width, par>p._max_pulse_width))
+#    hi = par >> 8   # binary right shift
+#    lo = par & 255  # binary AND operator
+#    command = [p._cmd_pulse_width_hi+chr(hi)]
+#    command+= [p._cmd_pulse_width_lo+chr(lo)+p._cmd_pulse_width_end]
+#    buffer_check = p._cmd_pulse_width_hi + p._cmd_pulse_width_lo + p._cmd_pulse_width_end
+#    return command, buffer_check
+#
+#
+#def command_pulse_number(par):
+#    """Get the command to set a pulse number"""
+#    if par > p._max_pulse_number or par < 0:
+#        raise TellieException("Invalid pulse number: %s" % (par))
+#    par = int(par)
+#    #parameters  = ParametersClass()
+#    adjusted, actual_par, hi, lo = p.pulse_number(par)
+#    if adjusted is True:
+#        raise TellieException("Invalid pulse number: %s" % (par))
+#    command = [p._cmd_pulse_number_hi+chr(hi)]
+#    command+= [p._cmd_pulse_number_lo+chr(lo)]
+#    buffer_check = p._cmd_pulse_number_hi + p._cmd_pulse_number_lo
+#    return command, buffer_check
+#
+#
+#def command_pulse_delay(par):
+#    """Get the command to set a pulse delay"""
+#    if par > p._max_pulse_delay or par < 0:
+#        raise TellieException("Invalid pulse delay: %s" % par)
+#    ms = int(par)
+#    us = int((par-ms)*250)
+#    command = [p._cmd_pulse_delay+chr(ms)]
+#    command+= [chr(us)]
+#    buffer_check = p._cmd_pulse_delay
+#    return command, buffer_check
+#
+#
+#def command_trigger_delay(par):
+#    """Get the command to set a trigger delay"""
+#    if par > p._max_trigger_delay or par < 0:
+#        raise TellieException("Invalid trigger delay: %s" % par)
+#    command = [p._cmd_trigger_delay+chr(par/5)]
+#    buffer_check = p._cmd_trigger_delay
+#    return command, buffer_check
+#
+#
+#def command_fibre_delay(par):
+#    """Get the command to set a fibre delay"""
+#    if par > p._max_fibre_delay or par < 0:
+#        raise TellieException("Invalid fibre delay: %s" % par)
+#    #parameters = ParametersClass()
+#    adjusted, adj_delay, setting = p.fibre_delay(par)
+#    print "COMMAND", par, adjusted, adj_delay, setting
+#    if adjusted is True:
+#        raise TellieException("Invalid delay: %s" % (par))
+#    command = [p._cmd_fibre_delay+chr(setting)]
+#    buffer_check = p._cmd_fibre_delay
+#    return command, buffer_check
+#
+#
+#def command_select_temp(par):
+#    """Select a temperature probe to read"""
+#    if par > p._max_temp_probe or par < 0:
+#        raise TellieException("Invalid temp. probe number: %s" % par)
+#    cmd = ""
+#    par = par
+#    if par < 33 and par > 0:
+#        cmd = p._cmd_temp_select_lower
+#        par = par
+#    elif par < p._max_temp_probe + 1:
+#        cmd = p._cmd_temp_select_upper
+#        par = par - 32 #lower
+#    else:
+#        raise TellieException("Invalid temp. probe number: %s" % par)
+#    command = [cmd+chr(par)]
+#    return command, None # nothing in buffer
+#
 
 ##################################################
 # Helper functions
-def command_append(inputs, values):
-    '''Pass in inputs as (command, buffer_check) and values to append.
-
-    Inputs should be a list.
-    Command should be returned as a list, buffer_check as a string.
-    '''
-    assert len(inputs) == len(values)
-    if type(inputs[0]) is not list:
-        inputs[0] = [inputs[0]]
-    if type(values[0]) is not list:
-        inputs[0] += [values[0]]
-    else:
-        inputs[0] += values[0]
-    inputs[1] = "%s%s" % (inputs[1], values[1])
-    return inputs
+#def command_append(inputs, values):
+#    '''Pass in inputs as (command, buffer_check) and values to append.
+#
+#    Inputs should be a list.
+#    Command should be returned as a list, buffer_check as a string.
+#    '''
+#    assert len(inputs) == len(values)
+#    if type(inputs[0]) is not list:
+#        inputs[0] = [inputs[0]]
+#    if type(values[0]) is not list:
+#        inputs[0] += [values[0]]
+#    else:
+#        inputs[0] += values[0]
+#    inputs[1] = "%s%s" % (inputs[1], values[1])
+#    return inputs
 
 if __name__ == "__main__":
     server = SimpleXMLRPCServer(("0.0.0.0", p._server_port), allow_none=True)
