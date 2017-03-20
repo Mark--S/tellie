@@ -127,6 +127,7 @@ class SerialCommand(object):
 
         # Send a reset, to ensure the RTS is set to false
         self.reset()
+        self.disable_external_trigger()
 
         # Send a clear channel command, just in case
         self.clear_channel()
@@ -137,7 +138,8 @@ class SerialCommand(object):
 
     def __del__(self):
         """Deletion function"""
-        self.reset()
+        self.disable_external_trigger()
+        self.clear_channel()
         if self._serial:
             self._send_command(_cmd_disable_ext_trig) # Stop accecpting external trigs
             self._serial.close()
