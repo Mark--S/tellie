@@ -824,108 +824,108 @@ class SerialCommand(object):
 # be called (e.g. set all settings) before running
 # a buffer readout.
 
-#def command_select_channel(par):
-#    """Get the command to select a single channel"""
-#    command = p._cmd_channel_select_single_start+chr(par)+p._cmd_channel_select_single_end
-#    buffer_check = p._cmd_disable_ext_trig+str((int(par)-1)/8+1)+p._cmd_channel_select_single_end
-#    return command, buffer_check
-#
-#
-#def command_pulse_height(par):
-#    """Get the command to set a pulse height"""
-#    if par > p._max_pulse_height or par < 0:
-#        raise TellieException("Invalid pulse height: %s" % par)
-#    hi = par >> 8   # binary right shift
-#    lo = par & 255  # binary AND operator
-#    command = [p._cmd_pulse_height_hi+chr(hi)]
-#    command+= [p._cmd_pulse_height_lo+chr(lo)]
-#    command+= [p._cmd_pulse_height_end]
-#    buffer_check = p._cmd_pulse_height_hi + p._cmd_pulse_height_lo + p._cmd_pulse_height_end
-#    return command, buffer_check
-#
-#
-#def command_pulse_width(par):
-#    """Get the command to set a pulse width"""
-#    if par > p._max_pulse_width or par < 0:
-#        raise TellieException("Invalid pulse width: %s %s %s" % (par, p._max_pulse_width, par>p._max_pulse_width))
-#    hi = par >> 8   # binary right shift
-#    lo = par & 255  # binary AND operator
-#    command = [p._cmd_pulse_width_hi+chr(hi)]
-#    command+= [p._cmd_pulse_width_lo+chr(lo)+p._cmd_pulse_width_end]
-#    buffer_check = p._cmd_pulse_width_hi + p._cmd_pulse_width_lo + p._cmd_pulse_width_end
-#    return command, buffer_check
-#
-#
-#def command_pulse_number(par):
-#    """Get the command to set a pulse number"""
-#    if par > p._max_pulse_number or par < 0:
-#        raise TellieException("Invalid pulse number: %s" % (par))
-#    par = int(par)
-#    #parameters  = ParametersClass()
-#    adjusted, actual_par, hi, lo = p.pulse_number(par)
-#    if adjusted is True:
-#        raise TellieException("Invalid pulse number: %s" % (par))
-#    command = [p._cmd_pulse_number_hi+chr(hi)]
-#    command+= [p._cmd_pulse_number_lo+chr(lo)]
-#    buffer_check = p._cmd_pulse_number_hi + p._cmd_pulse_number_lo
-#    return command, buffer_check
-#
-#
-#def command_pulse_delay(par):
-#    """Get the command to set a pulse delay"""
-#    if par > p._max_pulse_delay or par < 0:
-#        raise TellieException("Invalid pulse delay: %s" % par)
-#    ms = int(par)
-#    us = int((par-ms)*250)
-#    command = [p._cmd_pulse_delay+chr(ms)]
-#    command+= [chr(us)]
-#    buffer_check = p._cmd_pulse_delay
-#    return command, buffer_check
-#
-#
-#def command_trigger_delay(par):
-#    """Get the command to set a trigger delay"""
-#    if par > p._max_trigger_delay or par < 0:
-#        raise TellieException("Invalid trigger delay: %s" % par)
-#    command = [p._cmd_trigger_delay+chr(par/5)]
-#    buffer_check = p._cmd_trigger_delay
-#    return command, buffer_check
-#
-#
-#def command_fibre_delay(par):
-#    """Get the command to set a fibre delay"""
-#    if par > p._max_fibre_delay or par < 0:
-#        raise TellieException("Invalid fibre delay: %s" % par)
-#    #parameters = ParametersClass()
-#    adjusted, adj_delay, setting = p.fibre_delay(par)
-#    print "COMMAND", par, adjusted, adj_delay, setting
-#    if adjusted is True:
-#        raise TellieException("Invalid delay: %s" % (par))
-#    command = [p._cmd_fibre_delay+chr(setting)]
-#    buffer_check = p._cmd_fibre_delay
-#    return command, buffer_check
-#
-#
-#def command_select_temp(par):
-#    """Select a temperature probe to read"""
-#    if par > p._max_temp_probe or par < 0:
-#        raise TellieException("Invalid temp. probe number: %s" % par)
-#    cmd = ""
-#    par = par
-#    if par < 33 and par > 0:
-#        cmd = p._cmd_temp_select_lower
-#        par = par
-#    elif par < p._max_temp_probe + 1:
-#        cmd = p._cmd_temp_select_upper
-#        par = par - 32 #lower
-#    else:
-#        raise TellieException("Invalid temp. probe number: %s" % par)
-#    command = [cmd+chr(par)]
-#    return command, None # nothing in buffer
-#
+def command_select_channel(par):
+    """Get the command to select a single channel"""
+    command = p._cmd_channel_select_single_start+chr(par)+p._cmd_channel_select_single_end
+    buffer_check = p._cmd_disable_ext_trig+str((int(par)-1)/8+1)+p._cmd_channel_select_single_end
+    return command, buffer_check
+
+
+def command_pulse_height(par):
+    """Get the command to set a pulse height"""
+    if par > p._max_pulse_height or par < 0:
+        raise TellieException("Invalid pulse height: %s" % par)
+    hi = par >> 8   # binary right shift
+    lo = par & 255  # binary AND operator
+    command = [p._cmd_pulse_height_hi+chr(hi)]
+    command+= [p._cmd_pulse_height_lo+chr(lo)]
+    command+= [p._cmd_pulse_height_end]
+    buffer_check = p._cmd_pulse_height_hi + p._cmd_pulse_height_lo + p._cmd_pulse_height_end
+    return command, buffer_check
+
+
+def command_pulse_width(par):
+    """Get the command to set a pulse width"""
+    if par > p._max_pulse_width or par < 0:
+        raise TellieException("Invalid pulse width: %s %s %s" % (par, p._max_pulse_width, par>p._max_pulse_width))
+    hi = par >> 8   # binary right shift
+    lo = par & 255  # binary AND operator
+    command = [p._cmd_pulse_width_hi+chr(hi)]
+    command+= [p._cmd_pulse_width_lo+chr(lo)+p._cmd_pulse_width_end]
+    buffer_check = p._cmd_pulse_width_hi + p._cmd_pulse_width_lo + p._cmd_pulse_width_end
+    return command, buffer_check
+
+
+def command_pulse_number(par):
+    """Get the command to set a pulse number"""
+    if par > p._max_pulse_number or par < 0:
+        raise TellieException("Invalid pulse number: %s" % (par))
+    par = int(par)
+    #parameters  = ParametersClass()
+    adjusted, actual_par, hi, lo = p.pulse_number(par)
+    if adjusted is True:
+        raise TellieException("Invalid pulse number: %s" % (par))
+    command = [p._cmd_pulse_number_hi+chr(hi)]
+    command+= [p._cmd_pulse_number_lo+chr(lo)]
+    buffer_check = p._cmd_pulse_number_hi + p._cmd_pulse_number_lo
+    return command, buffer_check
+
+
+def command_pulse_delay(par):
+    """Get the command to set a pulse delay"""
+    if par > p._max_pulse_delay or par < 0:
+        raise TellieException("Invalid pulse delay: %s" % par)
+    ms = int(par)
+    us = int((par-ms)*250)
+    command = [p._cmd_pulse_delay+chr(ms)]
+    command+= [chr(us)]
+    buffer_check = p._cmd_pulse_delay
+    return command, buffer_check
+
+
+def command_trigger_delay(par):
+    """Get the command to set a trigger delay"""
+    if par > p._max_trigger_delay or par < 0:
+        raise TellieException("Invalid trigger delay: %s" % par)
+    command = [p._cmd_trigger_delay+chr(par/5)]
+    buffer_check = p._cmd_trigger_delay
+    return command, buffer_check
+
+
+def command_fibre_delay(par):
+    """Get the command to set a fibre delay"""
+    if par > p._max_fibre_delay or par < 0:
+        raise TellieException("Invalid fibre delay: %s" % par)
+    #parameters = ParametersClass()
+    adjusted, adj_delay, setting = p.fibre_delay(par)
+    print "COMMAND", par, adjusted, adj_delay, setting
+    if adjusted is True:
+        raise TellieException("Invalid delay: %s" % (par))
+    command = [p._cmd_fibre_delay+chr(setting)]
+    buffer_check = p._cmd_fibre_delay
+    return command, buffer_check
+
+
+def command_select_temp(par):
+    """Select a temperature probe to read"""
+    if par > p._max_temp_probe or par < 0:
+        raise TellieException("Invalid temp. probe number: %s" % par)
+    cmd = ""
+    par = par
+    if par < 33 and par > 0:
+        cmd = p._cmd_temp_select_lower
+        par = par
+    elif par < p._max_temp_probe + 1:
+        cmd = p._cmd_temp_select_upper
+        par = par - 32 #lower
+    else:
+        raise TellieException("Invalid temp. probe number: %s" % par)
+    command = [cmd+chr(par)]
+    return command, None # nothing in buffer
+
 
 ##################################################
-# Helper functions
+# Helper functions (was only needed in serial_command)
 #def command_append(inputs, values):
 #    '''Pass in inputs as (command, buffer_check) and values to append.
 #
