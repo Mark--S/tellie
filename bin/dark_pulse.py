@@ -77,7 +77,7 @@ def method2(tellie_serial):
     dark_cmd,_ = serial_command.command_pulse_number(dark_num)
     send_command(tellie_serial,dark_cmd)
     time.sleep(p._short_pause) # Check whether these sleeps are required ...  ARGH!
-    send_command(tellie_serial,serial_command._cmd_fire_series)
+    send_command(tellie_serial,p._cmd_fire_series)
     print time.time()-start,"FIRING DARK:"
 
     #sleep for a second

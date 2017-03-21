@@ -190,14 +190,14 @@ class SerialCommand(object):
 
     def _clear_buffer(self):
         """Clear any chars left in the buffer"""
-        buffer_read = self._serial.read(p._read_bytes)
+        buffer_read = self.read_buffer()
         if buffer_read != "":
             self.logger.debug("Buffer was not clear: %s" % buffer_read)
 
     def _check_clear_buffer(self):
         """Many commands expect an empty buffer, fail if they are not!
         """
-        buffer_read = self._serial.read(p._read_bytes)
+        buffer_read = self.read_buffer()
         if buffer_read != "":
             self.logger.warn("Buffer not clear: %s" % (buffer_read))
 
@@ -243,12 +243,12 @@ class SerialCommand(object):
                 self.logger.debug("problem reading buffer, send %s, read %s" % (command, buffer_read))
                 #clear anything else that might be in there
                 time.sleep(p._short_pause)
-                remainder = self._serial.read(p._read_bytes)
+                remainder = self.read_buffer()
                 self._serial.write(p._cmd_stop) # send a stop
                 time.sleep(p._short_pause)
                 self._serial.write(p._cmd_channel_clear) # send a clear
                 time.sleep(p._short_pause)
-                self._serial.read(p._read_bytes)
+                self.read_buffer()
                 if buffer_read == '\x00':
                     self.logger.warn("Looks like power was lost to tellie...It may still be off?")
                     # Re-run 
@@ -440,7 +440,7 @@ class SerialCommand(object):
         self.disable_external_trigger()
         self.logger.debug("Stop firing!")
         self._send_command(p._cmd_stop, False)
-        buffer_contents = self._serial.read(p._read_bytes)
+        buffer_contents = self.read_buffer()
         self._firing = False
         return buffer_contents
 
@@ -450,7 +450,7 @@ class SerialCommand(object):
         self.logger.debug("Read PINOUT")
         #if in firing mode, check the buffer shows the sequence has ended
         if self._firing:
-            if self._serial.read(p._read_bytes) == _buffer_end_sequence:
+            if self.read_buffer() == _buffer_end_sequence:
                 print "K in buffer"
                 self._firing = False
             else:
@@ -463,11 +463,9 @@ class SerialCommand(object):
             else:
                 self.select_channel(channel)
             if self._channel[0] <= 56: #up to box 7
-                #cmd = p._cmd_read_average_lower
                 print "read!"
                 cmd = p._cmd_read_single_lower
             else:
-                #cmd = p._cmd_read_average_upper
                 print "read!"
                 cmd = p._cmd_read_single_upper
             if not self._reading:
@@ -476,7 +474,7 @@ class SerialCommand(object):
             start = time.time()
             pin = []
             while (time.time()-start)<timeout:
-                output = self._serial.read(p._read_bytes)
+                output = self.read_buffer()
                 pin = pattern.findall(output)
                 if len(pin):
                     break
@@ -511,7 +509,7 @@ class SerialCommand(object):
         self.logger.debug("Read PINOUT sequence")            
         if self._firing is not True:
             raise TellieException("Cannot read pin, not in firing mode")
-        output = self._serial.read(p._read_bytes)
+        output = self.read_buffer()
         
         if _snotDaqLog == True:
             self.logger.log(logger.DEBUG, "BUFFER: %s" % output)
@@ -739,7 +737,7 @@ class SerialCommand(object):
         temp = None
         start = time.time()
         while not temp:
-            output = self._serial.read(p._read_bytes)
+            output = self.read_buffer()
             self.logger.debug("Buffer: %s" % output)
             temp = pattern.findall(output)
             if time.time() - start > timeout:

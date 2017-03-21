@@ -98,7 +98,7 @@ class SerialCommand(object):
     def _check_clear_buffer(self):
         """Many commands expect an empty buffer, fail if they are not!
         """
-        buffer_read = self._serial.read(p._read_bytes)
+        buffer_read = self.read_buffer()
         if buffer_read != "":
             raise tellie_exception.TellieException("Buffer not clear: %s" % (buffer_read))
 
@@ -145,12 +145,12 @@ class SerialCommand(object):
                 self.logger.debug("problem reading buffer, send %s, read %s" % (command, buffer_read))
                 #clear anything else that might be in there
                 time.sleep(p._short_pause)
-                remainder = self._serial.read(p._read_bytes)
+                remainder = self.read_buffer()
                 self._serial.write(p._cmd_stop) # send a stop
                 time.sleep(p._short_pause)
                 self._serial.write(p._cmd_channel_clear) # send a clear
                 time.sleep(p._short_pause)
-                self._serial.read(p._read_bytes)
+                self.read_buffer()
                 message = "Unexpected buffer output:\nsaw: %s, remainder %s\nexpected: %s" % (buffer_read, remainder, buffer_check)
                 self.logger.warn(message)
                 raise tellie_exception.TellieException(message)
@@ -227,10 +227,6 @@ class SerialCommand(object):
         """
         if self._firing is True:
             raise tellie_exception.TellieException("Cannot fire, already in firing mode")
-        #if self._channel <= 56: #up to box 7                                                               
-        #    cmd = p._cmd_fire_single_lower
-        #else:
-        #    cmd = p._cmd_fire_single_upper
         self._send_command(p._cmd_fire_ext_trig, False)
         self._firing = True
         time.sleep(p._short_pause)
@@ -328,7 +324,7 @@ class SerialCommand(object):
         #Disable external trigger before we do anything
         self.disable_external_trigger()
         self._send_command(p._cmd_stop, False)
-        buffer_contents = self._serial.read(p._read_bytes)
+        buffer_contents = self.read_buffer()
         self._firing = False
         return buffer_contents
 
@@ -338,7 +334,7 @@ class SerialCommand(object):
         self.logger.debug("Read PINOUT")
         #if in firing mode, check the buffer shows the sequence has ended
         if self._firing:
-            if self._serial.read(p._read_bytes) == _buffer_end_sequence:
+            if self.read_buffer() == _buffer_end_sequence:
                 print "K in buffer"
                 self._firing = False
             else:
@@ -351,11 +347,9 @@ class SerialCommand(object):
             else:
                 self.select_channel(channel)
             if self._channel[0] <= 56: #up to box 7
-                #cmd = p._cmd_read_average_lower
                 print "read!"
                 cmd = p._cmd_read_single_lower
             else:
-                #cmd = p._cmd_read_average_upper
                 print "read!"
                 cmd = p._cmd_read_single_upper
             if not self._reading:
@@ -364,7 +358,7 @@ class SerialCommand(object):
             start = time.time()
             pin = []
             while (time.time()-start)<timeout:
-                output = self._serial.read(p._read_bytes)
+                output = self.read_buffer()
                 pin = pattern.findall(output)
                 if len(pin):
                     break
@@ -404,7 +398,7 @@ class SerialCommand(object):
         self.logger.debug("Read PINOUT sequence")            
         if self._firing is not True:
             raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
-        output = self._serial.read(p._read_bytes)
+        output = self.read_buffer()
         
         if _snotDaqLog == True:
             self.logger.log(logger.DEBUG, "BUFFER: %s" % output)
@@ -490,7 +484,7 @@ class SerialCommand(object):
             print channel
             command += chr(channel)
         command += p._cmd_channel_select_many_end
-        buffer_check = p._cmd_disable_ext_trig+str((int(channels[0])-1)/8+1)+_cmd_channel_select_many_end
+        buffer_check = p._cmd_disable_ext_trig+str((int(channels[0])-1)/8+1)+p._cmd_channel_select_many_end
         print "SEND CHANNELS", "CMD", command, "BUF", buffer_check
         self._send_command(command=command, buffer_check=buffer_check)
         print "DONE!"
@@ -647,7 +641,7 @@ class SerialCommand(object):
         temp = None
         start = time.time()
         while not temp:
-            output = self._serial.read(p._read_bytes)
+            output = self.read_buffer()
             self.logger.debug("Buffer: %s" % output)
             temp = pattern.findall(output)
             if time.time() - start > timeout:
@@ -682,7 +676,7 @@ class SerialCommand(object):
         if self._firing is not True:
             raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
         pattern = re.compile(r"""\d+""")
-        output = self._serial.read(p._read_bytes)
+        output = self.read_buffer()
         print output
         self.logger.debug("BUFFER: %s" % output)
         numbers = pattern.findall(output)
@@ -709,7 +703,7 @@ class SerialCommand(object):
         if self._firing is not True:
             raise tellie_exception.TellieException("Cannot read pin, not in firing mode")
         pattern = re.compile(r"""\d+""")
-        output = self._serial.read(p._read_bytes)
+        output = self.read_buffer()
         self.logger.debug("BUFFER: %s" % output)
         numbers = pattern.findall(output)
         pin, rms = numbers[0], "%s.%s" % (numbers[1],numbers[2])
@@ -747,7 +741,7 @@ class SNO6CKapustinsky(SerialCommand):
                 #channel already selected
                 return 0
         self.logger.debug("Select channel %s %s" % (channel, type(channel)))
-        command = p._cmd_channel_select_single_start+chr(channel)+_cmd_channel_select_single_end
+        command = p._cmd_channel_select_single_start+chr(channel)+p._cmd_channel_select_single_end
         self._send_command(command=command, buffer_check=p._cmd_channel_select_single_end)
         self._channel = [channel]
         return 0
@@ -763,8 +757,8 @@ class SNO6CKapustinsky(SerialCommand):
 
 def command_select_channel(par):
     """Get the command to select a single channel"""
-    command = p._cmd_channel_select_single_start+chr(par)+_cmd_channel_select_single_end
-    buffer_check = p._cmd_disable_ext_trig+str((int(par)-1)/8+1)+_cmd_channel_select_single_end
+    command = p._cmd_channel_select_single_start+chr(par)+p._cmd_channel_select_single_end
+    buffer_check = p._cmd_disable_ext_trig+str((int(par)-1)/8+1)+p._cmd_channel_select_single_end
     return command, buffer_check
 
 
@@ -774,10 +768,10 @@ def command_pulse_height(par):
         raise tellie_exception.TellieException("Invalid pulse height: %s" % par)
     hi = par >> 8   # binary right shift
     lo = par & 255  # binary AND operator
-    command = [_cmd_pulse_height_hi+chr(hi)]
-    command+= [_cmd_pulse_height_lo+chr(lo)]
-    command+= [_cmd_pulse_height_end]
-    buffer_check = p._cmd_pulse_height_hi + _cmd_pulse_height_lo + _cmd_pulse_height_end
+    command = [p._cmd_pulse_height_hi+chr(hi)]
+    command+= [p._cmd_pulse_height_lo+chr(lo)]
+    command+= [p._cmd_pulse_height_end]
+    buffer_check = p._cmd_pulse_height_hi + p._cmd_pulse_height_lo + p._cmd_pulse_height_end
     return command, buffer_check
 
 
@@ -787,9 +781,9 @@ def command_pulse_width(par):
         raise tellie_exception.TellieException("Invalid pulse width: %s %s %s" % (par, _max_pulse_width, par>_max_pulse_width))
     hi = par >> 8   # binary right shift
     lo = par & 255  # binary AND operator
-    command = [_cmd_pulse_width_hi+chr(hi)]
-    command+= [_cmd_pulse_width_lo+chr(lo)+_cmd_pulse_width_end]
-    buffer_check = p._cmd_pulse_width_hi + _cmd_pulse_width_lo + _cmd_pulse_width_end
+    command = [p._cmd_pulse_width_hi+chr(hi)]
+    command+= [p._cmd_pulse_width_lo+chr(lo)+p._cmd_pulse_width_end]
+    buffer_check = p._cmd_pulse_width_hi + p._cmd_pulse_width_lo + p._cmd_pulse_width_end
     return command, buffer_check
 
 
@@ -801,9 +795,9 @@ def command_pulse_number(par):
     adjusted, actual_par, hi, lo = p.pulse_number(par)
     if adjusted is True:
         raise tellie_exception.TellieException("Invalid pulse number: %s" % (par))
-    command = [_cmd_pulse_number_hi+chr(hi)]
-    command+= [_cmd_pulse_number_lo+chr(lo)]
-    buffer_check = p._cmd_pulse_number_hi + _cmd_pulse_number_lo
+    command = [p._cmd_pulse_number_hi+chr(hi)]
+    command+= [p._cmd_pulse_number_lo+chr(lo)]
+    buffer_check = p._cmd_pulse_number_hi + p._cmd_pulse_number_lo
     return command, buffer_check
 
 
@@ -813,7 +807,7 @@ def command_pulse_delay(par):
         raise tellie_exception.TellieException("Invalid pulse delay: %s" % par)
     ms = int(par)
     us = int((par-ms)*250)
-    command = [_cmd_pulse_delay+chr(ms)]
+    command = [p._cmd_pulse_delay+chr(ms)]
     command+= [chr(us)]
     buffer_check = p._cmd_pulse_delay
     return command, buffer_check
@@ -823,7 +817,7 @@ def command_trigger_delay(par):
     """Get the command to set a trigger delay"""
     if par > _max_trigger_delay or par < 0:
         raise tellie_exception.TellieException("Invalid trigger delay: %s" % par)
-    command = [_cmd_trigger_delay+chr(par/5)]
+    command = [p._cmd_trigger_delay+chr(par/5)]
     buffer_check = p._cmd_trigger_delay
     return command, buffer_check
 
@@ -836,7 +830,7 @@ def command_fibre_delay(par):
     print "COMMAND", par, adjusted, adj_delay, setting
     if adjusted is True:
         raise tellie_exception.TellieException("Invalid delay: %s" % (par))
-    command = [_cmd_fibre_delay+chr(setting)]
+    command = [p._cmd_fibre_delay+chr(setting)]
     buffer_check = p._cmd_fibre_delay
     return command, buffer_check
 
