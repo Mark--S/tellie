@@ -531,11 +531,9 @@ class SerialCommand(object):
             else:
                 self.select_channel(channel)
             if self._channel[0] <= 56: #up to box 7
-                #cmd = p._cmd_read_average_lower
                 print "read!"
                 cmd = p._cmd_read_single_lower
             else:
-                #cmd = p._cmd_read_average_upper
                 print "read!"
                 cmd = p._cmd_read_single_upper
             if not self._reading:
