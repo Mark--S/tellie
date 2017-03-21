@@ -557,6 +557,13 @@ class SerialCommand(object):
         time.sleep(0.1)
         buffer_contents = self._serial.read(100)
         self.disable_external_trigger()
+        self.clear_channel()
+        try:
+            self.clear_channel_settings(self._channel[0])
+        except IndexError:
+            pass
+        self.clear_global_settings()
+        self._channel = []
         self._firing = False
         return buffer_contents
 
@@ -631,6 +638,7 @@ class SerialCommand(object):
         self.logger_local.debug("Read PINOUT sequence")            
         if self._firing is not True:
             raise TellieException("Cannot read pin, not in firing mode")
+        time.sleep(0.2)
         output = self._serial.read(100)
         
         if _snotDaqLog:
