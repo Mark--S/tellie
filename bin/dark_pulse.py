@@ -7,7 +7,7 @@ import os
 import time
 import optparse
 import re
-from core import serial_command, tellie_exception
+from core import tellie_server, tellie_exception
 from common import tellie_logger
 from common import parameters as p
 
@@ -71,10 +71,10 @@ def method2(tellie_serial):
         print "BUFFER NOT EMPTY",out
 
     #first, set the dark pulses going...
-    dark_cmd,_ = serial_command.command_pulse_width(dark_width)
+    dark_cmd,_ = tellie_server.command_pulse_width(dark_width)
     send_command(tellie_serial,dark_cmd)
     time.sleep(p._short_pause) # Check whether these sleeps are required ...  ARGH!
-    dark_cmd,_ = serial_command.command_pulse_number(dark_num)
+    dark_cmd,_ = tellie_server.command_pulse_number(dark_num)
     send_command(tellie_serial,dark_cmd)
     time.sleep(p._short_pause) # Check whether these sleeps are required ...  ARGH!
     send_command(tellie_serial,p._cmd_fire_series)
@@ -104,15 +104,15 @@ def method2(tellie_serial):
     print time.time()-start,"DONE SLEEP"
 
     #finally, stop and then send the light commands
-    send_command(tellie_serial,serial_command._cmd_stop)
+    send_command(tellie_serial,tellie_server._cmd_stop)
     time.sleep(p._short_pause) # Check whether these sleeps are required ...  ARGH!
-    light_cmd,_ = serial_command.command_pulse_width(light_width)
+    light_cmd,_ = tellie_server.command_pulse_width(light_width)
     send_command(tellie_serial,light_cmd)
     time.sleep(p._short_pause) # Check whether these sleeps are required ...  ARGH!
-    light_cmd,_ = serial_command.command_pulse_number(light_num)
+    light_cmd,_ = tellie_server.command_pulse_number(light_num)
     send_command(tellie_serial,light_cmd)
     time.sleep(p._short_pause) # Check whether these sleeps are required ...  ARGH!
-    send_command(tellie_serial,serial_command._cmd_fire_series)
+    send_command(tellie_serial,tellie_server._cmd_fire_series)
     #one pulse, then stop? sleep 0.1 s just to be sure
     time.sleep(p._short_pause)
     print time.time()-start,"SEQUENCE COMPLETE"
@@ -121,7 +121,7 @@ if __name__=="__main__":
     parser = optparse.OptionParser()
     parser.add_option("-d",dest="debug",action="store_true",default=False,help="Debug mode")
     (options, args) = parser.parse_args()
-    tellie_serial = serial_command.SerialCommand()
+    tellie_serial = tellie_server.SerialCommand()
     # create a logging object
     logger = tellie_logger.TellieLogger.get_instance()
     logger.set_debug_mode(options.debug)

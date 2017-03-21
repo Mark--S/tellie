@@ -10,7 +10,7 @@
 import time
 from core.tellie_server import SerialCommand
 
-sc = serial_command.SerialCommand()
+sc = tellie_server.SerialCommand()
 offset = 19.6e-6 #additional offset in delay
 
 def run_settings(n_pulse,chan,delay,width):

@@ -1,4 +1,4 @@
-from core import serial_command
+from core import tellie_server
 import os
 import sys
 import optparse
@@ -49,7 +49,7 @@ if __name__=="__main__":
     scope.set_cursor("x",1,cursor_low)
     scope.set_cursor("x",2,cursor_high)
 
-    sc = serial_command.SerialCommand(options.port)
+    sc = tellie_server.SerialCommand(options.port)
 
 
     # Channel parameters

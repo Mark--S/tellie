@@ -1,5 +1,5 @@
 ### sends a continuous pulse
-from core import serial_command
+from core import tellie_server
 import scope_connections
 import scopes
 import utils
@@ -12,7 +12,7 @@ port = p._serial_port   # set in tellie.cfg
 usb_conn = scope_connections.VisaUSB()
 scope = scopes.Tektronix3000(usb_conn)
 
-sc = serial_command.SerialCommand(port)
+sc = tellie_server.SerialCommand(port)
 sc.stop()
 
 def safe_exit(sc,e):

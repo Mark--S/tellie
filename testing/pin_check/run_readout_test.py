@@ -30,7 +30,7 @@ if __name__=="__main__":
     rate = 1./(delay*1e-3 + 200e-6)        
     t_wait = 1./rate + 0.1#add 100ms just to be sure
     #setup board
-    sc = serial_command.SerialCommand(options.port)
+    sc = tellie_server.SerialCommand(options.port)
     sc.select_channel(channel)
     sc.set_pulse_height(p._max_pulse_height)
     sc.set_pulse_width(width)

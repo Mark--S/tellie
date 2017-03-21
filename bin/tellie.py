@@ -18,7 +18,7 @@ import sys
 import argparse
 import inspect
 from SimpleXMLRPCServer import SimpleXMLRPCServer
-from core import tellie_exception, serial_command
+from core import tellie_exception, tellie_server
 from common import tellie_logger
 from common import parameters as p
 
@@ -37,11 +37,11 @@ if __name__ == "__main__":
     # Dynamically load the correct class for the chip
     # Could do this with a factory style function
     try:
-        command_class = getattr(serial_command, args.chip_type)
+        command_class = getattr(tellie_server, args.chip_type)
     except AttributeError:
         parser.print_help()
         print "Cannot find chip type, available include:"
-        for name, obj in inspect.getmembers(sys.modules['core.serial_command']):
+        for name, obj in inspect.getmembers(sys.modules['core.tellie_server']):
             if inspect.isclass(obj):
                 print obj.__name__
 
