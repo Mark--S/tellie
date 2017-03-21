@@ -558,10 +558,8 @@ class SerialCommand(object):
         buffer_contents = self._serial.read(100)
         self.disable_external_trigger()
         self.clear_channel()
-        try:
-            self.clear_channel_settings(self._channel[0])
-        except IndexError:
-            pass
+        for c in self._channel:
+            self.clear_channel_settings(c)
         self.clear_global_settings()
         self._channel = []
         self._firing = False
