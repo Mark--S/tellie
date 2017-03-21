@@ -335,10 +335,6 @@ class SerialCommand(object):
         """
         if self._firing is True:
             raise TellieException("Cannot fire, already in firing mode")
-        #if self._channel <= 56: #up to box 7                                                               
-        #    cmd = p._cmd_fire_single_lower
-        #else:
-        #    cmd = p._cmd_fire_single_upper
         self._send_command(p._cmd_fire_ext_trig, False)
         self._firing = True
         time.sleep(p._short_pause)
@@ -534,7 +530,6 @@ class SerialCommand(object):
         value_dict = {self._channel[0]: pin}
         rms_dict = {self._channel[0]: rms}
         return pin, rms, self._channel
-        #return value_dict, rms_dict, self._channel
 
     def check_ready(self):
         """Check that all settings have been set"""
