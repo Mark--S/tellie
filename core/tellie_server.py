@@ -174,9 +174,16 @@ class SerialCommand(object):
         self._clear_buffer()
         self.clear_channel()
 
+        #By default stop tellie waiting for external trigger (i.e. running in slave mode).
+        #Slave mode can be re-instated later if required.
+        self._send_command(p._cmd_disable_ext_trig)
+
     def __del__(self):
         """Deletion function"""
         self.reset()
+        if self._serial:
+            self._send_command(p._cmd_disable_ext_trig) # Stop accecpting external trigs
+            self._serial.close()
         self.disconnect()
         self.logger.warn("tellie server dropped out")
 
@@ -199,6 +206,7 @@ class SerialCommand(object):
         """
         buffer_read = self._serial.read(p._read_bytes)
         if buffer_read != "":
+            # serial command class raised a TellieException here
             self.logger.warn("Buffer not clear: %s" % (buffer_read))
 
     def _send_command(self, command, readout=True, buffer_check=None, sleep_after_command=p._short_pause):
@@ -232,10 +240,10 @@ class SerialCommand(object):
             buffer_read = self._serial.read(len(buffer_check))
             attempt = 0
             self.logger.debug("READ: %s\tCHECK: %s" % (buffer_read, buffer_check))
-            while (len(buffer_read) != len(buffer_check)) and attempt<5:
+            while (len(buffer_read) != len(buffer_check)) and attempt<10:
                 self.logger.debug("Didn't read correct no of chars, read again")
                 # First, try reading again
-                time.sleep(0.2)
+                time.sleep(p._short_pause)
                 buffer_read += self._serial.read(len(buffer_check))
                 attempt += 1
 
