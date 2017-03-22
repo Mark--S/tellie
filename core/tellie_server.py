@@ -194,14 +194,14 @@ class SerialCommand(object):
                 data = list(char)
                 for c in data:
                     try:    c = c.encode('utf8')
-                    except: c = int(c.encode('hex'),16)
-                    if c is '\x00': c = 'NULL'
+                    except: c = "[%d]" % int(c.encode('hex'),16)
+                    if c is '\x00': c = '[NULL]'
                     self.log_phrase("Writing char %s" % c, 0, _snotDaqLog)
                 bytesWritten = self._serial.write(char)
                 for c in data:
                     try:    c = c.encode('utf8')
-                    except: c = int(c.encode('hex'),16)
-                    if c is '\x00': c = 'NULL'
+                    except: c = "[%d]" % int(c.encode('hex'),16)
+                    if c is '\x00': c = '[NULL]'
                     self.log_phrase("Written char %s" % c, 0, _snotDaqLog)
                 self.log_phrase("Bytes written %d" % bytesWritten, 0, _snotDaqLog)
                 time.sleep(sleep_after_command)
