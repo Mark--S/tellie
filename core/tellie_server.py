@@ -144,10 +144,7 @@ class SerialCommand(object):
         
         #Setting local log file on snodrop
         self.logger_local = tellie_logger.TellieLogger.get_instance()
-        try:
-            self.logger_local.set_log_file(p._server_log)
-        except Exception as e:
-            self.log_phrase("Unable to set local log file: %s" % str(e))
+        self.logger_local.set_log_file(p._server_log)
         self.logger_local.set_debug_mode(True)
         
         # Set up logger stuff.
