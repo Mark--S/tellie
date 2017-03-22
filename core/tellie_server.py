@@ -119,7 +119,7 @@ class SerialCommand(object):
     
     # ####################
     # Function for easier logging
-    def log_phrase(self, phrase, int severity=0, bool isSnotDaqLog=False)
+    def log_phrase(self, phrase, severity=0, isSnotDaqLog=False):
         if (severity == 0):
             if isSnotDaqLog:
                 self.logger.debug(phrase)
@@ -141,6 +141,15 @@ class SerialCommand(object):
         self._serial_port = serial_port
         self._port_timeout = port_timeout
         self._logger_port = logger_port
+        
+        #Setting local log file on snodrop
+        self.logger_local = tellie_logger.TellieLogger.get_instance()
+        try:
+            self.logger_local.set_log_file(p._server_log)
+        except Exception as e:
+            self.log_phrase("Unable to set local log file: %s" % str(e))
+        self.logger_local.set_debug_mode(True)
+        
         # Set up logger stuff.
         if _snotDaqLog:
             self.logger = logger.Logger()
@@ -151,15 +160,10 @@ class SerialCommand(object):
                 self.logger.warn("unable to connect to log server: %s" % str(e))
             self.logger.notice("Tellie connected to log server!")
         
-        #Setting local log file on snodrop
-        self.logger_local = tellie_logger.TellieLogger.get_instance()
-        self.logger_local.set_log_file("c:/TELLIE/server_logs/server_log")
-        self.logger_local.set_debug_mode(True)
-
         # Set up serial connection to tellie
         self._serial = None
         try:
-            self._serial = serial.Serial(port=self._port_name,timeout=self._port_timeout)
+            self._serial = serial.Serial(port=p._serial_port,timeout=p._port_timeout)
             self.log_phrase("Serial connection open: %s" % self._serial, 0, _snotDaqLog)
         except serial.SerialException, e:
             raise TellieSerialException(e)
