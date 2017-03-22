@@ -24,7 +24,7 @@ import sys
 import time
 import math
 from common import parameters as p
-from core import serial_command as s
+#from core import serial_command as s
 _snotDaqLog = False
 try:
     from snotdaq import logger
@@ -560,18 +560,18 @@ class SerialCommand(object):
         numbers = output.split()
         if len(numbers) == 0:
             self.log_phrase("Sequence doesn't appear to have finished..", 0, _snotDaqLog)
-            return None, None, None
+            return None
         elif len(numbers) == 2:
             try:
                 pin = float(numbers[0])
                 rms = float(numbers[1])
             except:
                 self.log_phrase("Unable to convert numbers to floats Numbers: %s Buffer: %s",str(numbers),output, 2, _snotDaqLog)
-                return None, None, None
+                return None
 
         else:
             self.log_phrase("Bad number of PIN readouts: %s %s" % (len(numbers), numbers), 2, _snotDaqLog)
-            return None, None, None
+            return None
         self._firing = False
         value_dict = {self._channel[0]: pin}
         rms_dict = {self._channel[0]: rms}
@@ -624,7 +624,7 @@ class SerialCommand(object):
                 self.log_phrase("Channel already selected", 0, _snotDaqLog)
                 return 0
         self.log_phrase("Select channel %s %s" % (channel, type(channel)), 0, _snotDaqLog)
-        command, buffer_check = s.command_select_channel(channel)
+        command, buffer_check = command_select_channel(channel)
         self._send_command(command=command, buffer_check=buffer_check)
         self._channel = [channel]
         self.log_phrase("About to return", 0, _snotDaqLog)
@@ -684,7 +684,7 @@ class SerialCommand(object):
             self.log_phrase("Pulse height: %s,already set" % (par), 0, _snotDaqLog)
         else:
             self.log_phrase("Set pulse height %s %s" % (par, type(par)), 0, _snotDaqLog)
-            command, buffer_check = s.command_pulse_height(par)
+            command, buffer_check = command_pulse_height(par)
             self._send_channel_setting_command(command=command, buffer_check=buffer_check)
             self._current_pulse_height[self._channel[0]] = par
         return 0
@@ -698,7 +698,7 @@ class SerialCommand(object):
             self.log_phrase("Pulse width: %s, already set" % (par), 0, _snotDaqLog)
         else:
             self.log_phrase("Set pulse width %s %s" % (par, type(par)), 0, _snotDaqLog)            
-            command, buffer_check = s.command_pulse_width(par)
+            command, buffer_check = command_pulse_width(par)
             self._send_channel_setting_command(command=command, buffer_check=buffer_check)
             self._current_pulse_width[self._channel[0]] = par
         return 0
@@ -711,7 +711,7 @@ class SerialCommand(object):
             self.log_phrase("Fibre delay %s, already selected" % (par), 0, _snotDaqLog)
         else:
             self.log_phrase("Set Fibre delay %s %s" % (par, type(par)), 0, _snotDaqLog)
-            command, buffer_check = s.command_fibre_delay(par)
+            command, buffer_check = command_fibre_delay(par)
             self._send_channel_setting_command(command=command, buffer_check=buffer_check)
             self._current_fibre_delay[self._channel[0]] = par
         return 0
@@ -722,7 +722,7 @@ class SerialCommand(object):
             self.log_phrase("Number of pulses: %s already selected" % (par), 0, _snotDaqLog)
         else:
             self.log_phrase("Set pulse number %s %s" % (par, type(par)), 0, _snotDaqLog)
-            command, buffer_check = s.command_pulse_number(par)
+            command, buffer_check = command_pulse_number(par)
             self._send_global_setting_command(command=command, buffer_check=buffer_check)
             self._current_pulse_number = par
         return 0
@@ -733,7 +733,7 @@ class SerialCommand(object):
             self.log_phrase("Pulse delay: %s, already selected" % (par), 0, _snotDaqLog)
         else:
             self.log_phrase("Set pulse delay %s %s" % (par, type(par)), 0, _snotDaqLog)
-            command, buffer_check = s.command_pulse_delay(par)
+            command, buffer_check = command_pulse_delay(par)
             self._send_global_setting_command(command=command, buffer_check=buffer_check)
             self._current_pulse_delay = par
         return 0
@@ -744,7 +744,7 @@ class SerialCommand(object):
             self.log_phrase("Trigger delay: %s,already set" % (par), 0, _snotDaqLog)
         else:
             self.log_phrase("Set trigger delay %s %s" % (par, type(par)), 0, _snotDaqLog)
-            command, buffer_check = s.command_trigger_delay(par)
+            command, buffer_check = command_trigger_delay(par)
             self._send_global_setting_command(command=command, buffer_check=buffer_check)
             self._current_trigger_delay = par
         return 0
@@ -755,7 +755,7 @@ class SerialCommand(object):
             pass
         else:
             self.log_phrase("Select temperature probe %s %s" % (par, type(par)), 0, _snotDaqLog)
-            command, buffer_check = s.command_select_temp(par)
+            command, buffer_check = command_select_temp(par)
             self._send_command(command=command, readout=False)
             self._current_temp_probe = par
             #read the temperature twice
