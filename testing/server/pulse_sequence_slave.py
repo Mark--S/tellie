@@ -38,4 +38,4 @@ if __name__=="__main__":
     except KeyboardInterrupt:
         safe_exit(server, "keyboard interrupt")
 
-    print "\nPin: %s \nrms: %s\n" % (mean, rms)
+    print "\nPIN: %s \nRMS: %s\n" % (mean, rms)
