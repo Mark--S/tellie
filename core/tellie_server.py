@@ -76,6 +76,15 @@ class SerialCommand(object):
             self.logger_local.warn(phrase)
         else:
             self.logger.warn("Severity of log_phrase not set correctly: %d" % severity)
+    
+    def parse_hex(self, string):
+        result = ""
+        data = list(string)
+        for c in data:
+            if not c.isalpha(): r = '[%d]' % ord(c)    # not in alphabet, assume hex
+            else:               r = c                  # leave as is
+            result = result + r + " "
+        return result
 
     def __init__(self, serial_port = p._serial_port, server_port = p._server_port, logger_port = p._logger_port, port_timeout = p._port_timeout):
         '''Initialise function: open serial connection.
@@ -189,24 +198,15 @@ class SerialCommand(object):
             command = [command]
         if type(command) is not list:
             raise TellieException("Command is not a list: %s %s" % (command, type(command)))
-        try:
-            for char in command:
-                data = list(char)
-                for c in data:
-                    try:    c = c.encode('utf8')
-                    except: c = "[%d]" % int(c.encode('hex'),16)
-                    if c is '\x00': c = '[NULL]'
-                    self.log_phrase("Writing char %s" % c, 0, _snotDaqLog)
-                bytesWritten = self._serial.write(char)
-                for c in data:
-                    try:    c = c.encode('utf8')
-                    except: c = "[%d]" % int(c.encode('hex'),16)
-                    if c is '\x00': c = '[NULL]'
-                    self.log_phrase("Written char %s" % c, 0, _snotDaqLog)
-                self.log_phrase("Bytes written %d" % bytesWritten, 0, _snotDaqLog)
-                time.sleep(sleep_after_command)
-        except Exception as e:
-            raise TellieException("Lost connection with TELLIE hardware! Re-set server")
+        #try:
+        for c in command:
+            self.log_phrase("Writing chars %s" % self.parse_hex(c), 0, _snotDaqLog)
+            bytesWritten = self._serial.write(c)
+            self.log_phrase("Written chars %s" % self.parse_hex(c), 0, _snotDaqLog)
+            self.log_phrase("Bytes written %d" % bytesWritten, 0, _snotDaqLog)
+            time.sleep(sleep_after_command)
+        #except Exception as e:
+        #    raise TellieException("Lost connection with TELLIE hardware! Re-set server")
 
         if not buffer_check: # assume returns same as input
             buffer_check = ''
@@ -575,6 +575,7 @@ class SerialCommand(object):
                 return 0
         self.log_phrase("Select channel %s %s" % (channel, type(channel)), 0, _snotDaqLog)
         command, buffer_check = command_select_channel(channel)
+        self.log_phrase("About to send command %s, %s" % (command, buffer_check), 0, _snotDaqLog)
         self._send_command(command=command, buffer_check=buffer_check)
         self._channel = [channel]
         self.log_phrase("About to return", 0, _snotDaqLog)
@@ -777,7 +778,7 @@ class SerialCommand(object):
 
 def command_select_channel(par):
     """Get the command to select a single channel"""
-    command = p._cmd_channel_select_single_start+chr(par)+p._cmd_channel_select_single_end
+    command = [p._cmd_channel_select_single_start+chr(par)+p._cmd_channel_select_single_end]
     buffer_check = p._cmd_disable_ext_trig+str((int(par)-1)/8+1)+p._cmd_channel_select_single_end
     return command, buffer_check
 
