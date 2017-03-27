@@ -1,18 +1,18 @@
 ### sends a continuous pulse
-from core import serial_command
+from core import tellie_server
 import scope_connections
 import scopes
 import utils
 import sys
 import time
+from common import parameters as p
 
-port = "/dev/tty.usbserial-FTE3C0PG"
-#port = "/dev/tty.usbserial-FTF5YKDL"
+port = p._serial_port   # set in tellie.cfg
 
 usb_conn = scope_connections.VisaUSB()
 scope = scopes.Tektronix3000(usb_conn)
 
-sc = serial_command.SerialCommand(port)
+sc = tellie_server.SerialCommand(port)
 sc.stop()
 
 def safe_exit(sc,e):
@@ -67,9 +67,9 @@ if __name__=="__main__":
 
     chan = (box_name-1) * 8 + chan_name
     sc.select_channel(chan)
-    sc.set_pulse_height(16383)
+    sc.set_pulse_height(p._max_pulse_height)
     sc.set_pulse_width(0) #TODO: check that the pulse width is OK (higher width -> faster rise time)
-    sc.set_pulse_delay(1.0) #no zeros on the new chip!
+    sc.set_pulse_delay(p._pulse_delay) #no zeros on the new chip!
     sc.set_pulse_number(1) #no zeros on the new chip!
     if trigger==True:
         sc.set_trigger_delay(0)
@@ -87,7 +87,7 @@ if __name__=="__main__":
     results.set_meta_data("timeform_2",scope.get_timeform(2))
     results.add_data(scope.get_waveform(1),1)
     results.add_data(scope.get_waveform(2),2)
-    time.sleep(0.05)
+    time.sleep(p._short_pause)
     sc.read_pin()
     
     results.save()

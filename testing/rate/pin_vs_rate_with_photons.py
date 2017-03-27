@@ -7,13 +7,14 @@
 # channels and IPW settings
 ########################
 
-from core import serial_command
 import scopes
 import scope_connections
 import ROOT
 import time
 import optparse
 import scope_actions
+from core.tellie_server import SerialCommand
+from common import parameters as p
 
 
 #for the branches
@@ -32,7 +33,7 @@ results = Results()
 usb_conn = scope_connections.VisaUSB()
 scope = scopes.Tektronix3000(usb_conn)
 
-sc = serial_command.SerialCommand()
+sc = SerialCommand()
 offset = 200e-6 #additional offset in delay
 
 def run_settings(n_pulse,chan,delay,width):
@@ -41,7 +42,7 @@ def run_settings(n_pulse,chan,delay,width):
     sc.select_channel(chan)
     sc.set_pulse_number(n_pulse)
     sc.set_pulse_delay(delay)
-    sc.set_pulse_height(16383)
+    sc.set_pulse_height(p._max_pulse_height)
     sc.set_pulse_width(width)
     sc.fire()
     time.sleep(t_run)
@@ -98,7 +99,7 @@ if __name__=="__main__":
             scope.set_y_scale(1,1)
             scope.set_edge_trigger(-0.5,1,True)
 
-        time.sleep(0.1)
+        time.sleep(p._short_pause)
             
         scope.set_single_acquisition()
         _ = run_settings(n_pulse = 10,

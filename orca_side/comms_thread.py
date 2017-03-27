@@ -17,6 +17,7 @@
 import xmlrpclib
 import time
 import threading
+from common import parameters as p
 from common import tellie_logger
 from core import tellie_exception
 import comms_thread_pool
@@ -131,7 +132,7 @@ class LoadFireThread(CommsThread):
             t_now = time.time()
             while (t_now - t_start) < t_wait:
                 self.ellie_field.show_running()
-                time.sleep(0.1)
+                time.sleep(p._short_pause)
                 if not self.stopped():
                     t_now = time.time()
                 else:
@@ -147,7 +148,7 @@ class LoadFireThread(CommsThread):
                 self.shutdown_thread(True, "READ ERROR: %s" % (e.faultString))
                 return
             while not pin_out:
-                time.sleep(0.1)
+                time.sleep(p._short_pause)
                 if self.stopped():
                     #Stop the thread here!
                     self.attempt_stop()

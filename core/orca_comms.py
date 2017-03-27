@@ -23,7 +23,7 @@ import socket
 import os
 import json
 from common import comms_flags, tellie_logger
-import serial_command
+import tellie_server
 import tellie_exception
 
 

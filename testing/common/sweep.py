@@ -7,7 +7,7 @@
 #########################
 
 import os
-from core import serial_command
+from core import tellie_server
 from common import comms_flags
 import math
 import time
@@ -16,23 +16,23 @@ try:
 except:
     pass
 import sys
+from common import parameters as p
 
-port_name = "/dev/tty.usbserial-FTE3C0PG"
-## TODO: better way of getting the scope type
-scope_name = "Tektronix3000"
+serial_port = p._serial_port
+scope_name = p._scope_name
 _boundary = [0,1.5e-3,3e-3,7e-3,15e-3,30e-3,70e-3,150e-3,300e-3,700e-3,1000]
 _v_div = [1e-3,2e-3,5e-3,10e-3,20e-3,50e-3,100e-3,200e-3,500e-3,1.0,1000]
 sc = None
-sc = serial_command.SerialCommand(port_name)
+sc = tellie_server.SerialCommand(serial_port)
 
 #initialise sc here, faster options setting
 def start():
     global sc
-    sc = serial_command.SerialCommand(port_name)
+    sc = tellie_server.SerialCommand(serial_port)
 
 def set_port(port):
-    global port_name
-    port_name = port
+    global serial_port
+    serial_port = port
 
 def set_scope(scope):
     global scope_name
@@ -77,7 +77,7 @@ def get_min_volt(channel,height,width,delay,scope,scale=None,trigger=None,min_tr
     else:
         scope.set_trigger_mode("single")
         scope.enable_trigger()
-        time.sleep(0.1)
+        time.sleep(p._short_pause)
     sc.fire_sequence()
     pin, rms = None, None
     while pin==None:
@@ -103,21 +103,21 @@ def sweep(dir_out,file_out,box,channel,width,delay,scope,min_volt=None,min_trigg
     print '____________________________'
     print width
     #fixed options
-    height = 16383    
+    height = p._max_pulse_height
     fibre_delay = 0
     trigger_delay = 0
-    pulse_number = 1000
+    pulse_number = p._pulse_num
     #first select the correct channel and provide settings
     logical_channel = (box-1)*8 + channel
     
     if scope_name=="Tektronix3000":
         # first, run a single acquisition with a forced trigger, effectively to clear the waveform
         scope.set_single_acquisition()
-        time.sleep(0.1) #needed for now to get the force to work...
+        time.sleep(p._short_pause) #needed for now to get the force to work...
         scope._connection.send("trigger:state ready")
-        time.sleep(0.1)
+        time.sleep(p._short_pause)
         scope._connection.send("trigger force")
-        time.sleep(0.1)
+        time.sleep(p._short_pause)
     else:
         # Setup averaging and set to 0 averages
         scope.reset_averaging("A")
@@ -130,7 +130,7 @@ def sweep(dir_out,file_out,box,channel,width,delay,scope,min_volt=None,min_trigg
 
     sc.select_channel(logical_channel)
     sc.set_pulse_width(width)
-    sc.set_pulse_height(16383)
+    sc.set_pulse_height(p._max_pulse_height)
     sc.set_pulse_delay(delay)
     sc.set_fibre_delay(fibre_delay)
     sc.set_trigger_delay(trigger_delay)

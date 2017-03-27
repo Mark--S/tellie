@@ -1,6 +1,7 @@
 ### sends a continuous pulse
 from core.tellie_server import SerialCommand
 import sys
+from common import parameters as p
 
 def safe_exit(sc,e):
     print "Exit safely"
@@ -16,10 +17,10 @@ if __name__=="__main__":
     number = int(number)
     channel = int(channel)
     #print width,number,channel
-    sc = SerialCommand("/dev/ttyUSB0")
+    sc = SerialCommand(p._serial_port)
     sc.stop()
     sc.select_channel(channel)
-    sc.set_pulse_height(16383)
+    sc.set_pulse_height(p._max_pulse_height)
     sc.set_pulse_width(width)
     sc.set_pulse_number(number)
     try:
@@ -37,6 +38,6 @@ if __name__=="__main__":
     except KeyboardInterrupt:
         safe_exit(sc, "keyboard interrupt")
 
-    print "\nPin: %s \nrms: %s\n" % (mean, rms)
+    print "\nPIN: %s \nRMS: %s\n" % (mean, rms)
         
         
