@@ -566,7 +566,7 @@ The `in-situ' hardware is an umbrella term for any of the TELLIE hardware which 
 
 The design of the placement and mechanical structure of the TELLIE fibres system is determined by the requirement of providing a coverage of the PMTs as uniform as possible, and by the access constraints to the existing detector structure. 
 
-The $\sim$9500 PMTs are mounted with light reflectors within hexagonal-shaped boxes called``hex cells'', made of Acrylonitrile Butadine Styrene (ABS), see Figure~\ref{fig:HexCell}. These are assembled in flat pannels, supported by the PSUP. Most PMTs are mounted in triangular panels that follow the faces of the geodesic shape, these can be seen as triangular segments in Figure~\ref{fig:NodePanelMap}. However, close to each node, there is a much smaller panel of hexagonal shape, positioned where the node number labels are in Figure~\ref{fig:NodePanelMap}. These hexagonal distributions close to the nodes were chosen to host the ELLIE mounting plates, since they have a slightly wider gap with respect to the neighbouring panels, facilitating installation. These locations are also convenient in that their distribution in the detector guarantees in a simple way a uniform coverage of all the PMTs, when all 91 nodes and the neck aperture are used. A flat map of the PSUP structure with each of the 91 nodes labelled is given in Figure~\ref{fig:NodePanelMap}. The same map is shown with each of the 95 installed TELLIE channels labelled is given in Figure~\ref{fig:NodeChannelMap}.
+The $\sim$9500 PMTs are mounted with light reflectors within hexagonal-shaped boxes called``hex cells'', made of Acrylonitrile Butadine Styrene (ABS), see Figure~\ref{fig:HexCell}. These are assembled in flat pannels, supported by the PSUP. Most PMTs are mounted in triangular panels that follow the faces of the geodesic shape, these can be seen as triangular segments in Figure~\ref{fig:NodePanelMap}. However, close to each node, there is a much smaller panel of hexagonal shape, positioned where the node number labels are in Figure~\ref{fig:NodePanelMap}. These hexagonal distributions close to the nodes were chosen to host the ELLIE mounting plates, since they have a slightly wider gap with respect to the neighbouring panels, facilitating installation. These locations are also convenient in that their distribution in the detector guarantees in a simple way a uniform coverage of all the PMTs, when all 91 nodes and the neck aperture are used. A flat map of the PSUP structure with each of the 91 nodes labelled is given in Figure~\ref{fig:NodePanelMap}. The same map is shown with each of the 95 installed TELLIE channels labelled is given in Figure~\ref{fig:NodeChannelMap}. The corresponding channel-to-panel mapping is shown in Table~\ref{tab:channel_mapping}.
 
 The number of LED-driver channels is 96, chosen to be slightly larger than the required 92 in order to ensure some redundancy in case of channel failure. The number of fibres installed is also higher, 110 double cables, in order to have enough spares in case of breakage during installation.
 
@@ -593,6 +593,123 @@ The number of LED-driver channels is 96, chosen to be slightly larger than the r
 		\label{fig:NodeChannelMap}
 	\end{center}
 \end{figure}
+
+\begin{table}%[]
+	\scriptsize % smaller text to fit page
+	\begin{center}
+		\begin{tabular}{|c|c|c|c|}
+			\hline
+			Channel & Patch & Fibre & Panel \\
+			\hline
+			1 & 115A & FT031A & 31 \\
+			2 & 114A & FT021A & 21 \\
+			3 & 113A & FT009A & 9 \\
+			4 & 112A & FT015A & 15 \\
+			5 & 119A & FT035A & 35 \\
+			6 & 118A & FT019A & 19 \\
+			7 & 117A & FT029A & 29 \\
+			8 & 116A & FT101A & 47 \\
+			9 & 105A & FT008A & 8 \\
+			10 & 104A & FT026A & 26 \\
+			11 & 103A & FT016A & 16 \\
+			12 & 102A & FT001A & 1 \\
+			13 & 109A & FT053A & 53 \\
+			14 & 108A & FT006A & 6 \\
+			15 & 107A & FT005A & 5 \\
+			16 & 106A & FT023A & 23 \\
+			17 & 95A & FT010A & 10 \\
+			18 & 94A & FT027A & 27 \\
+			19 & 93A & FT002A & 2 \\
+			20 & 92A & FT020A & 20 \\
+			21 & 99A & FT081A & 81 \\
+			22 & 98A & FT090A & 90 \\
+			23 & 97A & FT007A & 7 \\
+			24 & 96A & FT011A & 11 \\
+			25 & 85A & FT049A & 49 \\
+			26 & 84A & FT060A & 60 \\
+			27 & 83A & FT058A & 58 \\
+			28 & 82A & FT042A & 42 \\
+			29 & 89A & FT034A & 34 \\
+			30 & 88A & FT037A & 37 \\
+			31 & 87A & FT024A & 24 \\
+			32 & 86A & FT017A & 17 \\
+			33 & 111A & FT014A & 14 \\
+			34 & 101A & FT022A & 22 \\
+			35 & 91A & FT003A & 3 \\
+			36 & 81A & FT028A & 28 \\
+			37 & 90A & FT082A & 82 \\
+			38 & 100A & FT054A & 54 \\
+			39 & 110A & FT084A & 84 \\
+			40 & 120A & FT085A & 85 \\
+			41 & 75A & FT038A & 38 \\
+			42 & 74A & FT075A & 75 \\
+			43 & 73A & FT033A & 33 \\
+			44 & 72A & FT073A & 73 \\
+			45 & 79A & FT083A & 83 \\
+			46 & 78A & FT080A & 80 \\
+			47 & 77A & FT013A & 13 \\
+			48 & 76A & FT018A & 18 \\
+			\hline
+		\end{tabular}
+		\hspace{2cm}
+		\begin{tabular}{|c|c|c|c|}
+			\hline
+			Channel & Patch & Fibre & Panel \\
+			\hline
+			49 & 65A & FT030A & 30 \\
+			50 & 64A & FT012A & 12 \\
+			51 & 63A & FT040A & 40 \\
+			52 & 62A & FT056A & 56 \\
+			53 & 69A & FT032A & 32 \\
+			54 & 68A & FT036A & 36 \\
+			55 & 67A & FT004A & 4 \\
+			56 & 66A & FT025A & 25 \\
+			57 & 55A & FT093A & 91 \\
+			58 & 54A & FT072A & 72 \\
+			59 & 53A & FT086A & 86 \\
+			60 & 52A & FT078A & 78 \\
+			61 & 59A & FT076A & 76 \\
+			62 & 58A & FT045A & 45 \\
+			63 & 57A & FT071A & 71 \\
+			64 & 56A & FT063A & 63 \\
+			65 & 45A & FT092A & 92 \\
+			66 & 44A & FT087A & 87 \\
+			67 & 43A & FT079A & 79 \\
+			68 & 42A & FT062A & 62 \\
+			69 & 49A & FT048A & 48 \\
+			70 & 48A & FT044A & 44 \\
+			71 & 47A & FT089A & 89 \\
+			72 & 46A & FT055A & 55 \\
+			73 & 71A & FT047A & 47 \\
+			74 & 61A & FT051A & 51 \\
+			75 & 51A & FT064A & 64 \\
+			76 & 41A & FT077A & 77 \\
+			77 & 50A & FT050A & 50 \\
+			78 & 60A & FT068A & 68 \\
+			79 & 70A & FT061A & 61 \\
+			80 & 80A & FT046A & 46 \\
+			81 & 35A & FT052A & 52 \\
+			82 & 34A & FT094A & 67 \\
+			83 & 33A & FT067A & 67 \\
+			84 & 32A & FT065A & 65 \\
+			85 & 39A & FT039A & 39 \\
+			86 & 38A & FT088A & 88 \\
+			87 & 37A & FT091A & 91 \\
+			88 & 36A & FT059A & 59 \\
+			89 & 25A & FT066A & 66 \\
+			90 & 24A & FT069A & 69 \\
+			91 & 23A & FT070A & 70 \\
+			92 & 22A & FT043A & 43 \\
+			93 & 29A & FT041A & 41 \\
+			94 & 28A & FT074A & 74 \\
+			95 & 27A & FT057A & 57 \\
+			96 & n/a & n/a & n/a \\
+			\hline
+		\end{tabular}
+	\end{center}
+	\caption{TELLIE channel to PSUP panel matching. The values were extracted from the database on 27/03/2017. The \href{http://couch.snopl.us/_utils/document.html?telliedb/bf55eb1d60fc6d997a4743eddbf37978}{channel-to-fibre mapping} was last updated on 11/12/2016, the \href{http://couch.snopl.us/_utils/document.html?telliedb/b7d1d36553889147908a41f2d47c753d}{fibre-to-panel mapping} on 16/02/2017. Channel 96 is not connected as of 28/03/2017, and may be used later on to measure the output of the loop-back fibre FT097A.}
+	\label{tab:channel_mapping}
+\end{table}
 
 \chapter{Known quirks \& behaviours}
 \label{chap:Quirks}
