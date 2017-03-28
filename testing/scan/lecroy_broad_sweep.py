@@ -18,6 +18,7 @@ import optparse
 import time
 import sweep
 import scope
+from common import parameters as p
 
 if __name__=="__main__":
     parser = optparse.OptionParser()
@@ -25,7 +26,7 @@ if __name__=="__main__":
     parser.add_option("-c", dest="channel", help="Channel number (1-8)")
     parser.add_option("-x", dest="cutoff", default=12000, help="Cutoff (IPW) from Ref sweep (sweep goes to cutoff + 500) [12000]")
     parser.add_option("-y", dest="start", default=0, help="Start (IPW) value [0]")
-    parser.add_option("-p", dest="port", default="/dev/tty.usbserial-FTGDFBHE")
+    parser.add_option("-p", dest="port", default=p._serial_port)
     (options, args) = parser.parse_args()
 
     #Set parameters

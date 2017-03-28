@@ -11,23 +11,24 @@
 import serial
 import time
 import optparse
+from common import parameters as p
 
 def clear_channel(s):
     """Clear things!
     """
     print "clear settings"
-    cmd = "C"
+    cmd = p._cmd_channel_clear
     s.write(cmd)
-    time.sleep(0.1)
+    time.sleep(p._short_pause)
     return cmd
 
 def select_channel(s, channel):
     """Just select the channel.
     """
     print "selecting channel: %s" % channel
-    cmd = "I" + chr(channel) + "N"  # select channel
+    cmd = p._cmd_channel_select_single_start + chr(channel) + p._cmd_channel_select_single_end  # select channel
     s.write(cmd)
-    time.sleep(0.1)
+    time.sleep(p._short_pause)
     return cmd
 
 
@@ -38,9 +39,9 @@ def set_pulse_height(s, height):
     print "setting pulse height: %s" % height
     hi = height >> 8
     lo = height & 255
-    cmd = "L" + chr(hi) + "M" + chr(lo) + "P"
+    cmd = p._cmd_pulse_height_hi + chr(hi) + p._cmd_pulse_height_lo + chr(lo) + p._cmd_pulse_height_end
     s.write(cmd)
-    time.sleep(0.1)
+    time.sleep(p._short_pause)
     return cmd
 
 def set_pulse_delay(s, delay):
@@ -50,9 +51,9 @@ def set_pulse_delay(s, delay):
     print "setting pulse delay: %s ms" % delay
     ms = int(delay)
     us = int((delay - ms)*250)
-    cmd = "u" + chr(ms) + chr(us)
+    cmd = p._cmd_pulse_delay + chr(ms) + chr(us)
     s.write(cmd)
-    time.sleep(0.1)
+    time.sleep(p._short_pause)
     return cmd
 
 def set_pulse_number(s, hi, lo):
@@ -62,9 +63,9 @@ def set_pulse_number(s, hi, lo):
     Lo: 1 - 255
     """
     print "setting pulse number: %s" % (hi * lo)
-    cmd = "H" + chr(hi) + "G" + chr(lo)
+    cmd = p._cmd_pulse_number_hi + chr(hi) + p._cmd_pulse_number_lo + chr(lo)
     s.write(cmd)
-    time.sleep(0.1)
+    time.sleep(p._short_pause)
     return cmd
 
 def set_trigger_delay(s, delay):
@@ -72,31 +73,31 @@ def set_trigger_delay(s, delay):
     delay * 5 ns.
     """
     print "setting the trigger delay: %s ns" % (delay * 5)
-    cmd = "d" + chr(delay)
+    cmd = p._cmd_trigger_delay + chr(delay)
     s.write(cmd)
-    time.sleep(0.1)
+    time.sleep(p._short_pause)
     return cmd
 
 def fire_continuous(s, seconds):
     """Fire a continuous pulse for n seconds
     """
     print "firing in continuous mode"
-    time.sleep(0.1) # ensure all parameter settings have loaded
+    time.sleep(p._short_pause) # ensure all parameter settings have loaded
     try:
-        s.write("a")
+        s.write(p._cmd_fire_continuous)
         time.sleep(seconds)
-        s.write("X") # stop!
+        s.write(p._cmd_stop) # stop!
     except:
         print "Pulsing interrupted! stopping"
-        s.write("X")
+        s.write(p._cmd_stop)
     print "stopped"
 
 def fire_sequence(s):
     """Fire the loaded sequence
     """
     print "firing in sequence mode"
-    time.sleep(0.1) # ensure all parameter settings have loaded
-    s.write("g") # just a sequence fire command
+    time.sleep(p._short_pause) # ensure all parameter settings have loaded
+    s.write(p._cmd_fire_series) # just a sequence fire command
     print "will continue to fire using the settings (number * delay) requested"
 
 
@@ -104,8 +105,8 @@ if __name__ == "__main__":
     parser = optparse.OptionParser()
     parser.add_option("-c", dest="channel", help="The channel to use",
                       type="int")
-    parser.add_option("-p", dest="port", help="Port to run [/dev/tty.usbserial-FTF5YKAZ]",
-                      default="/dev/tty.usbserial-FTE3C0PG")
+    parser.add_option("-p", dest="port", help="Port to run [/dev/tty*]",
+                      default=p._serial_port)
     parser.add_option("-z", dest="pulse_height", help="Pulse height [10000]",
                       default=10000, type="int")
     parser.add_option("-s", dest="sequence", help="Run in sequence mode?",
@@ -129,5 +130,7 @@ if __name__ == "__main__":
         fire_continuous(s, 10) # run for 10 seconds
     # finally, just check what was in the buffer
     print "Commands sent:", cmd
-    time.sleep(10)
-    print "Buffer contents:", s.read(100)
+    time.sleep(p._long_pause)
+    time.sleep(p._long_pause)
+    print "Buffer contents:", s.read(p._read_bytes)
+

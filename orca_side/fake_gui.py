@@ -28,8 +28,8 @@ import xmlrpclib
 import comms_thread
 import comms_thread_pool
 import tellie_database
-from common import tellie_logger, parameters
-
+from common import tellie_logger
+from common import parameters as p
 
 class TellieOptions(object):
     """Class that contains all the options from the GUI.
@@ -442,7 +442,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", dest="debug", action="store_true", default=False, help="Debug mode")
     parser.add_argument("-a", dest="address", default="localhost", help="Server address [localhost]")
-    parser.add_argument("-p", dest="port", type=int, default=5030, help="Server port [5030]")
+    parser.add_argument("-p", dest="port", type=int, default=p._server_port, help="Server port [5030]")
     parser.add_argument("-l", dest="usedb", action="store_true", help="Upload results to database")
     parser.add_argument("--logfile", dest="logfile", default="logs/gui", help="Log name")
     parser.add_argument("--server", dest="dbserver", default="http://127.0.0.1:5984", help="database server")
