@@ -424,6 +424,11 @@ class SerialCommand(object):
         self.log_phrase("Stop firing!", 0, _snotDaqLog)
         #Disable external trigger before we do anything
         self.disable_external_trigger()
+        self.clear_channel()
+        for c in self._channel:
+            self.clear_channel_settings(c)
+        self.clear_global_settings()
+        self._channel = []
         self._send_command(p._cmd_stop, False)
         time.sleep(p._short_pause)
         buffer_contents = self.read_buffer()
@@ -504,6 +509,7 @@ class SerialCommand(object):
         self.log_phrase("Read PINOUT sequence", 0, _snotDaqLog)
         if self._firing is not True:
             raise TellieException("Cannot read pin, not in firing mode")
+        time.sleep(0.2)
         output = self.read_buffer()
         
         self.log_phrase("BUFFER: %s" % output, 0, _snotDaqLog)

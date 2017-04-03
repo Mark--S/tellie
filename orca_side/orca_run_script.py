@@ -48,7 +48,6 @@ if __name__=="__main__":
         # Attempt a safe stop and inform in the return type as to the success?
         tellie_server.stop()
     tellie_server.stop()
-    tellie_server.clear_channel()
     print "Chan %s Mean %f RMS %f" %(chan,mean,rms)
         
 
