@@ -8,13 +8,26 @@ def safe_exit(sc,e):
     print "Exit safely"
     print e
     sc.stop()
+    sys.exit()
 
-def pulse_channel(width,delay,number,channel):
+def read_pin():
+    '''Wait keep looking for pin. It will be retuned when the sequence ends
+    '''
+    pin, rms = None, None
+    try:
+        while (pin == None):
+            pin, rms, channel = sc.read_pin_sequence()
+    except KeyboardInterrupt:
+        print "Keyboard interrupt"
+    except TypeError:
+        pin, rms = read_pin()
+    return int(pin), float(rms)
+
+def pulse_channel(sc,width,delay,number,channel):
     width = int(width)
     delay = float(delay)
     number = int(number)
     channel = int(channel)
-    sc = SerialCommand(p._serial_port)
     sc.stop()
     sc.select_channel(channel)
     sc.set_trigger_delay(0)
@@ -40,6 +53,7 @@ def pulse_channel(width,delay,number,channel):
     print "\nPIN: %s \nRMS: %s\n" % (mean, rms)
 
 if __name__=="__main__":
+    sc = SerialCommand(p._serial_port)
     WIDTH = p._max_pulse_width      # IPW (TODO: read from ratDB)
     RATE = 10                       # Hz (TODO: add parameter)
     NUM  = 10                       # Number of pulses
@@ -48,9 +62,9 @@ if __name__=="__main__":
     delay = float(1.e-3/RATE)       # ms
     for ch in CHAN:
         print "Attempting to pulse channel %d" % ch
-        pulse_channel(WIDTH,delay,NUM,ch) 
+        pulse_channel(sc,WIDTH,delay,NUM,ch) 
         print "Successfully pulsed channel %d" % ch
-        time.sleep(p._long_pause)
+        time.sleep(p._medium_pause)
         print "-----"
-    print "SUCCESS"
+    print "SUCCESS - ALL CHANNELS FIRED"
 
