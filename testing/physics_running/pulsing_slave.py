@@ -1,4 +1,4 @@
-### continuously pulses fibres during physics runs (at set frequency)
+### continuously pulses fibres during physics runs (externally triggered)
 import sys
 import time
 from core.tellie_server import SerialCommand
@@ -23,9 +23,8 @@ def read_pin():
         pin, rms = read_pin()
     return int(pin), float(rms)
 
-def pulse_channel(sc,width,delay,number,channel):
+def pulse_channel(sc,width,number,channel):
     width = int(width)
-    delay = float(delay)
     number = int(number)
     channel = int(channel)
     sc.stop()
@@ -33,13 +32,11 @@ def pulse_channel(sc,width,delay,number,channel):
     sc.clear_channel()
     time.sleep(p._short_pause)
     sc.select_channel(channel)
-    sc.set_trigger_delay(0)
     sc.set_pulse_height(p._max_pulse_height)
     sc.set_pulse_width(width)
-    sc.set_pulse_delay(delay)
     sc.set_pulse_number(number)
     try:
-        sc.fire_sequence()
+        sc.trigger_averaged()
     except Exception,e:
         safe_exit(sc,e)
     except KeyboardInterrupt:
@@ -59,14 +56,12 @@ def pulse_channel(sc,width,delay,number,channel):
 if __name__=="__main__":
     sc = SerialCommand(p._serial_port)
     WIDTH = p._max_pulse_width      # IPW (TODO: read from ratDB)
-    RATE = 1000                     # Hz (TODO: add parameter)
     NUM  = 1000                     # Number of pulses per channel
     CHAN = (6,7,8)                  # Channels on Sussex test bench
-    print "\nINFO - Will try to pulse each channel %d times at %f Hz\n" % (NUM, RATE)
-    delay = float(1000./RATE)       # ms
+    print "\nINFO - Will try to pulse each channel %d times (externally triggered)\n" % (NUM)
     for ch in CHAN:
         print "INFO - Attempting to pulse channel %d\n" % ch
-        pulse_channel(sc,WIDTH,delay,NUM,ch) 
+        pulse_channel(sc,WIDTH,NUM,ch) 
         print "INFO - Successfully pulsed channel %d\n" % ch
         time.sleep(p._medium_pause)
     print "INFO - SUCCESS - ALL CHANNELS FIRED\n"
