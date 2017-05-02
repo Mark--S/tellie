@@ -23,6 +23,7 @@ _scope_name = str(config.get('CONNECTION', 'scope_name'))
 
 # Parameters for read/write commands
 _debug_mode = config.getboolean('PARAMETERS', 'debug_mode')
+_buffer_pause = config.getfloat('PARAMETERS', 'buffer_pause')
 _short_pause = config.getfloat('PARAMETERS', 'short_pause')
 _medium_pause = config.getfloat('PARAMETERS', 'medium_pause')
 _long_pause = config.getfloat('PARAMETERS', 'long_pause')
