@@ -5,11 +5,19 @@
 
 import math
 import sys
+import os
 import ConfigParser
 
 # Read config file
 config = ConfigParser.ConfigParser()
-config.readfp(open('tellie.cfg'))
+# Search PYTHONPATH for tellie.cfg
+paths = os.environ['PYTHONPATH'].split(os.pathsep)
+for path in paths:
+    try:
+        config.readfp(open(path+'/tellie.cfg'))
+        break
+    except:
+        continue
 
 # Connection to host
 _serial_port = str(config.get('CONNECTION', 'serial_port'))
