@@ -361,7 +361,7 @@ class SerialCommand(object):
         buffer_check = p._cmd_fire_series
         #if the series is less than 0.5 seconds, also check for the end of sequence
         if (self._current_pulse_number * self._current_pulse_delay) < 500:
-            buffer_check += _buffer_end_sequence
+            buffer_check += p._buffer_end_sequence
             self._send_command(p._cmd_fire_series, buffer_check=buffer_check)
         else:
             self._send_command(p._cmd_fire_series, buffer_check=buffer_check)
@@ -441,7 +441,7 @@ class SerialCommand(object):
         self.log_phrase("Read PINOUT", 0, _snotDaqLog)
         #if in firing mode, check the buffer shows the sequence has ended
         if self._firing:
-            if self.read_buffer() == _buffer_end_sequence:
+            if self.read_buffer() == p._buffer_end_sequence:
                 print "K in buffer"
                 self._firing = False
             else:
