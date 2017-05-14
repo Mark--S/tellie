@@ -23,6 +23,7 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+rat_infinity = 2147483647
 
 def read_csv_patch_map(fname):
     '''Import csv file containing Channel->Patch->Fibre mapping.
@@ -59,9 +60,9 @@ def make_mapping_dict(fname):
         print bcolors.WARNING + "That wasn't a number!" + bcolors.ENDC
         raise e
 
-    last_valid = raw_input('Which run is this patch map valid until? If indefinite please set to 0. [0]: ')
+    last_valid = raw_input('Which run is this patch map valid until? If indefinite leave blank and it will be set to rat infinity. [2147483647]: ')
     if last_valid is "":
-        last_valid = 0
+        last_valid = rat_infinity
     else:
         try:
             last_valid = int(last_valid)
