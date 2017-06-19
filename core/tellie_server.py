@@ -119,9 +119,9 @@ class SerialCommand(object):
         # Cache current settings - remove need to re-command where possible
         # Channel specific settings
         self._channel = [] #always a list
-        self._current_pulse_width = [-999]*96
-        self._current_pulse_height = [-999]*96
-        self._current_fibre_delay = [-999]*96
+        self._current_pulse_width = [-999]*105
+        self._current_pulse_height = [-999]*105
+        self._current_fibre_delay = [-999]*105
 
         # Global settings
         self._current_pulse_number = None
