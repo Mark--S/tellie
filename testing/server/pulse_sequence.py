@@ -31,7 +31,7 @@ if __name__=="__main__":
     try:
         print "Waiting for sequence to finish..."
         while (mean == None):
-            mean, rms, chan = server.read_pin_sequence()
+       	    mean, rms, chan = server.read_pin_sequence()
     except Exception,e:
         safe_exit(server,e)
     except KeyboardInterrupt:

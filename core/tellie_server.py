@@ -509,25 +509,25 @@ class SerialCommand(object):
         self.log_phrase("Read PINOUT sequence", 0, _snotDaqLog)
         if self._firing is not True:
             raise TellieException("Cannot read pin, not in firing mode")
-        time.sleep(p._short_pause)
+        time.sleep(3*p._short_pause)
         output = self.read_buffer()
         
         self.log_phrase("BUFFER: %s" % output, 0, _snotDaqLog)
         numbers = output.split()
         if len(numbers) == 0:
             self.log_phrase("Sequence doesn't appear to have finished..", 0, _snotDaqLog)
-            return None
+            return None, None, None
         elif len(numbers) == 2:
             try:
                 pin = float(numbers[0])
                 rms = float(numbers[1])
             except:
                 self.log_phrase("Unable to convert numbers to floats Numbers: %s Buffer: %s",str(numbers),output, 2, _snotDaqLog)
-                return None
+                return None, None, None
 
         else:
             self.log_phrase("Bad number of PIN readouts: %s %s" % (len(numbers), numbers), 2, _snotDaqLog)
-            return None
+            return None, None, None
         self._firing = False
         value_dict = {self._channel[0]: pin}
         rms_dict = {self._channel[0]: rms}
