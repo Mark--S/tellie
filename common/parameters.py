@@ -5,11 +5,19 @@
 
 import math
 import sys
+import os
 import ConfigParser
 
 # Read config file
 config = ConfigParser.ConfigParser()
-config.readfp(open('tellie.cfg'))
+# Search PYTHONPATH for tellie.cfg
+paths = os.environ['PYTHONPATH'].split(os.pathsep)
+for path in paths:
+    try:
+        config.readfp(open(path+'/tellie.cfg'))
+        break
+    except:
+        continue
 
 # Connection to host
 _serial_port = str(config.get('CONNECTION', 'serial_port'))
@@ -23,6 +31,7 @@ _scope_name = str(config.get('CONNECTION', 'scope_name'))
 
 # Parameters for read/write commands
 _debug_mode = config.getboolean('PARAMETERS', 'debug_mode')
+_buffer_pause = config.getfloat('PARAMETERS', 'buffer_pause')
 _short_pause = config.getfloat('PARAMETERS', 'short_pause')
 _medium_pause = config.getfloat('PARAMETERS', 'medium_pause')
 _long_pause = config.getfloat('PARAMETERS', 'long_pause')
