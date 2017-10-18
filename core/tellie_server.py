@@ -446,7 +446,7 @@ class SerialCommand(object):
                 self._firing = False
             else:
                 print "No K in buffer"
-                return None, None
+                return None
         if channel:
             if self._reading is True:
                 if channel != self._channel[0]:
@@ -472,7 +472,7 @@ class SerialCommand(object):
                 time.sleep(p._short_pause)
             if len(pin) == 0:
                 self._reading = True
-                return None, None
+                return None
             elif len(pin) == 1:
 		        pin.append(0)
 		        pin.append(0)
@@ -515,18 +515,18 @@ class SerialCommand(object):
         numbers = output.split()
         if len(numbers) == 0:
             self.log_phrase("Sequence doesn't appear to have finished..", 0, _snotDaqLog)
-            return None, None, None
+            return None
         elif len(numbers) == 2:
             try:
                 pin = float(numbers[0])
                 rms = float(numbers[1])
             except:
                 self.log_phrase("Unable to convert numbers to floats Numbers: %s Buffer: %s",str(numbers),output, 2, _snotDaqLog)
-                return None, None, None
+                return None
 
         else:
             self.log_phrase("Bad number of PIN readouts: %s %s" % (len(numbers), numbers), 2, _snotDaqLog)
-            return None, None, None
+            return None
         self._firing = False
         value_dict = {self._channel[0]: pin}
         rms_dict = {self._channel[0]: rms}
