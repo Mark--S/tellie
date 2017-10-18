@@ -144,12 +144,17 @@ def tellie_fire(tellie_serial, json_settings):
 def tellie_read(tellie_serial):
     """Read a the PINout from the fired channels"""
     try:
-        pin_out, rms, channel_list = tellie_serial.read_pin_sequence()
+        pin_out = None
+        while (pin_out==None):
+            try:
+                pin_out, rms, channel_list = tellie_serial.read_pin_sequence()
+            except TypeError:
+                pin_out = None
         if comms_flags.valid_pin(pin_out, channel_list):
             print pin_out
             return '%s|%s' % (comms_flags.tellie_pinout, json.dumps(pin_out))
         else:
-            return comms_flags.tellie_notready
+           return comms_flags.tellie_notready
     except tellie_exception.TellieException, e:
         pin_out = ''
         print e, type(e)

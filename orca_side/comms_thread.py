@@ -141,27 +141,33 @@ class LoadFireThread(CommsThread):
                     self.shutdown_thread(True, "CALLED STOP!")
                     return
             try:
-                pin_out, channel_list = self.server.read_pin_sequence()
+                pin_out = None
+                while (pin_out == None):
+                    try:
+                        pin_out, rms, channel_list = self.server.read_pin_sequence()
+                    except TypeError:
+                        pin_out = None
             except xmlrpclib.Fault, e:
                 self.attempt_stop()
                 self.save_errors("READ ERROR: %s" % (e.faultString))
                 self.shutdown_thread(True, "READ ERROR: %s" % (e.faultString))
                 return
-            while not pin_out:
-                time.sleep(p._short_pause)
-                if self.stopped():
-                    #Stop the thread here!
-                    self.attempt_stop()
-                    self.save_errors("CALLED STOP")
-                    self.shutdown_thread(1, "CALLED STOP!")
-                    return
-                try:
-                    pin_out, channel_list = self.server.read_pin_sequence()
-                except xmlrpclib.Fault, e:
-                    self.attempt_stop()
-                    self.save_errors("READ ERROR: %s" % (e.faultString))
-                    self.shutdown_thread(True, "READ ERROR: %s" % (e.faultString))
-                    return
+            ## Commented this ridiculously old code (Martti, Oct 2017)
+            #while not pin_out:
+            #    time.sleep(p._short_pause)
+            #    if self.stopped():
+            #        #Stop the thread here!
+            #        self.attempt_stop()
+            #        self.save_errors("CALLED STOP")
+            #        self.shutdown_thread(1, "CALLED STOP!")
+            #        return
+            #    try:
+            #        pin_out, channel_list = self.server.read_pin_sequence()
+            #    except xmlrpclib.Fault, e:
+            #        self.attempt_stop()
+            #        self.save_errors("READ ERROR: %s" % (e.faultString))
+            #        self.shutdown_thread(True, "READ ERROR: %s" % (e.faultString))
+            #        return
             pin_readings.append(pin_out)
             sub_pulses.append(fire["pulse_number"])
 
