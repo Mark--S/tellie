@@ -17,9 +17,6 @@ if __name__=="__main__":
     args = parser.parse_args()
 
     tellie_server= xmlrpclib.ServerProxy('http://%s:%s' % (args.server, args.port))
-    chan = args.channel
-    mean = -1
-    rms = -1
     try:
         # TODO:
         # Parameter checks need to be performed here
@@ -31,16 +28,12 @@ if __name__=="__main__":
         tellie_server.fire_sequence()
 	try: 
 	    print "Waiting for sequence to finish..."
-            while (mean == -1):
+            mean = None
+            while (mean == None):
                 try:
                     mean, rms, chan = tellie_server.read_pin_sequence()
                 except TypeError:
                     mean = None
-		if mean == None:
-		    mean = -1 
-	            rms = -1
-                    chan = args.channel
-
     	except xmlrpclib.Fault, e:
 	    # Attempt a safe stop and inform in the return type as to the success?
 	    tellie_server.stop()

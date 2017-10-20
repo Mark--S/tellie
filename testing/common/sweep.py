@@ -81,7 +81,10 @@ def get_min_volt(channel,height,width,delay,scope,scale=None,trigger=None,min_tr
     sc.fire_sequence()
     pin, rms = None, None
     while pin==None:
-        pin, rms, _ = sc.read_pin_sequence()
+        try:
+            pin, rms, _ = sc.read_pin_sequence()
+        except TypeError:
+            pin = None
     print "PIN (min_volt):",pin
     #single pulse fired, read from the scope  
     if scope_name == "Tektronix3000":
@@ -172,9 +175,12 @@ def sweep(dir_out,file_out,box,channel,width,delay,scope,min_volt=None,min_trigg
     tsleep = pulse_number * (delay*1e-3 + 210e-6)
     time.sleep(tsleep) #add the offset in
     pin, rms = None, None
-   # while not comms_flags.valid_pin(pin,channel):
+    #while not comms_flags.valid_pin(pin,channel):
     while pin==None:
-        pin, rms, _ = sc.read_pin_sequence()
+        try:
+            pin, rms, _ = sc.read_pin_sequence()
+        except TypeError:
+            pin = None
     print "PIN (sweep):",pin
     #should now have an averaged waveform
     directory = "%s/channel_%02d"%(dir_out,logical_channel)

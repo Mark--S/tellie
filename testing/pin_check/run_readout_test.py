@@ -49,7 +49,10 @@ if __name__=="__main__":
         ntries = 0
         while pin is None:
             time.sleep(p._short_pause)
-            pin, rms,  _ = sc.read_pin_sequence()
+            try:
+                pin, rms,  _ = sc.read_pin_sequence()
+            except TypeError:
+                pin = None
             ntries += 1 
             print ntries, pin
             if ntries>5:

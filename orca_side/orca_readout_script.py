@@ -14,15 +14,14 @@ if __name__=="__main__":
     
     # Unsure of how to report different errors to Orca
     # Return values?  Seems ugly.
-
     try:
-        pins, channels = tellie_server.read_pin_sequence()
-        if pins is None:
-            # Sequence is incomplete; handle in return type?
-            sys.exit(1)
-        else:
-            # This is fine, report the pin in a print
-            print pins
+        pins = None
+        while (pins == None):
+            try:
+                pins, rms, channels = tellie_server.read_pin_sequence()
+            except TypeError:
+                pins = None
+        print pins
     except xmlrpclib.Fault, e:
         print "Error! attempting to exit safely", e
         tellie_server.stop()

@@ -22,7 +22,10 @@ def send_pulses_dark(sc, channel, width, number):
     time.sleep((sequence_time + 0.2) * 0.001) # Add 200us offset
     pin_out, rms = None, None
     while pin_out is None:
-        pin_out, rms, channel_list = sc.read_pin_sequence()
+        try:
+            pin_out, rms, channel_list = sc.read_pin_sequence()
+        except TypeError:
+            pin_out = None
 
 def send_pulses_light(sc, channel, width, number, scope, init_time):
     sc.select_channel(channel)
@@ -34,7 +37,10 @@ def send_pulses_light(sc, channel, width, number, scope, init_time):
     time.sleep((sequence_time + 0.2) * 0.001) # Add 200us offset
     pin_out, rms = None, None
     while pin_out is None:
-        pin_out, rms, channel_list = sc.read_pin_sequence()
+        try:
+            pin_out, rms, channel_list = sc.read_pin_sequence()
+        except TypeError:
+            pin_out = None
     
     results = {}
     results["time"] = float(time.time()) - float(init_time)

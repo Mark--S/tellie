@@ -17,7 +17,10 @@ def l(sc, c, n, sp, i):
     sc.set_pulse_number(n)
     sc.fire_sequence()
     while po is None:
-        po, rms, cl = sc.read_pin_sequence()
+        try:
+            po, rms, cl = sc.read_pin_sequence()
+        except TypeError:
+            po = None
     r = {}
     r["t"] = time.time() - i
     r["a"] = (sp.measure(1,"area"))

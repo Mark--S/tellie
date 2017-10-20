@@ -15,7 +15,10 @@ def read_pin():
     pin, rms = None, None
     try:
         while (pin == None):
-            pin, rms, channel = sc.read_pin_sequence()
+            try:
+                pin, rms, channel = sc.read_pin_sequence()
+            except TypeError:
+                pin = None
     except KeyboardInterrupt:
         print "Keyboard interrupt"
     except TypeError:

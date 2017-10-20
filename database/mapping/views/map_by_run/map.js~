@@ -1,5 +1,0 @@
-function(doc){
-    if(doc.type=="mapping"){
-        emit([doc.index, doc.run_range, doc.pass], [1]);
-    }
-}

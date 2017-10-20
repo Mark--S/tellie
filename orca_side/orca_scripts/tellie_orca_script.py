@@ -31,7 +31,13 @@ if __name__=="__main__":
         time.sleep(p._long_pause)
 #        print tellie_server.fire_single()
         print "reading..."
-        print tellie_server.read_pin_sequence()
+        pin = None
+        while (pin == None):
+            try:
+                pin, rms, chan = tellie_server.read_pin_sequence()
+            except TypeError:
+                pin = None
+        print pin, rms, chan
         print "DONE"
     except xmlrpclib.Fault, e:
         tellie_server.safe_exit()

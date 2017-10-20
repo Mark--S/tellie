@@ -21,16 +21,13 @@ if __name__=="__main__":
         # Return values?  Seems ugly.
 
         try:
-            channelDict, channels = tellie_server.read_pin_sequence()
-            pin = channelDict[channels][0]
-            rms = channelDict[channels][1]
-            #print "PIN READOUT:", pins, channels
-            if pin is None:
-                # Sequence is incomplete; handle in return type?
-                _logger.Log(Logger.WARNING, "Pin readout returned None")
-                sys.exit(1)
-            else:
-                return pin, rms, channel
+            pin = None
+            while (pin == None):
+                try:
+                    pin, rms, channel = tellie_server.read_pin_sequence()
+                except TypeError:
+                    pin = None
+            return pin, rms, channel
         except xmlrpclib.Fault, e:
             print "Error! attempting to exit safely", e
             tellie_server.stop()

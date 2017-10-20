@@ -32,7 +32,10 @@ if __name__=="__main__":
     try:
         print "Waiting for sequence to finish..."
         while (mean == None):
-            mean, rms, chan = server.read_pin_sequence()
+            try:
+                mean, rms, chan = server.read_pin_sequence()
+            except TypeError:
+                mean = None
     except Exception,e:
         safe_exit(server,e)
     except KeyboardInterrupt:
