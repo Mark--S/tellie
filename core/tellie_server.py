@@ -516,8 +516,24 @@ class SerialCommand(object):
         if len(numbers) == 0:
             self.log_phrase("Sequence doesn't appear to have finished..", 0, _snotDaqLog)
             return None
-        elif len(numbers) == 2:
+        #If we only get one number it is likely the PIC hasnt finished writing to the buffer
+        if len(numbers) == 1:
+            #Wait a bit longer and then read out the buffer again
+            time.sleep(p._short_pause)
+            outputNew = self.read_buffer()
+            #Combine the two buffer outputs and try to parse the PIN readings
+            output += outputNew
+            numbers =  output.split()
+        if len(numbers) == 2:
             try:
+                #The RMS is written to 6 decimal places so check that the PIC chip has written the PIN reading completely
+                if len(numbers[1].split(".")[-1]) < 6:
+                    #Wait a bit longer and then read out the buffer again
+                    time.sleep(p._short_pause)
+                    outputNew = self.read_buffer()
+                    output += outputNew
+                    numbers =  output.split()
+
                 pin = float(numbers[0])
                 rms = float(numbers[1])
             except:
