@@ -527,7 +527,7 @@ class SerialCommand(object):
         if len(numbers) == 2:
             try:
                 #The RMS is written to 6 decimal places so check that the PIC chip has written the PIN reading completely
-                while len(numbers[1].split(".")[-1]) < 6:
+                if len(numbers[1].split(".")[-1]) < 6:
                     #Wait a bit longer and then read out the buffer again
                     time.sleep(p._short_pause)
                     outputNew = self.read_buffer()
