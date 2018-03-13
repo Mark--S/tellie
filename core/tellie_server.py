@@ -524,6 +524,11 @@ class SerialCommand(object):
             #Combine the two buffer outputs and try to parse the PIN readings
             output += outputNew
             numbers =  output.split()
+            #If we still dont get two numbers after waiting to read out the buffer again log an error and return None
+            if len(numbers) == 1:
+                self.log_phrase("Unable to convert numbers to floats Numbers: %s Buffer: %s",str(numbers),output, 2, _snotDaqLog)
+                return None
+        
         if len(numbers) == 2:
             try:
                 #The RMS is written to 6 decimal places so check that the PIC chip has written the PIN reading completely
