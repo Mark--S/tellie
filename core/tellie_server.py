@@ -526,7 +526,7 @@ class SerialCommand(object):
             numbers =  output.split()
             #If we still dont get two numbers after waiting to read out the buffer again log an error and return None
             if len(numbers) == 1:
-                self.log_phrase("Unable to convert numbers to floats Numbers: %s Buffer: %s",str(numbers),output, 2, _snotDaqLog)
+                self.log_phrase("Unable to parse more than one number when reading PIN from buffer. Numbers: %s Buffer: %s",str(numbers),output, 2, _snotDaqLog)
                 return None
         
         if len(numbers) == 2:
